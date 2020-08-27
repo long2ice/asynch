@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ClientPacket(Enum):
+class ClientPacket:
     """
     Packet types that client transmits
     """
@@ -25,8 +25,18 @@ class ClientPacket(Enum):
     # Check status of tables on the server.
     TABLES_STATUS_REQUEST = 5
 
+    _types_str = [
+        'Hello', 'Data', 'Exception', 'Progress', 'Pong', 'EndOfStream',
+        'ProfileInfo', 'Totals', 'Extremes', 'TablesStatusResponse', 'Log',
+        'TableColumns'
+    ]
 
-class ServerPacket(Enum):
+    @classmethod
+    def to_str(cls, packet):
+        return 'Unknown packet' if packet > 11 else cls._types_str[packet]
+
+
+class ServerPacket:
     """
     Packet types that server transmits.
     """
@@ -67,17 +77,17 @@ class ServerPacket(Enum):
     TABLE_COLUMNS = 11
 
 
-class Compression(Enum):
+class Compression:
     DISABLED = 0
     ENABLED = 1
 
 
-class CompressionMethod(Enum):
+class CompressionMethod:
     LZ4 = 1
     LZ4HC = 2
     ZSTD = 3
 
 
-class CompressionMethodByte(Enum):
+class CompressionMethodByte:
     LZ4 = 0x82
     ZSTD = 0x90
