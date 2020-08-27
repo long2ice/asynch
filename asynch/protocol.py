@@ -1,10 +1,8 @@
-from enum import Enum
-
-
 class ClientPacket:
     """
     Packet types that client transmits
     """
+
     # Name, version, revision, default DB
     HELLO = 0
 
@@ -26,20 +24,30 @@ class ClientPacket:
     TABLES_STATUS_REQUEST = 5
 
     _types_str = [
-        'Hello', 'Data', 'Exception', 'Progress', 'Pong', 'EndOfStream',
-        'ProfileInfo', 'Totals', 'Extremes', 'TablesStatusResponse', 'Log',
-        'TableColumns'
+        "Hello",
+        "Data",
+        "Exception",
+        "Progress",
+        "Pong",
+        "EndOfStream",
+        "ProfileInfo",
+        "Totals",
+        "Extremes",
+        "TablesStatusResponse",
+        "Log",
+        "TableColumns",
     ]
 
     @classmethod
     def to_str(cls, packet):
-        return 'Unknown packet' if packet > 11 else cls._types_str[packet]
+        return "Unknown packet" if packet > 11 else cls._types_str[packet]
 
 
 class ServerPacket:
     """
     Packet types that server transmits.
     """
+
     # Name, version, revision.
     HELLO = 0
 
@@ -75,6 +83,25 @@ class ServerPacket:
 
     # Columns' description for default values calculation
     TABLE_COLUMNS = 11
+
+    _types_str = [
+        "Hello",
+        "Data",
+        "Exception",
+        "Progress",
+        "Pong",
+        "EndOfStream",
+        "ProfileInfo",
+        "Totals",
+        "Extremes",
+        "TablesStatusResponse",
+        "Log",
+        "TableColumns",
+    ]
+
+    @classmethod
+    def to_str(cls, packet):
+        return "Unknown packet" if packet > 11 else cls._types_str[packet]
 
 
 class Compression:
