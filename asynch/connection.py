@@ -4,35 +4,33 @@ from typing import Optional
 from urllib.parse import urlparse
 
 from asynch import constants
-from asynch.exceptions import UnexpectedPacketFromServerError
+from asynch.cs import ClientInfo, QueryKind, ServerInfo
+from asynch.exceptions import UnexpectedPacketFromServerError, UnknownPacketFromServerError
+from asynch.io import BufferedReader, BufferedWriter
 from asynch.protocol import ClientPacket, Compression, ServerPacket
-from asynch.reader import BufferedReader
-from asynch.writer import BufferedWriter
+from asynch.settings import write_settings
 
 logger = logging.getLogger(__name__)
 
 
-class ServerInfo:
-    def __init__(
-        self,
-        name: str,
-        version_major: int,
-        version_minor: int,
-        version_patch: int,
-        revision: int,
-        timezone: str,
-        display_name: str,
-    ):
-        self.name = name
-        self.version_major = version_major
-        self.version_minor = version_minor
-        self.version_patch = version_patch
-        self.revision = revision
-        self.timezone = timezone
-        self.display_name = display_name
+class QueryProcessingStage:
+    """
+    Determines till which state SELECT query should be executed.
+    """
 
-    def version_tuple(self):
-        return self.version_major, self.version_minor, self.version_patch
+    FETCH_COLUMNS = 0
+    WITH_MERGEABLE_STATE = 1
+    COMPLETE = 2
+
+
+class Packet:
+    def __init__(self):
+        self.type = None
+        self.block = None
+        self.exception = None
+        self.progress = None
+        self.profile_info = None
+        self.multistring_message = None
 
 
 class Connection:
@@ -100,16 +98,18 @@ class Connection:
         self.reader: Optional[BufferedReader] = None
         self.writer: Optional[BufferedWriter] = None
         self.server_info: Optional[ServerInfo] = None
+        self.settings = None
+        self.client_settings = None
 
     async def send_hello(self):
         await self.writer.write_varint(ClientPacket.HELLO)
-        await self.writer.write_bytes(self.client_name)
+        await self.writer.write_str(self.client_name)
         await self.writer.write_varint(constants.CLIENT_VERSION_MAJOR)
         await self.writer.write_varint(constants.CLIENT_VERSION_MINOR)
         await self.writer.write_varint(constants.CLIENT_REVISION)
-        await self.writer.write_bytes(self.database)
-        await self.writer.write_bytes(self.user)
-        await self.writer.write_bytes(self.password)
+        await self.writer.write_str(self.database)
+        await self.writer.write_str(self.user)
+        await self.writer.write_str(self.password)
         await self.writer.flush()
 
     def get_server(self):
@@ -172,6 +172,7 @@ class Connection:
 
     async def ping(self):
         await self.writer.write_varint(ClientPacket.PING)
+        await self.writer.flush()
         packet_type = await self.reader.read_varint()
         while packet_type == ServerPacket.PROGRESS:
             await self.receive_progress()
@@ -181,14 +182,75 @@ class Connection:
             raise UnexpectedPacketFromServerError(msg)
         return True
 
+    async def receive_packet(self):
+        packet = Packet()
+
+        packet.type = packet_type = await self.reader.read_varint()
+
+        if packet_type == ServerPacket.DATA:
+            packet.block = await self.receive_data()
+
+        elif packet_type == ServerPacket.EXCEPTION:
+            packet.exception = await self.receive_exception()
+
+        elif packet.type == ServerPacket.PROGRESS:
+            packet.progress = await self.receive_progress()
+
+        elif packet.type == ServerPacket.PROFILE_INFO:
+            packet.profile_info = await self.receive_profile_info()
+
+        elif packet_type == ServerPacket.TOTALS:
+            packet.block = await self.receive_data()
+
+        elif packet_type == ServerPacket.EXTREMES:
+            packet.block = await self.receive_data()
+
+        elif packet_type == ServerPacket.LOG:
+            block = await self.receive_data()
+
+        elif packet_type == ServerPacket.END_OF_STREAM:
+            pass
+
+        elif packet_type == ServerPacket.TABLE_COLUMNS:
+            packet.multistring_message = self.receive_multistring_message(packet_type)
+
+        else:
+            await self.disconnect()
+            raise UnknownPacketFromServerError(
+                "Unknown packet {} from server {}".format(packet_type, self.get_server())
+            )
+
+        return packet
+
     async def receive_progress(self):
         pass
 
     async def send_cancel(self):
-        pass
+        await self.writer.write_varint(ClientPacket.CANCEL)
+        await self.writer.flush()
 
-    async def send_query(self):
-        pass
+    async def send_query(self, query: str, query_id: str = ""):
+        await self.writer.write_varint(ClientPacket.QUERY)
+        await self.writer.write_str(query_id)
+        revision = self.server_info.revision
+        if revision >= constants.DBMS_MIN_REVISION_WITH_CLIENT_INFO:
+            client_info = ClientInfo(self.client_name)
+            client_info.query_kind = QueryKind.INITIAL_QUERY
+            await client_info.write(revision, self.writer)
+
+        settings_as_strings = (
+            revision >= constants.DBMS_MIN_REVISION_WITH_SETTINGS_SERIALIZED_AS_STRINGS
+        )
+        await write_settings(self.writer, self.settings, settings_as_strings)
+
+        await self.writer.write_varint(QueryProcessingStage.COMPLETE)
+        await self.writer.write_varint(self.compression)
+
+        await self.writer.write_str(query,)
+
+        logger.debug("Query: %s", query)
+
+        await self.writer.flush()
 
     async def _init_connection(self, host: str, port: int):
         self.host, self.port = host, port

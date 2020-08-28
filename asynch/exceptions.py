@@ -396,3 +396,47 @@ class ServerException(ClickHouseException):
 
 class UnexpectedPacketFromServerError(ClickHouseException):
     code = ErrorCode.UNEXPECTED_PACKET_FROM_SERVER
+
+
+class LogicalError(ClickHouseException):
+    code = ErrorCode.LOGICAL_ERROR
+
+
+class UnknownTypeError(ClickHouseException):
+    code = ErrorCode.UNKNOWN_TYPE
+
+
+class ChecksumDoesntMatchError(ClickHouseException):
+    code = ErrorCode.CHECKSUM_DOESNT_MATCH
+
+
+class TypeMismatchError(ClickHouseException):
+    code = ErrorCode.TYPE_MISMATCH
+
+
+class UnknownCompressionMethod(ClickHouseException):
+    code = ErrorCode.UNKNOWN_COMPRESSION_METHOD
+
+
+class TooLargeStringSize(ClickHouseException):
+    code = ErrorCode.TOO_LARGE_STRING_SIZE
+
+
+class NetworkError(ClickHouseException):
+    code = ErrorCode.NETWORK_ERROR
+
+
+class SocketTimeoutError(ClickHouseException):
+    code = ErrorCode.SOCKET_TIMEOUT
+
+
+class UnknownPacketFromServerError(ClickHouseException):
+    code = ErrorCode.UNKNOWN_PACKET_FROM_SERVER
+
+
+class CannotParseUuidError(ClickHouseException):
+    code = ErrorCode.CANNOT_PARSE_UUID
+
+
+class CannotParseDomainError(ClickHouseException):
+    code = ErrorCode.CANNOT_PARSE_DOMAIN_VALUE_FROM_STRING
