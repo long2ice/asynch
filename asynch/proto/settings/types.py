@@ -1,5 +1,5 @@
-from asynch.io import BufferedWriter
-from asynch.utils.compat import asbool
+from asynch.proto.io import BufferedWriter
+from asynch.proto.utils.compat import asbool
 
 
 class SettingType:

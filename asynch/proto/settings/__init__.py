@@ -1,8 +1,8 @@
 import logging
 from typing import Dict
 
-from asynch.io import BufferedWriter
-from asynch.settings.available import settings as available_settings
+from asynch.proto.io import BufferedWriter
+from asynch.proto.settings.available import settings as available_settings
 
 logger = logging.getLogger(__name__)
 

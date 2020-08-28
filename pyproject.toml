@@ -17,6 +17,7 @@ include = ["LICENSE", "README.md"]
 [tool.poetry.dependencies]
 python = "^3.8"
 leb128 = "*"
+pytz = "*"
 
 [tool.poetry.dev-dependencies]
 flake8 = "*"

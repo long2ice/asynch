@@ -1,4 +1,4 @@
-from .types import (
+from asynch.proto.settings.types import (
     SettingBool,
     SettingChar,
     SettingFloat,

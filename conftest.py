@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from asynch.connection import Connection
+from asynch.proto.connection import Connection
 
 conn = Connection()
 

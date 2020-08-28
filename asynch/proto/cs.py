@@ -1,9 +1,9 @@
 import getpass
 import socket
 
-from asynch import constants
-from asynch.exceptions import LogicalError
-from asynch.io import BufferedWriter
+from asynch.proto import constants
+from asynch.proto.exceptions import LogicalError
+from asynch.proto.io import BufferedWriter
 
 
 class ServerInfo:

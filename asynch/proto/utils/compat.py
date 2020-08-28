@@ -1,8 +1,17 @@
 from urllib.parse import parse_qs, unquote, urlparse  # noqa: F401
 
+string_types = (str,)
+integer_types = (int,)
+class_types = (type,)
+text_type = str
+binary_type = bytes
+range = range
+StandardError = Exception
 
+
+# from paste.deploy.converters
 def asbool(obj):
-    if isinstance(obj, str):
+    if isinstance(obj, string_types):
         obj = obj.strip().lower()
         if obj in ["true", "yes", "on", "y", "t", "1"]:
             return True

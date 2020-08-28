@@ -3,11 +3,11 @@ from asyncio import StreamReader, StreamWriter
 
 import leb128
 
+MAX_UINT64 = (1 << 64) - 1
+MAX_INT64 = (1 << 63) - 1
+
 
 class BufferedWriter:
-    MAX_UINT64 = (1 << 64) - 1
-    MAX_INT64 = (1 << 63) - 1
-
     def __init__(self, writer: StreamWriter, max_buffer_size: int):
         self.max_buffer_size = max_buffer_size
         self.writer = writer
@@ -72,7 +72,7 @@ class BufferedWriter:
 
     async def write_uint128(self, data: int):
         fmt = "<QQ"
-        packet = struct.pack(fmt, (data >> 64) & self.MAX_UINT64, data & self.MAX_UINT64)
+        packet = struct.pack(fmt, (data >> 64) & MAX_UINT64, data & MAX_UINT64)
         await self._write(packet)
 
 
@@ -124,3 +124,36 @@ class BufferedReader:
         packet = self.buffer[self.position : read_position]
         self.position = read_position
         return packet
+
+    async def read_int(self, fmt: str):
+        s = struct.Struct("<" + fmt)
+        return s.unpack(await self.read_bytes(s.size))[0]
+
+    async def read_int8(self,):
+        await self.read_int("b")
+
+    async def read_int16(self,):
+        await self.read_int("h")
+
+    async def read_int32(self,):
+        await self.read_int("i")
+
+    async def read_int64(self,):
+        await self.read_int("q")
+
+    async def read_uint8(self,):
+        await self.read_int("B")
+
+    async def read_uint16(self,):
+        await self.read_int("H")
+
+    async def read_uint32(self,):
+        await self.read_int("I")
+
+    async def read_uint64(self,):
+        await self.read_int("Q")
+
+    async def read_uint128(self,):
+        hi = await self.read_int("Q")
+        lo = await self.read_int("Q")
+        return (hi << 64) + lo
