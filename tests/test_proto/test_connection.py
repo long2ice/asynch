@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from conftest import conn
@@ -8,8 +10,8 @@ async def test_connect():
     assert conn.connected
     assert conn.server_info.name == "ClickHouse"
     assert conn.server_info.timezone == "UTC"
-    assert conn.server_info.display_name == "de20414d19b9"
-    assert conn.server_info.version_patch == 2
+    assert re.match(r"\w+", conn.server_info.display_name)
+    assert isinstance(conn.server_info.version_patch, int)
 
 
 @pytest.mark.asyncio

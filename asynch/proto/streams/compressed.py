@@ -1,74 +1,75 @@
-from io import BytesIO
+from clickhouse_cityhash.cityhash import CityHash128
 
-try:
-    from clickhouse_cityhash.cityhash import CityHash128
-except ImportError:
-    raise RuntimeError("Package clickhouse-cityhash is required to use compression")
-
+from asynch.proto.compression import get_decompressor_cls
+from asynch.proto.context import Context
+from asynch.proto.io import BufferedReader, BufferedWriter
 from asynch.proto.streams.native import BlockInputStream, BlockOutputStream
 
 
 class CompressedBlockOutputStream(BlockOutputStream):
-    def __init__(self, compressor_cls, compress_block_size, fout, context):
+    def __init__(
+        self,
+        reader: BufferedReader,
+        writer: BufferedWriter,
+        context: Context,
+        compressor_cls,
+        compress_block_size,
+    ):
+        super().__init__(reader, writer, context)
         self.compressor_cls = compressor_cls
         self.compress_block_size = compress_block_size
-        self.raw_fout = fout
 
-        self.compressor = self.compressor_cls()
-        self.fout = CompressedBufferedWriter(self.compressor, BUFFER_SIZE)
-        super(CompressedBlockOutputStream, self).__init__(self.fout, context)
+        self.compressor = self.compressor_cls(writer)
 
     def get_compressed_hash(self, data):
         return CityHash128(data)
 
     def finalize(self):
-        self.fout.flush()
+        await self.writer.flush()
 
         compressed = self.get_compressed()
         compressed_size = len(compressed)
 
         compressed_hash = self.get_compressed_hash(compressed)
-        write_binary_uint128(compressed_hash, self.raw_fout)
+        await self.writer.write_uint128(compressed_hash,)
 
         block_size = self.compress_block_size
 
         i = 0
         while i < compressed_size:
-            self.raw_fout.write(compressed[i : i + block_size])
+            await self.writer.write_bytes(compressed[i : i + block_size])
             i += block_size
 
-        self.raw_fout.flush()
+        await self.writer.flush()
 
     def get_compressed(self):
-        compressed = BytesIO()
+        compressed = BufferedWriter()
 
         if self.compressor.method_byte is not None:
-            write_binary_uint8(self.compressor.method_byte, compressed)
+            await compressed.write_uint8(self.compressor.method_byte)
             extra_header_size = 1  # method
         else:
             extra_header_size = 0
 
         data = self.compressor.get_compressed_data(extra_header_size)
-        compressed.write(data)
+        await compressed.write_bytes(data)
 
-        return compressed.getvalue()
+        return compressed.buffer
 
 
 class CompressedBlockInputStream(BlockInputStream):
-    def __init__(self, fin, context):
-        self.raw_fin = fin
-        fin = CompressedBufferedReader(self.read_block, BUFFER_SIZE)
-        super(CompressedBlockInputStream, self).__init__(fin, context)
+    def __init__(self, reader: BufferedReader, writer: BufferedWriter, context):
+        super().__init__(reader, writer, context)
 
     def get_compressed_hash(self, data):
         return CityHash128(data)
 
-    def read_block(self):
-        compressed_hash = read_binary_uint128(self.raw_fin)
-        method_byte = read_binary_uint8(self.raw_fin)
+    async def read_block(self):
+        compressed_hash = await self.reader.read_uint128()
+        method_byte = await self.reader.read_uint8()
 
         decompressor_cls = get_decompressor_cls(method_byte)
-        decompressor = decompressor_cls(self.raw_fin)
+        decompressor = decompressor_cls(self.reader)
 
         if decompressor.method_byte is not None:
             extra_header_size = 1  # method

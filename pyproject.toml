@@ -18,6 +18,10 @@ include = ["LICENSE", "README.md"]
 python = "^3.8"
 leb128 = "*"
 pytz = "*"
+lz4 = "*"
+clickhouse-cityhash = "*"
+zstd = "*"
+tzlocal = "*"
 
 [tool.poetry.dev-dependencies]
 flake8 = "*"

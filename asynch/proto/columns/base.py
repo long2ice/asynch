@@ -1,6 +1,7 @@
 from struct import Struct
 from struct import error as struct_error
 
+from ..io import BufferedReader, BufferedWriter
 from . import exceptions
 
 
@@ -16,7 +17,9 @@ class Column:
 
     null_value = 0
 
-    def __init__(self, types_check=False, **kwargs):
+    def __init__(self, reader: BufferedReader, writer: BufferedWriter, types_check=False, **kwargs):
+        self.writer = writer
+        self.reader = reader
         self.nullable = False
         self.types_check_enabled = types_check
         super(Column, self).__init__()
@@ -24,14 +27,14 @@ class Column:
     def make_null_struct(self, n_items):
         return Struct("<{}B".format(n_items))
 
-    def _read_nulls_map(self, n_items, buf):
+    async def _read_nulls_map(self, n_items):
         s = self.make_null_struct(n_items)
-        return s.unpack(buf.read(s.size))
+        return s.unpack(await self.reader.read_bytes(s.size))
 
-    def _write_nulls_map(self, items, buf):
+    async def _write_nulls_map(self, items):
         s = self.make_null_struct(len(items))
         items = [x is None for x in items]
-        buf.write(s.pack(*items))
+        await self.writer.write_bytes(s.pack(*items))
 
     def check_item_type(self, value):
         if not isinstance(value, self.py_types):
@@ -75,29 +78,31 @@ class Column:
 
         return items
 
-    def write_data(self, items, buf):
+    async def write_data(self, items):
         if self.nullable:
-            self._write_nulls_map(items, buf)
+            await self._write_nulls_map(items)
 
-        self._write_data(items, buf)
+        await self._write_data(items)
 
-    def _write_data(self, items, buf):
+    async def _write_data(
+        self, items,
+    ):
         prepared = self.prepare_items(items)
-        self.write_items(prepared, buf)
+        await self.write_items(prepared,)
 
-    def write_items(self, items, buf):
+    async def write_items(self, items):
         raise NotImplementedError
 
-    def read_data(self, n_items, buf):
+    async def read_data(self, n_items):
         if self.nullable:
-            nulls_map = self._read_nulls_map(n_items, buf)
+            nulls_map = await self._read_nulls_map(n_items)
         else:
             nulls_map = None
 
-        return self._read_data(n_items, buf, nulls_map=nulls_map)
+        return await self._read_data(n_items, nulls_map=nulls_map)
 
-    def _read_data(self, n_items, buf, nulls_map=None):
-        items = self.read_items(n_items, buf)
+    async def _read_data(self, n_items, nulls_map=None):
+        items = await self.read_items(n_items,)
 
         if self.after_read_items:
             return self.after_read_items(items, nulls_map)
@@ -105,13 +110,15 @@ class Column:
             return tuple((None if is_null else items[i]) for i, is_null in enumerate(nulls_map))
         return items
 
-    def read_items(self, n_items, buf):
+    async def read_items(
+        self, n_items,
+    ):
         raise NotImplementedError
 
-    def read_state_prefix(self, buf):
+    async def read_state_prefix(self,):
         pass
 
-    def write_state_prefix(self, buf):
+    async def write_state_prefix(self,):
         pass
 
 
@@ -125,17 +132,21 @@ class FormatColumn(Column):
     def make_struct(self, n_items):
         return Struct("<{}{}".format(n_items, self.format))
 
-    def write_items(self, items, buf):
+    async def write_items(
+        self, items,
+    ):
         s = self.make_struct(len(items))
         try:
-            buf.write(s.pack(*items))
+            await self.writer.write_bytes(s.pack(*items))
 
         except struct_error as e:
             raise exceptions.StructPackException(e)
 
-    def read_items(self, n_items, buf):
+    def read_items(
+        self, n_items,
+    ):
         s = self.make_struct(n_items)
-        return s.unpack(buf.read(s.size))
+        return s.unpack(await self.reader.read_bytes(s.size))
 
 
 # How to write new column?

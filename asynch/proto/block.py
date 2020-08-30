@@ -5,7 +5,7 @@ class BlockInfo:
     is_overflows = False
     bucket_num = -1
 
-    def __init__(self, writer: BufferedWriter, reader: BufferedReader):
+    def __init__(self, writer: BufferedWriter = None, reader: BufferedReader = None):
         self.writer = writer
         self.reader = reader
 
@@ -33,13 +33,15 @@ class BlockInfo:
 class BaseBlock:
     def __init__(
         self,
-        writer: BufferedWriter,
-        reader: BufferedReader,
+        writer: BufferedWriter = None,
+        reader: BufferedReader = None,
         columns_with_types=None,
         data=None,
         info=None,
         types_check=False,
     ):
+        self.writer = writer
+        self.reader = reader
         self.columns_with_types = columns_with_types or []
         self.types_check = types_check
         self.info = info or BlockInfo(writer, reader)

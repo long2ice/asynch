@@ -1,11 +1,13 @@
 from asynch.proto import constants
-from asynch.proto.block import BaseBlock, BlockInfo
+from asynch.proto.block import BaseBlock, BlockInfo, ColumnOrientedBlock
+from asynch.proto.columns import read_column, write_column
 from asynch.proto.context import Context
-from asynch.proto.io import BufferedWriter
+from asynch.proto.io import BufferedReader, BufferedWriter
 
 
 class BlockOutputStream:
-    def __init__(self, writer: BufferedWriter, context: Context):
+    def __init__(self, reader: BufferedReader, writer: BufferedWriter, context: Context):
+        self.reader = reader
         self.writer = writer
         self.context = context
 
@@ -32,11 +34,12 @@ class BlockOutputStream:
                     raise ValueError("Different rows length")
 
                 write_column(
+                    self.reader,
+                    self.writer,
                     self.context,
                     col_name,
                     col_type,
                     items,
-                    self.fout,
                     types_check=block.types_check,
                 )
 
@@ -47,37 +50,36 @@ class BlockOutputStream:
 
 
 class BlockInputStream:
-    def __init__(self, fin, context):
-        self.fin = fin
+    def __init__(self, reader: BufferedReader, writer: BufferedWriter, context):
+        self.writer = writer
+        self.reader = reader
         self.context = context
 
-        super(BlockInputStream, self).__init__()
-
     def read(self):
-        info = BlockInfo()
+        info = BlockInfo(reader=self.reader)
 
         revision = self.context.server_info.revision
-        if revision >= defines.DBMS_MIN_REVISION_WITH_BLOCK_INFO:
-            info.read(self.fin)
+        if revision >= constants.DBMS_MIN_REVISION_WITH_BLOCK_INFO:
+            await info.read()
 
-        n_columns = read_varint(self.fin)
-        n_rows = read_varint(self.fin)
+        n_columns = await self.reader.read_varint()
+        n_rows = await self.reader.read_varint()
 
         data, names, types = [], [], []
 
         for i in range(n_columns):
-            column_name = read_binary_str(self.fin)
-            column_type = read_binary_str(self.fin)
+            column_name = await self.reader.read_str()
+            column_type = await self.reader.read_str()
 
             names.append(column_name)
             types.append(column_type)
 
             if n_rows:
-                column = read_column(self.context, column_type, n_rows, self.fin)
+                column = read_column(self.reader, self.writer, self.context, column_type, n_rows,)
                 data.append(column)
 
         block = ColumnOrientedBlock(
-            columns_with_types=list(zip(names, types)), data=data, info=info,
+            reader=self.reader, columns_with_types=list(zip(names, types)), data=data, info=info,
         )
 
         return block

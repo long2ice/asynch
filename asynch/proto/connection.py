@@ -4,6 +4,7 @@ from typing import Optional
 from urllib.parse import urlparse
 
 from asynch.proto import constants
+from asynch.proto.compression import get_compressor_cls
 from asynch.proto.context import Context
 from asynch.proto.cs import ClientInfo, QueryKind, ServerInfo
 from asynch.proto.exceptions import UnexpectedPacketFromServerError, UnknownPacketFromServerError
@@ -101,30 +102,34 @@ class Connection:
         self.server_info: Optional[ServerInfo] = None
         self.context = Context()
         # Block writer/reader
-        self.block_in: Optional[BufferedReader] = None
-        self.block_out: Optional[BufferedReader] = None
+        self.block_in = self.get_block_in_stream()
+        self.block_out = self.get_block_out_stream()
 
     def get_block_in_stream(self):
         if self.compression:
             from asynch.proto.streams.compressed import CompressedBlockInputStream
 
-            return CompressedBlockInputStream(self.fin, self.context)
+            return CompressedBlockInputStream(self.reader, self.writer, self.context)
         else:
             from asynch.proto.streams.native import BlockInputStream
 
-            return BlockInputStream(self.fin, self.context)
+            return BlockInputStream(self.reader, self.writer, self.context)
 
     def get_block_out_stream(self):
         if self.compression:
             from .streams.compressed import CompressedBlockOutputStream
 
             return CompressedBlockOutputStream(
-                self.compressor_cls, self.compress_block_size, self.fout, self.context
+                self.reader,
+                self.writer,
+                self.compressor_cls,
+                self.compress_block_size,
+                self.context,
             )
         else:
             from .streams.native import BlockOutputStream
 
-            return BlockOutputStream(self.fout, self.context)
+            return BlockOutputStream(self.reader, self.writer, self.context)
 
     async def send_hello(self):
         await self.writer.write_varint(ClientPacket.HELLO)

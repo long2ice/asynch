@@ -8,18 +8,21 @@ MAX_INT64 = (1 << 63) - 1
 
 
 class BufferedWriter:
-    def __init__(self, writer: StreamWriter, max_buffer_size: int):
+    def __init__(self, writer: StreamWriter = None, max_buffer_size: int = 0):
         self.max_buffer_size = max_buffer_size
         self.writer = writer
         self.buffer = bytearray()
         self.position = 0
 
     async def flush(self):
+        if not self.writer:
+            return
         self.writer.write(self.buffer)
         self.buffer = bytearray()
+        self.position = 0
         await self.writer.drain()
 
-    async def _write(self, data: bytes):
+    async def write_bytes(self, data: bytes):
         self.buffer.extend(data)
         self.position += len(data)
         if self.position == self.max_buffer_size:
@@ -27,20 +30,22 @@ class BufferedWriter:
 
     async def write_varint(self, data: int):
         packet = leb128.i.encode(data)
-        await self._write(packet)
+        await self.write_bytes(packet)
 
     async def write_str(self, data: str):
         packet = data.encode()
         await self.write_varint(len(packet))
-        await self._write(packet)
+        await self.write_bytes(packet)
 
     async def close(self):
+        if not self.writer:
+            return
         self.writer.close()
         await self.writer.wait_closed()
 
     async def write_int(self, data: int, fmt: str):
         fmt = "<" + fmt
-        await self._write(struct.pack(fmt, data))
+        await self.write_bytes(struct.pack(fmt, data))
 
     async def write_int8(
         self, data: int,
@@ -73,7 +78,7 @@ class BufferedWriter:
     async def write_uint128(self, data: int):
         fmt = "<QQ"
         packet = struct.pack(fmt, (data >> 64) & MAX_UINT64, data & MAX_UINT64)
-        await self._write(packet)
+        await self.write_bytes(packet)
 
 
 class BufferedReader:

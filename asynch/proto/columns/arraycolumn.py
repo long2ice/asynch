@@ -38,25 +38,31 @@ class ArrayColumn(Column):
     def size_pack(self, value):
         return self.size_struct.pack(value)
 
-    def size_unpack(self, buf):
-        return self.size_struct.unpack(buf.read(self.size_struct.size))[0]
+    async def size_unpack(self,):
+        return self.size_struct.unpack(await self.reader.read_bytes(self.size_struct.size))[0]
 
-    def write_data(self, data, buf):
+    async def write_data(
+        self, data,
+    ):
         # Column of Array(T) is stored in "compact" format and passed to server
         # wrapped into another Array without size of wrapper array.
         self.nested_column = ArrayColumn(self.nested_column)
         self.nested_column.nullable = self.nullable
         self.nullable = False
         self._write_depth_0_size = False
-        self._write(data, buf)
+        await self._write(data,)
 
-    def read_data(self, rows, buf):
+    async def read_data(
+        self, rows,
+    ):
         self.nested_column = ArrayColumn(self.nested_column)
         self.nested_column.nullable = self.nullable
         self.nullable = False
-        return self._read(rows, buf)
+        return await self._read(rows,)
 
-    def _write_sizes(self, value, buf):
+    async def _write_sizes(
+        self, value,
+    ):
         q = Queue()
         q.put((self, value, 0))
 
@@ -71,7 +77,7 @@ class ArrayColumn(Column):
                 cur_depth = depth
                 offset = 0
                 if column.nullable:
-                    self._write_nulls_map(nulls_map, buf)
+                    await self._write_nulls_map(nulls_map,)
 
                 nulls_map = []
 
@@ -80,7 +86,7 @@ class ArrayColumn(Column):
 
             offset += len(value)
             if (cur_depth == 0 and self._write_depth_0_size) or cur_depth > 0:
-                buf.write(self.size_pack(offset))
+                await self.writer.write_bytes(self.size_pack(offset))
 
             nested_column = column.nested_column
             if isinstance(nested_column, ArrayColumn):
@@ -88,38 +94,46 @@ class ArrayColumn(Column):
                     q.put((nested_column, x, cur_depth + 1))
                     nulls_map.append(None if x is None else False)
 
-    def _write_data(self, value, buf):
+    async def _write_data(
+        self, value,
+    ):
         if self.nullable:
             value = value or []
 
         if isinstance(self.nested_column, ArrayColumn):
             value = list(chain.from_iterable(value))
 
-        self.nested_column._write_data(value, buf)
+        await self.nested_column._write_data(value,)
 
-    def _write_nulls_data(self, value, buf):
+    async def _write_nulls_data(
+        self, value,
+    ):
         if self.nullable:
             value = value or []
 
         if isinstance(self.nested_column, ArrayColumn):
             value = list(chain.from_iterable(value))
-            self.nested_column._write_nulls_data(value, buf)
+            await self.nested_column._write_nulls_data(value,)
         else:
             if self.nested_column.nullable:
-                self.nested_column._write_nulls_map(value, buf)
+                await self.nested_column._write_nulls_map(value,)
 
-    def _write(self, value, buf):
-        self._write_sizes(value, buf)
-        self._write_nulls_data(value, buf)
-        self._write_data(value, buf)
+    async def _write(
+        self, value,
+    ):
+        await self._write_sizes(value,)
+        await self._write_nulls_data(value,)
+        await self._write_data(value,)
 
-    def read_state_prefix(self, buf):
-        return self.nested_column.read_state_prefix(buf)
+    async def read_state_prefix(self,):
+        return await self.nested_column.read_state_prefix()
 
-    def write_state_prefix(self, buf):
-        self.nested_column.write_state_prefix(buf)
+    async def write_state_prefix(self,):
+        await self.nested_column.write_state_prefix()
 
-    def _read(self, size, buf):
+    async def _read(
+        self, size,
+    ):
         q = Queue()
         q.put((self, size, 0))
 
@@ -130,7 +144,7 @@ class ArrayColumn(Column):
         slices = []
 
         if self.nested_column.nullable:
-            nulls_map = self._read_nulls_map(size, buf)
+            nulls_map = await self._read_nulls_map(size,)
         else:
             nulls_map = [0] * size
 
@@ -149,7 +163,7 @@ class ArrayColumn(Column):
                 slices_series.append((slices, nulls_map))
 
                 if nested_column.nullable:
-                    nulls_map = self._read_nulls_map(prev_offset, buf)
+                    nulls_map = await self._read_nulls_map(prev_offset,)
                 else:
                     nulls_map = [0] * prev_offset
 
@@ -158,7 +172,7 @@ class ArrayColumn(Column):
 
             if isinstance(nested_column, ArrayColumn):
                 for _i in range(size):
-                    offset = self.size_unpack(buf)
+                    offset = await self.size_unpack()
                     nested_column_size = offset
                     q.put((nested_column, offset - prev_offset, cur_depth + 1))
                     slices.append((prev_offset, offset))
@@ -170,7 +184,7 @@ class ArrayColumn(Column):
 
         data = []
         if nested_column_size:
-            data = nested_column._read_data(nested_column_size, buf, nulls_map=nulls_map)
+            data = await nested_column._read_data(nested_column_size, nulls_map=nulls_map)
 
         # Build nested tuple structure.
         for slices, nulls_map in reversed(slices_series):
