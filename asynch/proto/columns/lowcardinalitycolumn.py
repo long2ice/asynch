@@ -1,7 +1,5 @@
 from math import log
 
-from ..reader import read_binary_uint64
-from ..writer import write_binary_int64
 from .base import Column
 from .intcolumn import UInt8Column, UInt16Column, UInt32Column, UInt64Column
 
@@ -34,14 +32,16 @@ class LowCardinalityColumn(Column):
         self.nested_column = nested_column
         super(LowCardinalityColumn, self).__init__(**kwargs)
 
-    def read_state_prefix(self, buf):
-        return read_binary_uint64(buf)
+    async def read_state_prefix(self,):
+        return await self.reader.read_uint64()
 
-    def write_state_prefix(self, buf):
+    async def write_state_prefix(self,):
         # KeysSerializationVersion. See ClickHouse docs.
-        write_binary_int64(1, buf)
+        return await self.writer.write_int64(1)
 
-    def _write_data(self, items, buf):
+    async def _write_data(
+        self, items,
+    ):
         index, keys = [], []
         key_by_index_element = {}
 
@@ -86,19 +86,19 @@ class LowCardinalityColumn(Column):
         int_column = self.int_types[int_type]()
 
         serialization_type = self.serialization_type | int_type
+        await self.writer.write_int64(serialization_type)
+        await self.writer.write_int64(len(index))
 
-        write_binary_int64(serialization_type, buf)
-        write_binary_int64(len(index), buf)
+        await self.nested_column.write_data(index,)
+        await self.writer.write_int64(len(items))
 
-        self.nested_column.write_data(index, buf)
-        write_binary_int64(len(items), buf)
-        int_column.write_data(keys, buf)
+        await int_column.write_data(keys,)
 
-    def _read_data(self, n_items, buf, nulls_map=None):
+    async def _read_data(self, n_items, nulls_map=None):
         if not n_items:
             return tuple()
 
-        serialization_type = read_binary_uint64(buf)
+        serialization_type = await self.reader.read_uint64()
 
         # Lowest byte contains info about key type.
         key_type = serialization_type & 0xF
@@ -108,12 +108,12 @@ class LowCardinalityColumn(Column):
         # Prevent null map reading. Reset nested column nullable flag.
         self.nested_column.nullable = False
 
-        index_size = read_binary_uint64(buf)
-        index = self.nested_column.read_data(index_size, buf)
+        index_size = await self.reader.read_uint64()
+        index = await self.nested_column.read_data(index_size,)
         if nullable:
             index = (None,) + index[1:]
 
-        read_binary_uint64(buf)  # number of keys
-        keys = keys_column.read_data(n_items, buf)
+        await self.reader.read_uint64()  # number of keys
+        keys = await keys_column.read_data(n_items,)
 
         return tuple(index[x] for x in keys)

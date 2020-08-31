@@ -1,8 +1,8 @@
 from uuid import UUID
 
-from .. import errors
-from ..util import compat
-from ..writer import MAX_UINT64
+from ..exceptions import CannotParseUuidError
+from ..io import MAX_UINT64
+from ..utils import compat
 from .base import FormatColumn
 
 
@@ -12,7 +12,9 @@ class UUIDColumn(FormatColumn):
     format = "Q"
 
     # UUID is stored by two uint64 numbers.
-    def write_items(self, items, buf):
+    async def write_items(
+        self, items,
+    ):
         n_items = len(items)
 
         uint_64_pairs = [None] * 2 * n_items
@@ -22,12 +24,14 @@ class UUIDColumn(FormatColumn):
             uint_64_pairs[i2 + 1] = x & MAX_UINT64
 
         s = self.make_struct(2 * n_items)
-        buf.write(s.pack(*uint_64_pairs))
+        await self.writer.write_bytes(s.pack(*uint_64_pairs))
 
-    def read_items(self, n_items, buf):
+    async def read_items(
+        self, n_items,
+    ):
         # TODO: cythonize
         s = self.make_struct(2 * n_items)
-        items = s.unpack(buf.read(s.size))
+        items = s.unpack(await self.reader.read_bytes(s.size))
 
         uint_128_items = [None] * n_items
         for i in range(n_items):
@@ -57,6 +61,6 @@ class UUIDColumn(FormatColumn):
                     item = UUID(item)
 
             except ValueError:
-                raise errors.CannotParseUuidError("Cannot parse uuid '{}'".format(item))
+                raise CannotParseUuidError("Cannot parse uuid '{}'".format(item))
 
             items[i] = item.int

@@ -1,16 +1,27 @@
 import asyncio
 import logging
-from typing import Optional
+from time import time
+from types import GeneratorType
+from typing import AsyncGenerator, Optional
 from urllib.parse import urlparse
 
 from asynch.proto import constants
+from asynch.proto.block import BlockStreamProfileInfo, ColumnOrientedBlock, RowOrientedBlock
 from asynch.proto.compression import get_compressor_cls
 from asynch.proto.context import Context
 from asynch.proto.cs import ClientInfo, QueryKind, ServerInfo
-from asynch.proto.exceptions import UnexpectedPacketFromServerError, UnknownPacketFromServerError
+from asynch.proto.exceptions import (
+    ServerException,
+    UnexpectedPacketFromServerError,
+    UnknownPacketFromServerError,
+)
 from asynch.proto.io import BufferedReader, BufferedWriter
+from asynch.proto.progress import Progress
 from asynch.proto.protocol import ClientPacket, Compression, ServerPacket
+from asynch.proto.result import IterQueryResult, ProgressQueryResult, QueryInfo, QueryResult
 from asynch.proto.settings import write_settings
+from asynch.proto.utils.escape import escape_params
+from asynch.proto.utils.helpers import chunks, column_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +47,18 @@ class Packet:
 
 
 class Connection:
+    log_priorities = (
+        "Unknown",
+        "Fatal",
+        "Critical",
+        "Error",
+        "Warning",
+        "Notice",
+        "Information",
+        "Debug",
+        "Trace",
+    )
+
     def __init__(  # nosec:B107
         self,
         host: str = "127.0.0.1",
@@ -56,6 +79,7 @@ class Connection:
         ca_certs=None,
         ciphers=None,
         alt_hosts: str = None,
+        **kwargs,
     ):
         if secure:
             default_port = constants.DEFAULT_SECURE_PORT
@@ -102,8 +126,24 @@ class Connection:
         self.server_info: Optional[ServerInfo] = None
         self.context = Context()
         # Block writer/reader
-        self.block_in = self.get_block_in_stream()
-        self.block_out = self.get_block_out_stream()
+        self.block_in_stream = None
+        self.block_out_stream = None
+        self.settings = kwargs.pop("settings", {}).copy()
+        self.client_settings = {
+            "insert_block_size": int(
+                self.settings.pop("insert_block_size", constants.DEFAULT_INSERT_BLOCK_SIZE,)
+            ),
+            "strings_as_bytes": self.settings.pop("strings_as_bytes", False),
+            "strings_encoding": self.settings.pop("strings_encoding", constants.STRINGS_ENCODING),
+        }
+        self.last_query: Optional[QueryInfo] = None
+        self.available_client_settings = (
+            "insert_block_size",  # TODO: rename to max_insert_block_size
+            "strings_as_bytes",
+            "strings_encoding",
+        )
+        self.context.settings = self.settings
+        self.context.client_settings = self.client_settings
 
     def get_block_in_stream(self):
         if self.compression:
@@ -218,16 +258,66 @@ class Connection:
         if revision >= constants.DBMS_MIN_REVISION_WITH_TEMPORARY_TABLES:
             await self.reader.read_str()
 
-        return self.block_in.read()
+        return await self.block_in_stream.read()
 
     async def receive_exception(self):
-        pass
+        return await self.read_exception()
+
+    async def read_exception(self, additional_message=None):
+        code = await self.reader.read_int32()
+        name = await self.reader.read_str()
+        message = await self.reader.read_str()
+        stack_trace = await self.reader.read_str()
+        has_nested = bool(await self.reader.read_uint8())
+
+        new_message = ""
+
+        if additional_message:
+            new_message += additional_message + ". "
+
+        if name != "DB::Exception":
+            new_message += name + ". "
+
+        new_message += message + ". Stack trace:\n\n" + stack_trace
+
+        nested = None
+        if has_nested:
+            nested = await self.read_exception()
+
+        return ServerException(new_message, code, nested=nested)
 
     async def receive_profile_info(self):
-        pass
+        profile_info = BlockStreamProfileInfo(self.reader)
+        await profile_info.read()
+        return profile_info
 
     async def receive_multistring_message(self, packet_type: int):
-        pass
+        num = ServerPacket.strings_in_message(packet_type)
+        return [await self.reader.read_str() for _i in range(num)]
+
+    def log_block(self, block):
+        column_names = [x[0] for x in block.columns_with_types]
+
+        for row in block.get_rows():
+            row = dict(zip(column_names, row))
+
+            if 1 <= row["priority"] <= 8:
+                priority = self.log_priorities[row["priority"]]
+            else:
+                priority = row[0]
+
+            # thread_number in servers prior 20.x
+            thread_id = row.get("thread_id") or row["thread_number"]
+
+            logger.info(
+                "[ %s ] [ %s ] {%s} <%s> %s: %s",
+                row["host_name"],
+                thread_id,
+                row["query_id"],
+                priority,
+                row["source"],
+                row["text"],
+            )
 
     async def receive_packet(self):
         packet = Packet()
@@ -242,10 +332,11 @@ class Connection:
 
         elif packet.type == ServerPacket.PROGRESS:
             packet.progress = await self.receive_progress()
-
+            self.last_query.store_progress(packet.progress)
         elif packet.type == ServerPacket.PROFILE_INFO:
             packet.profile_info = await self.receive_profile_info()
-
+            self.last_query.store_profile(packet.profile_info)
+            return True
         elif packet_type == ServerPacket.TOTALS:
             packet.block = await self.receive_data()
 
@@ -254,9 +345,9 @@ class Connection:
 
         elif packet_type == ServerPacket.LOG:
             block = await self.receive_data()
-
+            self.log_block(block)
         elif packet_type == ServerPacket.END_OF_STREAM:
-            pass
+            return False
 
         elif packet_type == ServerPacket.TABLE_COLUMNS:
             packet.multistring_message = await self.receive_multistring_message(packet_type)
@@ -269,8 +360,36 @@ class Connection:
 
         return packet
 
+    async def packet_generator(self) -> AsyncGenerator:
+        while True:
+            packet = await self.receive_packet()
+            if not packet:
+                break
+
+            if packet is True:
+                continue
+
+            yield packet
+
+    async def receive_result(self, with_column_types=False, progress=False, columnar=False):
+
+        generator = self.packet_generator()
+
+        if progress:
+            return ProgressQueryResult(
+                self.reader, generator, with_column_types=with_column_types, columnar=columnar
+            )
+
+        else:
+            result = QueryResult(
+                self.reader, generator, with_column_types=with_column_types, columnar=columnar
+            )
+            return await result.get_result()
+
     async def receive_progress(self):
-        pass
+        progress = Progress(self.reader)
+        await progress.read(self.server_info.revision,)
+        return progress
 
     async def send_cancel(self):
         await self.writer.write_varint(ClientPacket.CANCEL)
@@ -304,6 +423,8 @@ class Connection:
         reader, writer = await asyncio.open_connection(host, port)
         self.writer = BufferedWriter(writer, constants.BUFFER_SIZE)
         self.reader = BufferedReader(reader, constants.BUFFER_SIZE)
+        self.block_in_stream = self.get_block_in_stream()
+        self.block_out_stream = self.get_block_out_stream()
         self.connected = True
         await self.send_hello()
         await self.receive_hello()
@@ -320,3 +441,282 @@ class Connection:
         for host, port in self.hosts:
             logger.debug("Connecting to %s:%s", host, port)
             return await self._init_connection(host, port)
+
+    async def execute(
+        self,
+        query,
+        args=None,
+        with_column_types=False,
+        external_tables=None,
+        query_id="",
+        settings=None,
+        types_check=False,
+        columnar=False,
+    ):
+        """
+        Executes query.
+
+        Establishes new connection if it wasn't established yet.
+        After query execution connection remains intact for next queries.
+        If connection can't be reused it will be closed and new connection will
+        be created.
+
+        :param query: query that will be send to server.
+        :param args: substitution parameters for SELECT queries and data for
+                       INSERT queries. Data for INSERT can be `list`, `tuple`
+                       or :data:`~types.GeneratorType`.
+                       Defaults to ``None`` (no parameters  or data).
+        :param with_column_types: if specified column names and types will be
+                                  returned alongside with result.
+                                  Defaults to ``False``.
+        :param external_tables: external tables to send.
+                                Defaults to ``None`` (no external tables).
+        :param query_id: the query identifier. If no query id specified
+                         ClickHouse server will generate it.
+        :param settings: dictionary of query settings.
+                         Defaults to ``None`` (no additional settings).
+        :param types_check: enables type checking of data for INSERT queries.
+                            Causes additional overhead. Defaults to ``False``.
+        :param columnar: if specified the result of the SELECT query will be
+                         returned in column-oriented form.
+                         It also allows to INSERT data in columnar form.
+                         Defaults to ``False`` (row-like form).
+
+        :return: * number of inserted rows for INSERT queries with data.
+                   Returning rows count from INSERT FROM SELECT is not
+                   supported.
+                 * if `with_column_types=False`: `list` of `tuples` with
+                   rows/columns.
+                 * if `with_column_types=True`: `tuple` of 2 elements:
+                    * The first element is `list` of `tuples` with
+                      rows/columns.
+                    * The second element information is about columns: names
+                      and types.
+        """
+
+        start_time = time()
+        self.make_query_settings(settings)
+        await self.force_connect()
+        self.last_query = QueryInfo(self.reader)
+
+        # INSERT queries can use list/tuple/generator of list/tuples/dicts.
+        # For SELECT parameters can be passed in only in dict right now.
+        is_insert = isinstance(args, (list, tuple, GeneratorType))
+
+        if is_insert:
+            rv = await self.process_insert_query(
+                query,
+                args,
+                external_tables=external_tables,
+                query_id=query_id,
+                types_check=types_check,
+                columnar=columnar,
+            )
+        else:
+            rv = await self.process_ordinary_query(
+                query,
+                params=args,
+                with_column_types=with_column_types,
+                external_tables=external_tables,
+                query_id=query_id,
+                types_check=types_check,
+                columnar=columnar,
+            )
+        self.last_query.store_elapsed(time() - start_time)
+        return rv
+
+    def make_query_settings(self, settings):
+        settings = dict(settings or {})
+
+        # Pick client-related settings.
+        client_settings = self.client_settings.copy()
+        for key in self.available_client_settings:
+            if key in settings:
+                client_settings[key] = settings.pop(key)
+
+        self.context.client_settings = client_settings
+
+        # The rest of settings are ClickHouse-related.
+        query_settings = self.settings.copy()
+        query_settings.update(settings)
+        self.context.settings = query_settings
+
+    async def force_connect(self):
+        if not self.connected:
+            await self.connect()
+
+        elif not await self.ping():
+            logger.warning("Connection was closed, reconnecting.")
+            await self.connect()
+
+    async def process_ordinary_query(
+        self,
+        query,
+        params=None,
+        with_column_types=False,
+        external_tables=None,
+        query_id="",
+        types_check=False,
+        columnar=False,
+    ):
+
+        if params is not None:
+            query = self.substitute_params(query, params)
+
+        await self.send_query(query, query_id=query_id)
+        await self.send_external_tables(external_tables, types_check=types_check)
+        return await self.receive_result(with_column_types=with_column_types, columnar=columnar)
+
+    async def send_external_tables(self, tables, types_check=False):
+        for table in tables or []:
+            block = RowOrientedBlock(
+                self.writer, self.reader, table["structure"], table["data"], types_check=types_check
+            )
+            await self.send_block(block, table_name=table["name"])
+
+        # Empty block, end of data transfer.
+        await self.send_block(RowOrientedBlock(self.writer, self.reader))
+
+    async def send_block(self, block, table_name=""):
+        await self.writer.write_varint(ClientPacket.DATA)
+
+        revision = self.server_info.revision
+        if revision >= constants.DBMS_MIN_REVISION_WITH_TEMPORARY_TABLES:
+            await self.writer.write_str(table_name,)
+
+        await self.block_out_stream.write(block)
+
+    def substitute_params(self, query, params):
+        if not isinstance(params, dict):
+            raise ValueError("Parameters are expected in dict form")
+
+        escaped = escape_params(params)
+        return query % escaped
+
+    async def process_insert_query(
+        self,
+        query_without_data,
+        data,
+        external_tables=None,
+        query_id=None,
+        types_check=False,
+        columnar=False,
+    ):
+        await self.send_query(query_without_data, query_id=query_id)
+        await self.send_external_tables(external_tables, types_check=types_check)
+
+        sample_block = await self.receive_sample_block()
+        if sample_block:
+            rv = await self.send_data(
+                sample_block, data, types_check=types_check, columnar=columnar
+            )
+            packet = await self.receive_packet()
+            if packet.exception:
+                raise packet.exception
+            return rv
+
+    async def receive_sample_block(self):
+        while True:
+            packet = await self.receive_packet()
+
+            if packet.type == ServerPacket.DATA:
+                return packet.block
+
+            elif packet.type == ServerPacket.EXCEPTION:
+                raise packet.exception
+
+            elif packet.type == ServerPacket.TABLE_COLUMNS:
+                pass
+
+            else:
+                message = self.unexpected_packet_message(
+                    "Data, Exception or TableColumns", packet.type
+                )
+                raise UnexpectedPacketFromServerError(message)
+
+    async def send_data(self, sample_block, data, types_check=False, columnar=False):
+        inserted_rows = 0
+
+        client_settings = self.context.client_settings
+        block_cls = ColumnOrientedBlock if columnar else RowOrientedBlock
+        slicer = column_chunks if columnar else chunks
+
+        for chunk in slicer(data, client_settings["insert_block_size"]):
+            block = block_cls(sample_block.columns_with_types, chunk, types_check=types_check)
+            await self.send_block(block)
+            inserted_rows += block.num_rows
+
+        # Empty block means end of data.
+        await self.send_block(block_cls())
+        return inserted_rows
+
+    async def iter_process_ordinary_query(
+        self,
+        query,
+        params=None,
+        with_column_types=False,
+        external_tables=None,
+        query_id=None,
+        types_check=False,
+    ):
+
+        if params is not None:
+            query = self.substitute_params(query, params)
+
+        await self.send_query(query, query_id=query_id)
+        await self.send_external_tables(external_tables, types_check=types_check)
+        return self.iter_receive_result(with_column_types=with_column_types)
+
+    def iter_receive_result(self, with_column_types=False):
+        gen = self.packet_generator()
+
+        for rows in IterQueryResult(gen, with_column_types=with_column_types):
+            for row in rows:
+                yield row
+
+    async def execute_iter(
+        self,
+        query,
+        params=None,
+        with_column_types=False,
+        external_tables=None,
+        query_id=None,
+        settings=None,
+        types_check=False,
+    ):
+        """
+        *New in version 0.0.14.*
+
+        Executes SELECT query with results streaming. See, :ref:`execute-iter`.
+
+        :param query: query that will be send to server.
+        :param params: substitution parameters for SELECT queries and data for
+                       INSERT queries. Data for INSERT can be `list`, `tuple`
+                       or :data:`~types.GeneratorType`.
+                       Defaults to ``None`` (no parameters  or data).
+        :param with_column_types: if specified column names and types will be
+                                  returned alongside with result.
+                                  Defaults to ``False``.
+        :param external_tables: external tables to send.
+                                Defaults to ``None`` (no external tables).
+        :param query_id: the query identifier. If no query id specified
+                         ClickHouse server will generate it.
+        :param settings: dictionary of query settings.
+                         Defaults to ``None`` (no additional settings).
+        :param types_check: enables type checking of data for INSERT queries.
+                            Causes additional overhead. Defaults to ``False``.
+        :return: :ref:`iter-query-result` proxy.
+        """
+
+        self.make_query_settings(settings)
+        await self.force_connect()
+        self.last_query = QueryInfo(self.reader)
+
+        return await self.iter_process_ordinary_query(
+            query,
+            params=params,
+            with_column_types=with_column_types,
+            external_tables=external_tables,
+            query_id=query_id,
+            types_check=types_check,
+        )

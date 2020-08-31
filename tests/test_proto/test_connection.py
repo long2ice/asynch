@@ -20,6 +20,7 @@ async def test_ping():
 
 
 @pytest.mark.asyncio
-async def test_send_query():
+async def test_execute():
     query = "SELECT 1"
-    await conn.send_query(query)
+    ret = await conn.execute(query)
+    assert ret == [(1,)]

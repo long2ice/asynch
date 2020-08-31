@@ -195,3 +195,22 @@ class RowOrientedBlock(BaseBlock):
     def _check_dict_row_type(self, row):
         if not isinstance(row, self.dict_row_types):
             raise TypeError("Unsupported row type: {}. dict is expected.".format(type(row)))
+
+
+class BlockStreamProfileInfo:
+    def __init__(self, reader: BufferedReader):
+        self.rows = 0
+        self.blocks = 0
+        self.bytes = 0
+        self.applied_limit = False  # bool
+        self.rows_before_limit = 0
+        self.calculated_rows_before_limit = 0  # bool
+        self.reader = reader
+
+    async def read(self,):
+        self.rows = await self.reader.read_varint()
+        self.blocks = await self.reader.read_varint()
+        self.bytes = await self.reader.read_varint()
+        self.applied_limit = bool(await self.reader.read_uint8())
+        self.rows_before_limit = await self.reader.read_varint()
+        self.calculated_rows_before_limit = bool(await self.reader.read_uint8())

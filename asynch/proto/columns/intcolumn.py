@@ -1,4 +1,5 @@
-from ..util import compat
+from asynch.proto.utils import compat
+
 from .base import FormatColumn
 from .exceptions import ColumnTypeMismatchException
 

@@ -1,7 +1,8 @@
 from enum import Enum
 
-from .. import errors
-from ..util import compat
+from asynch.proto.utils import compat
+
+from ..exceptions import LogicalError
 from .intcolumn import IntColumn
 
 
@@ -36,7 +37,7 @@ class EnumColumn(IntColumn):
                 )
                 enum_str = "{}({})".format(enum_cls.__name__, choices)
 
-                raise errors.LogicalError(
+                raise LogicalError(
                     "Unknown element '{}' for type {}".format(source_value, enum_str)
                 )
 

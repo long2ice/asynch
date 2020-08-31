@@ -103,6 +103,12 @@ class ServerPacket:
     def to_str(cls, packet):
         return "Unknown packet" if packet > 11 else cls._types_str[packet]
 
+    @classmethod
+    def strings_in_message(cls, packet):
+        if packet == cls.TABLE_COLUMNS:
+            return 2
+        return 0
+
 
 class Compression:
     DISABLED = 0

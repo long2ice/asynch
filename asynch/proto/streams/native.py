@@ -33,7 +33,7 @@ class BlockOutputStream:
                 except IndexError:
                     raise ValueError("Different rows length")
 
-                write_column(
+                await write_column(
                     self.reader,
                     self.writer,
                     self.context,
@@ -55,7 +55,7 @@ class BlockInputStream:
         self.reader = reader
         self.context = context
 
-    def read(self):
+    async def read(self):
         info = BlockInfo(reader=self.reader)
 
         revision = self.context.server_info.revision
@@ -75,7 +75,9 @@ class BlockInputStream:
             types.append(column_type)
 
             if n_rows:
-                column = read_column(self.reader, self.writer, self.context, column_type, n_rows,)
+                column = await read_column(
+                    self.reader, self.writer, self.context, column_type, n_rows,
+                )
                 data.append(column)
 
         block = ColumnOrientedBlock(

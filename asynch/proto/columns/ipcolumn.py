@@ -1,7 +1,7 @@
 from ipaddress import AddressValueError, IPv4Address, IPv6Address
 
-from .. import errors
-from ..util import compat
+from ..exceptions import CannotParseDomainError
+from ..utils import compat
 from .exceptions import ColumnTypeMismatchException
 from .intcolumn import UInt32Column
 from .stringcolumn import ByteFixedString
@@ -59,7 +59,7 @@ class IPv4Column(UInt32Column):
 
                 items[i] = int(item)
             except AddressValueError:
-                raise errors.CannotParseDomainError("Cannot parse IPv4 '{}'".format(item))
+                raise CannotParseDomainError("Cannot parse IPv4 '{}'".format(item))
 
 
 class IPv6Column(ByteFixedString):
@@ -110,4 +110,4 @@ class IPv6Column(ByteFixedString):
                     item = IPv6Address(item)
                 items[i] = item.packed
             except AddressValueError:
-                raise errors.CannotParseDomainError("Cannot parse IPv6 '{}'".format(item))
+                raise CannotParseDomainError("Cannot parse IPv6 '{}'".format(item))

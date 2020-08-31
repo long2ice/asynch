@@ -111,11 +111,11 @@ async def read_column(
 ):
     column_options = {"context": context, "reader": reader, "writer": writer}
     column = get_column_by_spec(column_spec, column_options)
-    column.read_state_prefix()
-    return column.read_data(n_items,)
+    await column.read_state_prefix()
+    return await column.read_data(n_items,)
 
 
-def write_column(
+async def write_column(
     reader: BufferedReader,
     writer: BufferedWriter,
     context,

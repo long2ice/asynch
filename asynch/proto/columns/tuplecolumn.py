@@ -8,21 +8,29 @@ class TupleColumn(Column):
         self.nested_columns = nested_columns
         super(TupleColumn, self).__init__(**kwargs)
 
-    def write_data(self, items, buf):
+    async def write_data(
+        self, items,
+    ):
         items = list(zip(*items))
 
         for i, x in enumerate(self.nested_columns):
-            x.write_data(list(items[i]), buf)
+            await x.write_data(list(items[i]),)
 
-    def write_items(self, items, buf):
-        return self.write_data(items, buf)
+    async def write_items(
+        self, items,
+    ):
+        return await self.write_data(items,)
 
-    def read_data(self, n_items, buf):
-        rv = [x.read_data(n_items, buf) for x in self.nested_columns]
+    async def read_data(
+        self, n_items,
+    ):
+        rv = [await x.read_data(n_items,) for x in self.nested_columns]
         return list(zip(*rv))
 
-    def read_items(self, n_items, buf):
-        return self.read_data(n_items, buf)
+    async def read_items(
+        self, n_items,
+    ):
+        return await self.read_data(n_items,)
 
 
 def create_tuple_column(spec, column_by_spec_getter):

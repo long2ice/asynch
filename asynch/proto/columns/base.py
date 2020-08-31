@@ -142,11 +142,12 @@ class FormatColumn(Column):
         except struct_error as e:
             raise exceptions.StructPackException(e)
 
-    def read_items(
+    async def read_items(
         self, n_items,
     ):
         s = self.make_struct(n_items)
-        return s.unpack(await self.reader.read_bytes(s.size))
+        unpack_data = s.unpack(await self.reader.read_bytes(s.size))
+        return unpack_data
 
 
 # How to write new column?

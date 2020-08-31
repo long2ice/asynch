@@ -1,6 +1,6 @@
 from ctypes import c_float
 
-from ..util import compat
+from ..utils import compat
 from .base import FormatColumn
 
 
