@@ -37,6 +37,15 @@ class BufferedWriter:
         await self.write_varint(len(packet))
         await self.write_bytes(packet)
 
+    async def write_strings(self, data):
+        for item in data:
+            if isinstance(item, str):
+                packet = item.encode()
+            else:
+                packet = item
+            await self.write_varint(len(packet))
+            await self.write_bytes(packet)
+
     async def close(self):
         if not self.writer:
             return

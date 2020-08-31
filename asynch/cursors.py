@@ -34,7 +34,6 @@ class Cursor:
         return self._rowcount
 
     async def close(self):
-        """Closing a cursor just exhausts all remaining data."""
         conn = self._connection
         if conn is None:
             return
@@ -284,4 +283,5 @@ class Cursor:
 
 class DictCursor(Cursor):
     def _process_response(self, response, executemany=False):
-        pass
+        super(DictCursor, self)._process_response(response, executemany)
+        self._rows = [dict(zip(self._columns, item)) for item in self._rows]

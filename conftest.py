@@ -2,9 +2,10 @@ import asyncio
 
 import pytest
 
-from asynch.proto.connection import Connection
+from asynch import connect
+from asynch.cursors import DictCursor
 
-conn = Connection()
+conn = connect()
 
 
 @pytest.yield_fixture(scope="session")
@@ -21,5 +22,27 @@ def event_loop():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def initialize_tests(event_loop):
-    event_loop.run_until_complete(conn.connect())
+async def initialize_tests():
+    async with conn.cursor(cursor=DictCursor) as cursor:
+        await cursor.execute('create database if not exists test')
+        await cursor.execute("""CREATE TABLE if not exists test.asynch
+    (
+        `id`       Int32,
+        `decimal`  Decimal(10, 2),
+        `date`     Date,
+        `datetime` DateTime,
+        `float`    Float32,
+        `uuid`     UUID,
+        `string`   String,
+        `ipv4`     IPv4,
+        `ipv6`     IPv6
+    
+    )
+        ENGINE = MergeTree
+            ORDER BY id""")
+
+
+@pytest.fixture(scope="function", autouse=True)
+async def truncate_table():
+    async with conn.cursor(cursor=DictCursor) as cursor:
+        await cursor.execute("truncate table test.asynch")

@@ -1,4 +1,5 @@
 import ssl
+from typing import Type
 from urllib.parse import parse_qs, unquote, urlparse
 
 from asynch import errors
@@ -52,9 +53,9 @@ class Connection:
     async def rollback(self):
         raise errors.NotSupportedError
 
-    def cursor(self, cursor: Cursor = None) -> Cursor:
+    def cursor(self, cursor: Type[Cursor] = None) -> Cursor:
         cursor_cls = cursor or self._cursor_cls
-        return cursor_cls(connection=self)
+        return cursor_cls(self, self._echo)
 
     @classmethod
     def _parse_dsn(cls, url):

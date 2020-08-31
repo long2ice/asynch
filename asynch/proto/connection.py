@@ -20,6 +20,7 @@ from asynch.proto.progress import Progress
 from asynch.proto.protocol import ClientPacket, Compression, ServerPacket
 from asynch.proto.result import IterQueryResult, ProgressQueryResult, QueryInfo, QueryResult
 from asynch.proto.settings import write_settings
+from asynch.proto.streams.native import BlockInputStream, BlockOutputStream
 from asynch.proto.utils.escape import escape_params
 from asynch.proto.utils.helpers import chunks, column_chunks
 
@@ -126,8 +127,8 @@ class Connection:
         self.server_info: Optional[ServerInfo] = None
         self.context = Context()
         # Block writer/reader
-        self.block_in_stream = None
-        self.block_out_stream = None
+        self.block_in_stream: Optional[BlockInputStream] = None
+        self.block_out_stream: Optional[BlockOutputStream] = None
         self.settings = kwargs.pop("settings", {}).copy()
         self.client_settings = {
             "insert_block_size": int(
@@ -515,7 +516,7 @@ class Connection:
         else:
             rv = await self.process_ordinary_query(
                 query,
-                params=args,
+                args,
                 with_column_types=with_column_types,
                 external_tables=external_tables,
                 query_id=query_id,
@@ -642,12 +643,18 @@ class Connection:
         slicer = column_chunks if columnar else chunks
 
         for chunk in slicer(data, client_settings["insert_block_size"]):
-            block = block_cls(sample_block.columns_with_types, chunk, types_check=types_check)
+            block = block_cls(
+                self.writer,
+                self.reader,
+                sample_block.columns_with_types,
+                chunk,
+                types_check=types_check,
+            )
             await self.send_block(block)
             inserted_rows += block.num_rows
 
         # Empty block means end of data.
-        await self.send_block(block_cls())
+        await self.send_block(block_cls(self.writer, self.reader))
         return inserted_rows
 
     async def iter_process_ordinary_query(

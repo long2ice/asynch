@@ -1,6 +1,7 @@
 from ipaddress import AddressValueError, IPv4Address, IPv6Address
 
 from ..exceptions import CannotParseDomainError
+from ..io import BufferedReader, BufferedWriter
 from ..utils import compat
 from .exceptions import ColumnTypeMismatchException
 from .intcolumn import UInt32Column
@@ -66,9 +67,8 @@ class IPv6Column(ByteFixedString):
     ch_type = "IPv6"
     py_types = compat.string_types + (IPv6Address, bytes)
 
-    def __init__(self, types_check=False, **kwargs):
-        super(IPv6Column, self).__init__(16, types_check=types_check, **kwargs)
-
+    def __init__(self, reader: BufferedReader, writer: BufferedWriter, types_check=False, **kwargs):
+        super().__init__(reader, writer, 16, types_check=types_check, **kwargs)
         if types_check:
 
             def check_item(value):

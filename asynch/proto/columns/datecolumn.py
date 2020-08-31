@@ -1,5 +1,7 @@
 from datetime import date, timedelta
 
+import ciso8601
+
 from .base import FormatColumn
 
 epoch_start = date(1970, 1, 1)
@@ -28,9 +30,8 @@ class DateColumn(FormatColumn):
                 items[i] = null_value
                 continue
 
-            if type(item) != date:
-                item = date(item.year, item.month, item.day)
-
+            if isinstance(item, str):
+                item = ciso8601.parse_datetime(item).date()
             if item > epoch_end or item < epoch_start:
                 items[i] = 0
             else:

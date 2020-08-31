@@ -64,15 +64,17 @@ class DecimalColumn(FormatColumn):
                     items[i] = int(Decimal(item))
 
     # Override default precision to the maximum supported by underlying type.
-    def _write_data(self, items, buf):
+    async def _write_data(
+        self, items,
+    ):
         with localcontext() as ctx:
             ctx.prec = self.max_precision
-            super(DecimalColumn, self)._write_data(items, buf)
+            await super(DecimalColumn, self)._write_data(items,)
 
-    def _read_data(self, n_items, buf, nulls_map=None):
+    async def _read_data(self, n_items, nulls_map=None):
         with localcontext() as ctx:
             ctx.prec = self.max_precision
-            return super(DecimalColumn, self)._read_data(n_items, buf, nulls_map=nulls_map)
+            return await super(DecimalColumn, self)._read_data(n_items, nulls_map=nulls_map)
 
 
 class Decimal32Column(DecimalColumn):
@@ -92,7 +94,9 @@ class Decimal128Column(DecimalColumn):
     max_precision = 38
     int_size = 16
 
-    def write_items(self, items, buf):
+    async def write_items(
+        self, items,
+    ):
         n_items = len(items)
 
         uint_64_pairs = [None] * 2 * n_items
@@ -110,12 +114,14 @@ class Decimal128Column(DecimalColumn):
                 uint_64_pairs[i2 + 1] = MAX_UINT64 - ((x >> 64) & MAX_UINT64)
 
         s = self.make_struct(2 * n_items)
-        buf.write(s.pack(*uint_64_pairs))
+        await self.writer.write_bytes(s.pack(*uint_64_pairs))
 
-    def read_items(self, n_items, buf):
+    async def read_items(
+        self, n_items,
+    ):
         # TODO: cythonize
         s = self.make_struct(2 * n_items)
-        items = s.unpack(buf.read(s.size))
+        items = s.unpack(await self.reader.read_bytes(s.size))
 
         int_128_items = [None] * n_items
         for i in range(n_items):

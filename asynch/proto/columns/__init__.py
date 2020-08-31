@@ -1,6 +1,6 @@
 from ..exceptions import TypeMismatchError, UnknownTypeError
 from ..io import BufferedReader, BufferedWriter
-from . import exceptions as column_exceptions
+from . import exceptions
 from .arraycolumn import create_array_column
 from .datecolumn import DateColumn
 from .datetimecolumn import create_datetime_column
@@ -136,7 +136,7 @@ async def write_column(
         await column.write_state_prefix()
         await column.write_data(items,)
 
-    except column_exceptions.ColumnTypeMismatchException as e:
+    except exceptions.ColumnTypeMismatchException as e:
         raise TypeMismatchError(
             "Type mismatch in VALUES section. "
             'Expected {} got {}: {} for column "{}".'.format(
@@ -144,7 +144,7 @@ async def write_column(
             )
         )
 
-    except (column_exceptions.StructPackException, OverflowError) as e:
+    except (exceptions.StructPackException, OverflowError) as e:
         error = e.args[0]
         raise TypeMismatchError(
             "Type mismatch in VALUES section. "

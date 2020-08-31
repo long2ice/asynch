@@ -22,6 +22,7 @@ lz4 = "*"
 clickhouse-cityhash = "*"
 zstd = "*"
 tzlocal = "*"
+ciso8601 = "*"
 
 [tool.poetry.dev-dependencies]
 flake8 = "*"

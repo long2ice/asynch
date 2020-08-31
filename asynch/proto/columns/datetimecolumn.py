@@ -2,6 +2,7 @@ from calendar import timegm
 from datetime import datetime
 from time import mktime
 
+import ciso8601
 from pytz import timezone as get_timezone
 from pytz import utc
 from tzlocal import get_localzone
@@ -65,7 +66,8 @@ class DateTimeColumn(FormatColumn):
                 # support supplying raw integers to avoid
                 # costly timezone conversions when using datetime
                 continue
-
+            elif isinstance(item, str):
+                item = ciso8601.parse_datetime(item)
             if timezone:
                 # Set server's timezone for offset-naive datetime.
                 if item.tzinfo is None:
