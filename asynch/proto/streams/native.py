@@ -20,7 +20,7 @@ class BlockOutputStream:
         n_columns = block.num_columns
         n_rows = block.num_rows
 
-        await self.writer.write_varint(n_columns,)
+        await self.writer.write_varint(n_columns)
         await self.writer.write_varint(n_rows)
 
         for i, (col_name, col_type) in enumerate(block.columns_with_types):

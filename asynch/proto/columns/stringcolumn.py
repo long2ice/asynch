@@ -31,13 +31,19 @@ class FixedString(String):
     ch_type = "FixedString"
 
     def __init__(self, reader: BufferedReader, writer: BufferedWriter, length: int, **kwargs):
-        super().__init__(reader, writer, **kwargs)
         self.length = length
+        super().__init__(reader, writer, **kwargs)
 
 
 class ByteFixedString(FixedString):
     py_types = (bytearray, bytes)
     null_value = b""
+
+    async def write_items(
+        self, items,
+    ):
+        for item in items:
+            await self.writer.write_bytes(item)
 
 
 def create_string_column(spec, column_options):

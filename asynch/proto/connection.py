@@ -321,6 +321,35 @@ class Connection:
             )
 
     async def receive_packet(self):
+        packet = await self._receive_packet()
+
+        if packet.type == ServerPacket.EXCEPTION:
+            raise packet.exception
+
+        elif packet.type == ServerPacket.PROGRESS:
+            self.last_query.store_progress(packet.progress)
+            return packet
+
+        elif packet.type == ServerPacket.END_OF_STREAM:
+            return False
+
+        elif packet.type == ServerPacket.DATA:
+            return packet
+
+        elif packet.type == ServerPacket.TOTALS:
+            return packet
+
+        elif packet.type == ServerPacket.EXTREMES:
+            return packet
+
+        elif packet.type == ServerPacket.PROFILE_INFO:
+            self.last_query.store_profile(packet.profile_info)
+            return True
+
+        else:
+            return True
+
+    async def _receive_packet(self):
         packet = Packet()
 
         packet.type = packet_type = await self.reader.read_varint()
@@ -333,11 +362,8 @@ class Connection:
 
         elif packet.type == ServerPacket.PROGRESS:
             packet.progress = await self.receive_progress()
-            self.last_query.store_progress(packet.progress)
         elif packet.type == ServerPacket.PROFILE_INFO:
             packet.profile_info = await self.receive_profile_info()
-            self.last_query.store_profile(packet.profile_info)
-            return True
         elif packet_type == ServerPacket.TOTALS:
             packet.block = await self.receive_data()
 
@@ -348,7 +374,7 @@ class Connection:
             block = await self.receive_data()
             self.log_block(block)
         elif packet_type == ServerPacket.END_OF_STREAM:
-            return False
+            pass
 
         elif packet_type == ServerPacket.TABLE_COLUMNS:
             packet.multistring_message = await self.receive_multistring_message(packet_type)
@@ -611,14 +637,14 @@ class Connection:
             rv = await self.send_data(
                 sample_block, data, types_check=types_check, columnar=columnar
             )
-            packet = await self.receive_packet()
+            packet = await self._receive_packet()
             if packet.exception:
                 raise packet.exception
             return rv
 
     async def receive_sample_block(self):
         while True:
-            packet = await self.receive_packet()
+            packet = await self._receive_packet()
 
             if packet.type == ServerPacket.DATA:
                 return packet.block
@@ -646,8 +672,8 @@ class Connection:
             block = block_cls(
                 self.writer,
                 self.reader,
-                sample_block.columns_with_types,
-                chunk,
+                columns_with_types=sample_block.columns_with_types,
+                data=chunk,
                 types_check=types_check,
             )
             await self.send_block(block)

@@ -1,4 +1,4 @@
-from collections import namedtuple
+from collections import Iterable, namedtuple
 from itertools import islice
 
 from asynch.errors import InterfaceError, NotSupportedError, ProgrammingError
@@ -51,20 +51,20 @@ class Cursor:
 
         self._process_response(response)
         self._end_query()
+        return response
 
     def _process_response(self, response, executemany=False):
         if executemany:
             self._rowcount = response
             response = None
 
-        if not response:
+        if not response or not isinstance(response, Iterable):
             self._columns = self._types = self._rows = []
             return
 
         if self._stream_results:
             columns_with_types = next(response)
             rows = response
-
         else:
             rows, columns_with_types = response
 
@@ -284,4 +284,5 @@ class Cursor:
 class DictCursor(Cursor):
     def _process_response(self, response, executemany=False):
         super(DictCursor, self)._process_response(response, executemany)
-        self._rows = [dict(zip(self._columns, item)) for item in self._rows]
+        if self._columns and self._rows:
+            self._rows = [dict(zip(self._columns, item)) for item in self._rows]

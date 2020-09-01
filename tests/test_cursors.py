@@ -49,7 +49,7 @@ async def test_insert_dict():
                 }
             ],
         )
-        print(ret)
+        assert ret == 1
 
 
 @pytest.mark.asyncio
@@ -71,4 +71,4 @@ async def test_insert_tuple():
                 )
             ],
         )
-        print(ret)
+        assert ret == 1

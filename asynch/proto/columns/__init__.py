@@ -134,7 +134,7 @@ async def write_column(
 
     try:
         await column.write_state_prefix()
-        await column.write_data(items,)
+        await column.write_data(items)
 
     except exceptions.ColumnTypeMismatchException as e:
         raise TypeMismatchError(

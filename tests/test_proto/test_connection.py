@@ -2,11 +2,14 @@ import re
 
 import pytest
 
-from conftest import conn
+from asynch.proto.connection import Connection
+
+conn = Connection()
 
 
 @pytest.mark.asyncio
 async def test_connect():
+    await conn.connect()
     assert conn.connected
     assert conn.server_info.name == "ClickHouse"
     assert conn.server_info.timezone == "UTC"

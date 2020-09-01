@@ -1,4 +1,4 @@
-checkfiles = asynch/ examples/ tests/
+checkfiles = asynch/ tests/
 black_opts = -l 100 -t py38
 py_warn = PYTHONDEVMODE=1
 
@@ -27,7 +27,7 @@ style: deps
 check: deps
 	@black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
 	@flake8 $(checkfiles)
-	@bandit -r $(checkfiles)
+	@bandit -x tests -r $(checkfiles) -s B107
 
 test: deps
 	$(py_warn) pytest

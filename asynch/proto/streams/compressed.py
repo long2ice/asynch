@@ -37,7 +37,7 @@ class CompressedBlockOutputStream(BlockOutputStream):
 
         i = 0
         while i < compressed_size:
-            await self.writer.write_bytes(compressed[i : i + block_size])
+            await self.writer.write_bytes(compressed[i : i + block_size])  # noqa: E203
             i += block_size
 
         await self.writer.flush()

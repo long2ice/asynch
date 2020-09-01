@@ -135,7 +135,7 @@ class BufferedReader:
             self._reset_buffer()
             await self._read_into_buffer()
 
-        packet = self.buffer[self.position : read_position]
+        packet = self.buffer[self.position : read_position]  # noqa: E203
         self.position = read_position
         return packet
 
