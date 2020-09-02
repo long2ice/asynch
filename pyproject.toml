@@ -31,6 +31,7 @@ black = "^19.10b0"
 pytest = "*"
 bandit = "*"
 pytest-asyncio = "*"
+clickhouse-driver = "*"
 
 [build-system]
 requires = ["poetry>=0.12"]
