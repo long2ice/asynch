@@ -1,9 +1,12 @@
+import logging
 from collections import namedtuple
 from itertools import islice
 
-from asynch.errors import InterfaceError, NotSupportedError, ProgrammingError
+from asynch.errors import InterfaceError, ProgrammingError
 
 Column = namedtuple("Column", "name type_code display_size internal_size precision scale null_ok")
+
+logger = logging.getLogger(__name__)
 
 
 class States:
@@ -34,6 +37,12 @@ class Cursor:
         """
         return self._rowcount
 
+    def setinputsizes(self, *args):
+        """Does nothing, required by DB API."""
+
+    def setoutputsizes(self, *args):
+        """Does nothing, required by DB API."""
+
     async def close(self):
         conn = self._connection
         if conn is None:
@@ -53,6 +62,10 @@ class Cursor:
 
         self._process_response(response)
         self._end_query()
+        if self._echo:
+            logger.info(query)
+            logger.info("%r", args)
+        return self._rowcount
 
     def _process_response(self, response, executemany=False):
         if executemany or isinstance(response, int):
@@ -89,6 +102,10 @@ class Cursor:
 
         self._process_response(response, executemany=True)
         self._end_query()
+        if self._echo:
+            logger.info(query)
+            logger.info("%r", args)
+        return self._rowcount
 
     def fetchone(self):
         self._check_query_started()
@@ -212,12 +229,6 @@ class Cursor:
 
     def _end_query(self):
         self._state = self._states.FINISHED
-
-    def setinputsizes(self, sizes):
-        raise NotSupportedError
-
-    def setoutputsize(self, size, column=None):
-        raise NotSupportedError
 
     def set_stream_results(self, stream_results, max_row_buffer):
         """

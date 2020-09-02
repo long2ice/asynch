@@ -33,7 +33,7 @@ async def test_dict_cursor():
 @pytest.mark.asyncio
 async def test_insert_dict():
     async with conn.cursor(cursor=DictCursor) as cursor:
-        await cursor.execute(
+        rows = await cursor.execute(
             """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES""",
             [
                 {
@@ -49,13 +49,13 @@ async def test_insert_dict():
                 }
             ],
         )
-        assert cursor.rowcount == 1
+        assert rows == 1
 
 
 @pytest.mark.asyncio
 async def test_insert_tuple():
     async with conn.cursor(cursor=DictCursor) as cursor:
-        await cursor.execute(
+        rows = await cursor.execute(
             """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES""",
             [
                 (
@@ -71,13 +71,13 @@ async def test_insert_tuple():
                 )
             ],
         )
-        assert cursor.rowcount == 1
+        assert rows == 1
 
 
 @pytest.mark.asyncio
 async def test_executemany():
     async with conn.cursor(cursor=DictCursor) as cursor:
-        await cursor.executemany(
+        rows = await cursor.executemany(
             """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES""",
             [
                 (
@@ -104,7 +104,7 @@ async def test_executemany():
                 ),
             ],
         )
-        assert cursor.rowcount == 2
+        assert rows == 2
 
 
 @pytest.mark.asyncio
