@@ -1,6 +1,6 @@
 import pytest
 
-from asynch import Connection
+from asynch.connection import Connection
 from asynch.cursors import DictCursor
 
 conn = Connection()
@@ -33,7 +33,7 @@ async def test_dict_cursor():
 @pytest.mark.asyncio
 async def test_insert_dict():
     async with conn.cursor(cursor=DictCursor) as cursor:
-        ret = await cursor.execute(
+        await cursor.execute(
             """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES""",
             [
                 {
@@ -49,13 +49,13 @@ async def test_insert_dict():
                 }
             ],
         )
-        assert ret == 1
+        assert cursor.rowcount == 1
 
 
 @pytest.mark.asyncio
 async def test_insert_tuple():
     async with conn.cursor(cursor=DictCursor) as cursor:
-        ret = await cursor.execute(
+        await cursor.execute(
             """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES""",
             [
                 (
@@ -71,4 +71,60 @@ async def test_insert_tuple():
                 )
             ],
         )
-        assert ret == 1
+        assert cursor.rowcount == 1
+
+
+@pytest.mark.asyncio
+async def test_executemany():
+    async with conn.cursor(cursor=DictCursor) as cursor:
+        await cursor.executemany(
+            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES""",
+            [
+                (
+                    1,
+                    1,
+                    "2020-08-08",
+                    "2020-08-08 00:00:00",
+                    1,
+                    "59e182c4-545d-4f30-8b32-cefea2d0d5ba",
+                    "1",
+                    "0.0.0.0",
+                    "::",
+                ),
+                (
+                    1,
+                    1,
+                    "2020-08-08",
+                    "2020-08-08 00:00:00",
+                    1,
+                    "59e182c4-545d-4f30-8b32-cefea2d0d5ba",
+                    "1",
+                    "0.0.0.0",
+                    "::",
+                ),
+            ],
+        )
+        assert cursor.rowcount == 2
+
+
+@pytest.mark.asyncio
+async def test_table_ddl():
+    async with conn.cursor() as cursor:
+        await cursor.execute("drop table if exists test.alter_table")
+        create_table_sql = """
+            CREATE TABLE test.alter_table
+(
+    `id` Int32
+)
+ENGINE = MergeTree
+            ORDER BY id
+            """
+        await cursor.execute(create_table_sql)
+        add_column_sql = """alter table test.alter_table add column c String"""
+        await cursor.execute(add_column_sql)
+        show_table_sql = """show create table test.alter_table"""
+        await cursor.execute(show_table_sql)
+        assert cursor.fetchone() == (
+            "CREATE TABLE test.alter_table\n(\n    `id` Int32,\n    `c` String\n)\nENGINE = MergeTree\nORDER BY id\nSETTINGS index_granularity = 8192",
+        )
+        await cursor.execute("drop table test.alter_table")

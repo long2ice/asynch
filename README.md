@@ -76,7 +76,7 @@ async def fetchall():
         assert ret == [(1,)]
 ```
 
-### DictCursor
+### Use DictCursor
 
 ```python
 async def dict_cursor():
@@ -135,6 +135,24 @@ async def insert_tuple():
         )
         assert ret == 1
 ```
+
+### Connection Pool
+
+```python
+async def use_pool():
+    pool = await asynch.create_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT 1")
+            ret = cursor.fetchone()
+            assert ret == (1,)
+    pool.close()
+    await pool.wait_closed()
+```
+
+## Notice
+
+This project is under development and mostly forked from [`clickhouse-driver`](https://github.com/mymarilyn/clickhouse-driver). And this project not use in production, so PR and issue is great welcome.
 
 ## ThanksTo
 

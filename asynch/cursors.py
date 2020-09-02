@@ -1,4 +1,4 @@
-from collections import Iterable, namedtuple
+from collections import namedtuple
 from itertools import islice
 
 from asynch.errors import InterfaceError, NotSupportedError, ProgrammingError
@@ -12,6 +12,7 @@ class States:
 
 class Cursor:
     _states = States()
+    _columns_with_types = None
 
     def __init__(self, connection=None, echo=False):
         self._connection = connection
@@ -37,6 +38,7 @@ class Cursor:
         conn = self._connection
         if conn is None:
             return
+        await self._connection.close()
         self._connection = None
 
     async def execute(
@@ -51,28 +53,23 @@ class Cursor:
 
         self._process_response(response)
         self._end_query()
-        return response
 
     def _process_response(self, response, executemany=False):
-        if executemany:
+        if executemany or isinstance(response, int):
             self._rowcount = response
             response = None
 
-        if not response or not isinstance(response, Iterable):
+        if not response:
             self._columns = self._types = self._rows = []
             return
 
         if self._stream_results:
             columns_with_types = next(response)
             rows = response
+
         else:
             rows, columns_with_types = response
-
         self._columns_with_types = columns_with_types
-
-        # Only SELECT queries have columns_with_types.
-        # DDL and INSERT INTO ... SELECT queries have empty columns header.
-        # We need to obtain rows count only during non-streaming SELECTs.
         if columns_with_types:
             self._columns, self._types = zip(*columns_with_types)
             if not self._stream_results:
@@ -160,10 +157,10 @@ class Cursor:
             for name, (structure, data) in self._external_tables.items()
         ] or None
 
-        execute = self._connection.connection.execute
+        execute = self._connection._connection.execute
 
         if self._stream_results:
-            execute = self._connection.connection.execute_iter
+            execute = self._connection._connection.execute_iter
             self.settings = self.settings or {}
             self.settings["max_block_size"] = self._max_row_buffer
 

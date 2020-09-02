@@ -19,6 +19,7 @@ async def test_connect():
 
 @pytest.mark.asyncio
 async def test_ping():
+    await conn.connect()
     assert await conn.ping()
 
 

@@ -1,11 +1,8 @@
 import asyncio
-
 import pytest
-
+import asynch
 from asynch import connect
 from asynch.cursors import DictCursor
-
-conn = connect()
 
 
 @pytest.yield_fixture(scope="session")
@@ -23,6 +20,7 @@ def event_loop():
 
 @pytest.fixture(scope="session", autouse=True)
 async def initialize_tests():
+    conn = await connect()
     async with conn.cursor(cursor=DictCursor) as cursor:
         await cursor.execute('create database if not exists test')
         await cursor.execute("""CREATE TABLE if not exists test.asynch
@@ -44,5 +42,14 @@ async def initialize_tests():
 
 @pytest.fixture(scope="function", autouse=True)
 async def truncate_table():
+    conn = await connect()
     async with conn.cursor(cursor=DictCursor) as cursor:
         await cursor.execute("truncate table test.asynch")
+
+
+@pytest.fixture(scope="function")
+async def pool():
+    pool = await asynch.create_pool()
+    yield pool
+    pool.close()
+    await pool.wait_closed()
