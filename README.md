@@ -7,7 +7,7 @@
 
 ## Introduction
 
-`asynch` is a asyncio ClickHouse Python Driver with native (TCP) interface support, which reuse most of [`clickhouse-driver`](https://github.com/mymarilyn/clickhouse-driver) and comply with [PEP249](https://www.python.org/dev/peps/pep-0249/).
+`asynch` is an asyncio ClickHouse Python Driver with native (TCP) interface support, which reuse most of [clickhouse-driver](https://github.com/mymarilyn/clickhouse-driver) and comply with [PEP249](https://www.python.org/dev/peps/pep-0249/).
 
 ## Install
 
@@ -152,7 +152,7 @@ async def use_pool():
 
 ## Notice
 
-This project is under development and mostly forked from [`clickhouse-driver`](https://github.com/mymarilyn/clickhouse-driver). And this project not use in production, so PR and issue is great welcome.
+This project is under development and mostly forked from [clickhouse-driver](https://github.com/mymarilyn/clickhouse-driver). And this project not use in production, so PR and issue is great welcome.
 
 ## ThanksTo
 
