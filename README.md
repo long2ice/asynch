@@ -22,13 +22,14 @@
 ```python
 from asynch import connect
 
-conn = connect(
-    host: str = "127.0.0.1",
-    port: int = 9000,
-    database: str = "default",
-    user: str = "default",
-    password: str = "",
-)
+async def connect_database():
+    conn = await connect(
+        host: str = "127.0.0.1",
+        port: int = 9000,
+        database: str = "default",
+        user: str = "default",
+        password: str = "",
+    )
 ```
 
 ### create table
