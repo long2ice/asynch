@@ -1,6 +1,7 @@
 import asyncio
 from datetime import date, datetime
 from time import time
+import uvloop
 from clickhouse_driver import Client
 
 from asynch import connect
@@ -81,7 +82,7 @@ async def asynch_insert():
 
 
 if __name__ == '__main__':
-    # uvloop.install()
+    uvloop.install()
     asyncio.run(init_table())
     # clickhouse_driver_insert()
     asyncio.run(asynch_insert())
