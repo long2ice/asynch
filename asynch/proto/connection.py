@@ -186,9 +186,6 @@ class Connection:
     def get_server(self):
         return "{}:{}".format(self.host, self.port)
 
-    async def parse_read_exception(self):
-        pass
-
     def unexpected_packet_message(self, expected, packet_type):
         packet_type = ServerPacket.to_str(packet_type)
 
@@ -235,7 +232,7 @@ class Connection:
                 server_revision,
             )
         elif packet_type == ServerPacket.EXCEPTION:
-            raise self.parse_read_exception()
+            raise self.read_exception()
         else:
             await self.disconnect()
             message = self.unexpected_packet_message("Hello or Exception", packet_type)
