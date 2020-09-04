@@ -13,6 +13,7 @@ help:
 	@echo  "    test		Runs all tests"
 	@echo  "    style		Auto-formats the code"
 	@echo  "    build		Build package"
+	@echo  "    clean		Clean old build"
 
 up:
 	@poetry update
@@ -32,7 +33,10 @@ check: deps
 test: deps
 	$(py_warn) pytest
 
-build: deps
+build: deps clean
 	@poetry build
+
+clean:
+	@rm -rf ./dist
 
 ci: check test
