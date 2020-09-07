@@ -141,31 +141,32 @@ class BufferedReader:
 
     async def read_int(self, fmt: str):
         s = struct.Struct("<" + fmt)
-        return s.unpack(await self.read_bytes(s.size))[0]
+        packet = await self.read_bytes(s.size)
+        return s.unpack(packet)[0]
 
     async def read_int8(self,):
-        await self.read_int("b")
+        return await self.read_int("b")
 
     async def read_int16(self,):
-        await self.read_int("h")
+        return await self.read_int("h")
 
     async def read_int32(self,):
-        await self.read_int("i")
+        return await self.read_int("i")
 
     async def read_int64(self,):
-        await self.read_int("q")
+        return await self.read_int("q")
 
     async def read_uint8(self,):
-        await self.read_int("B")
+        return await self.read_int("B")
 
     async def read_uint16(self,):
-        await self.read_int("H")
+        return await self.read_int("H")
 
     async def read_uint32(self,):
-        await self.read_int("I")
+        return await self.read_int("I")
 
     async def read_uint64(self,):
-        await self.read_int("Q")
+        return await self.read_int("Q")
 
     async def read_uint128(self,):
         hi = await self.read_int("Q")

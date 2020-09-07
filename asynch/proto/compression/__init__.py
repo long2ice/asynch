@@ -3,7 +3,7 @@ from typing import Callable
 
 from clickhouse_cityhash.cityhash import CityHash128
 
-from asynch.proto.exceptions import ChecksumDoesntMatchError, UnknownCompressionMethod
+from asynch.errors import ChecksumDoesntMatchError, UnknownCompressionMethod
 from asynch.proto.io import BufferedReader, BufferedWriter
 from asynch.proto.protocol import CompressionMethodByte
 

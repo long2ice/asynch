@@ -1,8 +1,8 @@
 from struct import Struct
 from struct import error as struct_error
 
+from ...errors import ColumnTypeMismatchException, StructPackException
 from ..io import BufferedReader, BufferedWriter
-from . import exceptions
 
 
 class Column:
@@ -38,7 +38,7 @@ class Column:
 
     def check_item_type(self, value):
         if not isinstance(value, self.py_types):
-            raise exceptions.ColumnTypeMismatchException(value)
+            raise ColumnTypeMismatchException(value)
 
     def prepare_items(self, items):
         nullable = self.nullable
@@ -140,7 +140,7 @@ class FormatColumn(Column):
             await self.writer.write_bytes(s.pack(*items))
 
         except struct_error as e:
-            raise exceptions.StructPackException(e)
+            raise StructPackException(e)
 
     async def read_items(
         self, n_items,

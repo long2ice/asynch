@@ -1,8 +1,8 @@
 import getpass
 import socket
 
+from asynch.errors import LogicalError
 from asynch.proto import constants
-from asynch.proto.exceptions import LogicalError
 from asynch.proto.io import BufferedWriter
 
 

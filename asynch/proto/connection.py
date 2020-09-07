@@ -5,16 +5,16 @@ from types import GeneratorType
 from typing import AsyncGenerator, Optional
 from urllib.parse import urlparse
 
+from asynch.errors import (
+    ServerException,
+    UnexpectedPacketFromServerError,
+    UnknownPacketFromServerError,
+)
 from asynch.proto import constants
 from asynch.proto.block import BlockStreamProfileInfo, ColumnOrientedBlock, RowOrientedBlock
 from asynch.proto.compression import get_compressor_cls
 from asynch.proto.context import Context
 from asynch.proto.cs import ClientInfo, QueryKind, ServerInfo
-from asynch.proto.exceptions import (
-    ServerException,
-    UnexpectedPacketFromServerError,
-    UnknownPacketFromServerError,
-)
 from asynch.proto.io import BufferedReader, BufferedWriter
 from asynch.proto.progress import Progress
 from asynch.proto.protocol import ClientPacket, Compression, ServerPacket
@@ -80,8 +80,10 @@ class Connection:
         ca_certs=None,
         ciphers=None,
         alt_hosts: str = None,
+        stack_track=False,
         **kwargs,
     ):
+        self.stack_track = stack_track
         if secure:
             default_port = constants.DEFAULT_SECURE_PORT
         else:
@@ -232,7 +234,7 @@ class Connection:
                 server_revision,
             )
         elif packet_type == ServerPacket.EXCEPTION:
-            raise self.read_exception()
+            raise await self.read_exception()
         else:
             await self.disconnect()
             message = self.unexpected_packet_message("Hello or Exception", packet_type)
@@ -276,8 +278,9 @@ class Connection:
         if name != "DB::Exception":
             new_message += name + ". "
 
-        new_message += message + ". Stack trace:\n\n" + stack_trace
-
+        new_message += message + "."
+        if self.stack_track:
+            new_message += " Stack trace:\n\n" + stack_trace
         nested = None
         if has_nested:
             nested = await self.read_exception()

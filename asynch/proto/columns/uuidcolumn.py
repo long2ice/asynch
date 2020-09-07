@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from ..exceptions import CannotParseUuidError
+from ...errors import CannotParseUuidError
 from ..io import MAX_UINT64
 from ..utils import compat
 from .base import FormatColumn

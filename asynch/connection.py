@@ -18,8 +18,8 @@ class Connection:
         user: str = "default",
         password: str = "",
         cursor_cls=Cursor,
-        connection_cls=ProtoConnection,
         echo=False,
+        stack_track=False,
         **kwargs,
     ):
         self._dsn = dsn
@@ -32,13 +32,20 @@ class Connection:
         self._is_closed = False
         self._echo = echo
         self._cursor_cls = cursor_cls
-        self._connection_cls = connection_cls
         self._connected = False
         if dsn:
-            self._connection = connection_cls(**self._parse_dsn(dsn), **kwargs)
+            self._connection = ProtoConnection(
+                **self._parse_dsn(dsn), stack_track=stack_track, **kwargs
+            )
         else:
-            self._connection = connection_cls(
-                host=host, port=port, database=database, user=user, password=password, **kwargs
+            self._connection = ProtoConnection(
+                host=host,
+                port=port,
+                database=database,
+                user=user,
+                password=password,
+                stack_track=stack_track,
+                **kwargs,
             )
 
     def __repr__(self):

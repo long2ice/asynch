@@ -2,7 +2,7 @@ from enum import Enum
 
 from asynch.proto.utils import compat
 
-from ..exceptions import LogicalError
+from ...errors import LogicalError
 from .intcolumn import IntColumn
 
 

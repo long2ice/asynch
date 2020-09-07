@@ -1,7 +1,7 @@
 from asynch.proto.utils import compat
 
+from ...errors import ColumnTypeMismatchException
 from .base import FormatColumn
-from .exceptions import ColumnTypeMismatchException
 
 
 class IntColumn(FormatColumn):

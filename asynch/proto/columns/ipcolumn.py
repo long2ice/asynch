@@ -1,9 +1,8 @@
 from ipaddress import AddressValueError, IPv4Address, IPv6Address
 
-from ..exceptions import CannotParseDomainError
+from ...errors import CannotParseDomainError, ColumnTypeMismatchException
 from ..io import BufferedReader, BufferedWriter
 from ..utils import compat
-from .exceptions import ColumnTypeMismatchException
 from .intcolumn import UInt32Column
 from .stringcolumn import ByteFixedString
 
