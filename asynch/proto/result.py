@@ -87,7 +87,7 @@ class ProgressQueryResult(QueryResult):
             progress_packet = getattr(packet, "progress", None)
             if progress_packet:
                 self.progress_totals.increment(progress_packet)
-                return (self.progress_totals.rows, self.progress_totals.total_rows)
+                return self.progress_totals.rows, self.progress_totals.total_rows
             else:
                 self.store(packet)
 
