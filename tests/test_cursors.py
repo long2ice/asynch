@@ -14,8 +14,8 @@ async def test_fetchone():
         assert ret == (1,)
 
         await cursor.execute("SELECT * FROM system.tables")
-        ret = cursor.fetchone()
-        assert ret[0] == "synch"
+        ret = cursor.fetchall()
+        assert isinstance(ret, list)
 
 
 @pytest.mark.asyncio
