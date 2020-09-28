@@ -278,9 +278,9 @@ class Connection:
         if name != "DB::Exception":
             new_message += name + ". "
 
-        new_message += message + "."
+        new_message += message
         if self.stack_track:
-            new_message += " Stack trace:\n\n" + stack_trace
+            new_message += ". Stack trace:\n\n" + stack_trace
         nested = None
         if has_nested:
             nested = await self.read_exception()
