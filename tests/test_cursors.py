@@ -13,6 +13,10 @@ async def test_fetchone():
         ret = cursor.fetchone()
         assert ret == (1,)
 
+        await cursor.execute("SELECT * FROM system.tables")
+        ret = cursor.fetchone()
+        assert ret[0] == "synch"
+
 
 @pytest.mark.asyncio
 async def test_fetchall():

@@ -2,6 +2,10 @@
 
 ## 0.1
 
+### 0.1.3
+
+- Fix bugs in ArrayColumn.
+
 ### 0.1.2
 
 - Fix exception and read data bugs.

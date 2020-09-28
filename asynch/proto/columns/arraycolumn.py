@@ -30,7 +30,8 @@ class ArrayColumn(Column):
     size_struct = Struct("<Q")
 
     def __init__(self, nested_column, **kwargs):
-        self.size_column = UInt64Column()
+        kwargs.update(dict(reader=nested_column.reader, writer=nested_column.writer))
+        self.size_column = UInt64Column(**kwargs)
         self.nested_column = nested_column
         self._write_depth_0_size = True
         super(ArrayColumn, self).__init__(**kwargs)
