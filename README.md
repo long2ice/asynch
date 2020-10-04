@@ -17,22 +17,22 @@
 
 ## Usage
 
-### connect
+Connect to ClickHouse
 
 ```python
 from asynch import connect
 
 async def connect_database():
     conn = await connect(
-        host: str = "127.0.0.1",
-        port: int = 9000,
-        database: str = "default",
-        user: str = "default",
-        password: str = "",
+        host = "127.0.0.1",
+        port = 9000,
+        database = "default",
+        user = "default",
+        password = "",
     )
 ```
 
-### create table
+Create table by sql
 
 ```python
 async def create_table():
@@ -57,7 +57,7 @@ async def create_table():
         )
 ```
 
-### fetchone
+Use `fetchone`
 
 ```python
 async def fetchone():
@@ -67,7 +67,7 @@ async def fetchone():
         assert ret == (1,)
 ```
 
-### fetchmany
+Use `fetchmany`
 
 ```python
 async def fetchall():
@@ -77,7 +77,7 @@ async def fetchall():
         assert ret == [(1,)]
 ```
 
-### Use DictCursor
+Use `DictCursor` to get result with dict
 
 ```python
 async def dict_cursor():
@@ -87,7 +87,7 @@ async def dict_cursor():
         assert ret == [{"1": 1}]
 ```
 
-### insert
+Insert data with dict
 
 ```python
 from asynch.cursors import DictCursor
@@ -113,7 +113,7 @@ async def insert_dict():
         assert ret == 1
 ```
 
-### insert with dict
+Insert data with tuple
 
 ```python
 async def insert_tuple():
@@ -137,7 +137,7 @@ async def insert_tuple():
         assert ret == 1
 ```
 
-### Connection Pool
+Use connection pool
 
 ```python
 async def use_pool():
@@ -150,10 +150,6 @@ async def use_pool():
     pool.close()
     await pool.wait_closed()
 ```
-
-## Notice
-
-This project is under development and mostly forked from [clickhouse-driver](https://github.com/mymarilyn/clickhouse-driver). And this project not use in production, so PR and issue is great welcome.
 
 ## ThanksTo
 
