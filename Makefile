@@ -1,4 +1,4 @@
-checkfiles = asynch/ tests/
+checkfiles = asynch/ tests/ benchmark/
 black_opts = -l 100 -t py38
 py_warn = PYTHONDEVMODE=1
 

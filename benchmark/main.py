@@ -1,6 +1,7 @@
 import asyncio
 from datetime import date, datetime
 from time import time
+
 import uvloop
 from clickhouse_driver import Client
 
@@ -23,8 +24,9 @@ sql = """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4
 async def init_table():
     conn = await connect()
     async with conn.cursor() as cursor:
-        await cursor.execute('create database if not exists test')
-        await cursor.execute("""CREATE TABLE if not exists test.asynch
+        await cursor.execute("create database if not exists test")
+        await cursor.execute(
+            """CREATE TABLE if not exists test.asynch
     (
         `id`       Int32,
         `decimal`  Decimal(10, 2),
@@ -38,12 +40,13 @@ async def init_table():
 
     )
         ENGINE = MergeTree
-            ORDER BY id""")
+            ORDER BY id"""
+        )
         await cursor.execute("truncate table test.asynch")
 
 
 def clickhouse_driver_insert():
-    client = Client('localhost')
+    client = Client("localhost")
     start_time = time()
     data = []
     count = 0
@@ -81,7 +84,7 @@ async def asynch_insert():
     # 620000
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     uvloop.install()
     asyncio.run(init_table())
     # clickhouse_driver_insert()
