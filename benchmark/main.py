@@ -7,7 +7,7 @@ from clickhouse_driver import Client
 
 from asynch import connect
 
-insert_data = (
+insert_data = (  # nosec:B104
     1,
     1,
     date.today(),

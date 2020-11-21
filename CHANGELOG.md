@@ -4,7 +4,7 @@
 
 ### 0.1.3
 
-- Fix bugs in ArrayColumn.
+- Fix bugs with `ArrayColumn` and `LowCardinalityColumn`.
 
 ### 0.1.2
 

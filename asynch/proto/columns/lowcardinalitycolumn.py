@@ -29,6 +29,7 @@ class LowCardinalityColumn(Column):
     serialization_type = has_additional_keys_bit | need_update_dictionary
 
     def __init__(self, nested_column, **kwargs):
+        kwargs.update(dict(reader=nested_column.reader, writer=nested_column.writer))
         self.nested_column = nested_column
         super(LowCardinalityColumn, self).__init__(**kwargs)
 
