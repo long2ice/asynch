@@ -1,6 +1,8 @@
 import asyncio
 from datetime import date, datetime
+from ipaddress import ip_address
 from time import time
+from uuid import UUID
 
 import uvloop
 from clickhouse_driver import Client
@@ -13,10 +15,10 @@ insert_data = (  # nosec:B104
     date.today(),
     datetime.now(),
     1,
-    "59e182c4-545d-4f30-8b32-cefea2d0d5ba",
+    UUID("59e182c4-545d-4f30-8b32-cefea2d0d5ba"),  # uuid str invest many resources
     "1",
-    "0.0.0.0",
-    "::",
+    ip_address("0.0.0.0"),  # ip address str invest many resources
+    ip_address("::"),  # ip address str invest many resources
 )
 sql = """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES"""
 
@@ -61,7 +63,7 @@ def clickhouse_driver_insert():
         client.execute(sql, data)
         count += len(data)
     print(count)
-    # 720000
+    # 1250000
 
 
 async def asynch_insert():
@@ -81,7 +83,7 @@ async def asynch_insert():
             await cursor.execute(sql, data)
             count += len(data)
     print(count)
-    # 620000
+    # 830000
 
 
 if __name__ == "__main__":
