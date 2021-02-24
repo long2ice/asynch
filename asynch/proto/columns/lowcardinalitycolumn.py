@@ -84,7 +84,7 @@ class LowCardinalityColumn(Column):
             return
 
         int_type = int(log(len(index), 2) / 8)
-        int_column = self.int_types[int_type]()
+        int_column = self.int_types[int_type](reader=self.reader, writer=self.writer)
 
         serialization_type = self.serialization_type | int_type
         await self.writer.write_int64(serialization_type)
