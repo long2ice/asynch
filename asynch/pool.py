@@ -213,7 +213,7 @@ class Pool(asyncio.AbstractServer):
             return
         self._closing = True
 
-    def terminate(self):
+    async def terminate(self):
         """Terminate pool.
 
         Close pool with instantly closing all acquired connections also.
