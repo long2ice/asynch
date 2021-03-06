@@ -222,17 +222,10 @@ class Pool(asyncio.AbstractServer):
         self.close()
 
         for conn in self._used:
-            conn.close()
+            await conn.close()
             self._terminated.add(conn)
 
         self._used.clear()
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-        await self.wait_closed()
 
 
 def create_pool(minsize: int = 1, maxsize: int = 10, loop=None, **kwargs):
