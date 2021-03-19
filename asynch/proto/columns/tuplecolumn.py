@@ -11,6 +11,8 @@ class TupleColumn(Column):
     async def write_data(
         self, items,
     ):
+        if not items:
+            return
         items = list(zip(*items))
 
         for i, x in enumerate(self.nested_columns):
@@ -33,7 +35,7 @@ class TupleColumn(Column):
         return await self.read_data(n_items,)
 
 
-def create_tuple_column(spec, column_by_spec_getter):
+def create_tuple_column(spec, column_by_spec_getter, column_options):
     brackets = 0
     column_begin = 0
 
@@ -52,7 +54,7 @@ def create_tuple_column(spec, column_by_spec_getter):
             if brackets == 0:
                 column_begin = i + 1
 
-    return TupleColumn([column_by_spec_getter(x) for x in nested_columns])
+    return TupleColumn([column_by_spec_getter(x) for x in nested_columns], **column_options)
 
 
 def get_inner_spec(spec):
