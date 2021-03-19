@@ -2,6 +2,10 @@
 
 ## 0.1
 
+### 0.1.4
+
+- Fix bugs with `TupleColumn`
+
 ### 0.1.3
 
 - Fix bugs with `ArrayColumn` and `LowCardinalityColumn`.
