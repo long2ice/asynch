@@ -2,8 +2,7 @@ from asyncio import StreamReader
 
 import pytest
 
-from asynch.proto.io import BufferedReader
-from asynch.proto.io import BufferedWriter
+from asynch.proto.io import BufferedReader, BufferedWriter
 
 
 @pytest.mark.asyncio
