@@ -5,6 +5,7 @@
 ### 0.1.5
 
 - Fix syntax error
+- Fix `BufferReader.read_bytes`
 
 ### 0.1.4
 
