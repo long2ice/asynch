@@ -1,12 +1,13 @@
-import pytest
 from asyncio import StreamReader
+
+import pytest
 
 from asynch.proto.io import BufferedReader
 
 
 @pytest.mark.asyncio
 async def test_BufferedReader_overflow():
-    stream_data = b'1234'
+    stream_data = b"1234"
 
     stream_reader = StreamReader()
     stream_reader.feed_data(stream_data)

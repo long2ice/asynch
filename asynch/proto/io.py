@@ -142,7 +142,7 @@ class BufferedReader:
             self.position += len(packet)
             packets.append(packet)
 
-        return b''.join(packets)
+        return b"".join(packets)
 
     async def read_int(self, fmt: str):
         s = struct.Struct("<" + fmt)
