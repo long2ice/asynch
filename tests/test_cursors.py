@@ -142,17 +142,16 @@ async def test_insert_buffer_overflow():
 
     async with conn.cursor() as cursor:
         await cursor.execute("DROP TABLE if exists test.test")
-        await cursor.execute(
-            """CREATE TABLE 
-        test.test 
-        (
-            `i` Int32, 
-            `c1` String, 
-            `c2` String, 
-            `c3` String, 
-            `c4` String
-        ) ENGINE = MergeTree ORDER BY i"""
-        )
+
+        create_table_sql = """CREATE TABLE test.test
+(
+    `i` Int32,
+    `c1` String,
+    `c2` String,
+    `c3` String,
+    `c4` String
+) ENGINE = MergeTree ORDER BY i"""
+        await cursor.execute(create_table_sql)
         await cursor.execute("INSERT INTO test.test VALUES", [(1, "t", "t", "t", "t")])
         await cursor.execute("DROP TABLE if exists test.test")
 
