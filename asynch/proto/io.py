@@ -25,7 +25,7 @@ class BufferedWriter:
     async def write_bytes(self, data: bytes):
         self.buffer.extend(data)
         self.position += len(data)
-        if self.position == self.max_buffer_size:
+        if self.position >= self.max_buffer_size:
             await self.flush()
 
     async def write_varint(self, data: int):
@@ -130,14 +130,19 @@ class BufferedReader:
         return packet.decode()
 
     async def read_bytes(self, length: int):
-        read_position = self.position + length
-        if self.position == self.current_buffer_size:
-            self._reset_buffer()
-            await self._read_into_buffer()
+        packets = []
+        while length > 0:
+            if self.position == self.current_buffer_size:
+                self._reset_buffer()
+                await self._read_into_buffer()
 
-        packet = self.buffer[self.position : read_position]  # noqa: E203
-        self.position = read_position
-        return packet
+            read_position = self.position + length
+            packet = self.buffer[self.position : read_position]  # noqa: E203
+            length -= len(packet)
+            self.position += len(packet)
+            packets.append(packet)
+
+        return b"".join(packets)
 
     async def read_int(self, fmt: str):
         s = struct.Struct("<" + fmt)
