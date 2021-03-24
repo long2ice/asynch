@@ -132,11 +132,11 @@ class BufferedReader:
     async def read_bytes(self, length: int):
         packets = []
         while length > 0:
-            read_position = self.position + length
             if self.position == self.current_buffer_size:
                 self._reset_buffer()
                 await self._read_into_buffer()
 
+            read_position = self.position + length
             packet = self.buffer[self.position : read_position]  # noqa: E203
             length -= len(packet)
             self.position += len(packet)

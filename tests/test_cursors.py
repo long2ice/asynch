@@ -2,6 +2,7 @@ import pytest
 
 from asynch.connection import Connection
 from asynch.cursors import DictCursor
+from asynch.proto import constants
 
 conn = Connection()
 
@@ -132,3 +133,27 @@ ENGINE = MergeTree
             "CREATE TABLE test.alter_table\n(\n    `id` Int32,\n    `c` String\n)\nENGINE = MergeTree\nORDER BY id\nSETTINGS index_granularity = 8192",
         )
         await cursor.execute("drop table test.alter_table")
+
+
+@pytest.mark.asyncio
+async def test_insert_buffer_overflow():
+    old_buffer_size = constants.BUFFER_SIZE
+    constants.BUFFER_SIZE = 2 ** 6 + 1
+
+    async with conn.cursor() as cursor:
+        await cursor.execute("DROP TABLE if exists test.test")
+        await cursor.execute(
+            """CREATE TABLE 
+        test.test 
+        (
+            `i` Int32, 
+            `c1` String, 
+            `c2` String, 
+            `c3` String, 
+            `c4` String
+        ) ENGINE = MergeTree ORDER BY i"""
+        )
+        await cursor.execute("INSERT INTO test.test VALUES", [(1, "t", "t", "t", "t")])
+        await cursor.execute("DROP TABLE if exists test.test")
+
+    constants.BUFFER_SIZE = old_buffer_size
