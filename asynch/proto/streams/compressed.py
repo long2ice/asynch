@@ -24,10 +24,10 @@ class CompressedBlockOutputStream(BlockOutputStream):
     def get_compressed_hash(self, data):
         return CityHash128(data)
 
-    def finalize(self):
+    async def finalize(self):
         await self.writer.flush()
 
-        compressed = self.get_compressed()
+        compressed = await self.get_compressed()
         compressed_size = len(compressed)
 
         compressed_hash = self.get_compressed_hash(compressed)
@@ -42,7 +42,7 @@ class CompressedBlockOutputStream(BlockOutputStream):
 
         await self.writer.flush()
 
-    def get_compressed(self):
+    async def get_compressed(self):
         compressed = BufferedWriter()
 
         if self.compressor.method_byte is not None:
@@ -58,9 +58,6 @@ class CompressedBlockOutputStream(BlockOutputStream):
 
 
 class CompressedBlockInputStream(BlockInputStream):
-    def __init__(self, reader: BufferedReader, writer: BufferedWriter, context):
-        super().__init__(reader, writer, context)
-
     def get_compressed_hash(self, data):
         return CityHash128(data)
 
