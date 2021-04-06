@@ -53,5 +53,6 @@ def create_string_column(spec, column_options):
         cls = ByteString if strings_as_bytes else String
         return cls(**column_options)
     else:
+        length = int(spec[12:-1])
         cls = ByteFixedString if strings_as_bytes else FixedString
-        return cls(**column_options)
+        return cls(length=length, **column_options)

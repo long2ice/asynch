@@ -1,26 +1,13 @@
-from asyncio.streams import StreamReader
-
 import pytest
 
-from asynch.proto import constants
 from asynch.proto.columns import get_column_by_spec
 from asynch.proto.columns.tuplecolumn import TupleColumn
-from asynch.proto.context import Context
-from asynch.proto.io import BufferedReader, BufferedWriter
 
 COLUMN_SPEC = "Tuple(UInt8, String)"
 
 
 @pytest.fixture
-def tuple_column():
-    reader = BufferedReader(StreamReader(), constants.BUFFER_SIZE)
-    writer = BufferedWriter()
-    context = Context()
-    context.client_settings = {
-        "strings_as_bytes": False,
-        "strings_encoding": constants.STRINGS_ENCODING,
-    }
-    column_options = {"reader": reader, "writer": writer, "context": context}
+def tuple_column(column_options):
     column = get_column_by_spec(COLUMN_SPEC, column_options)
     return column
 
