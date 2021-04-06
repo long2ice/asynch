@@ -8,7 +8,7 @@ from asynch.proto.io import BufferedReader, BufferedWriter
 
 
 @pytest.fixture
-def context():
+def column_options():
     reader = BufferedReader(StreamReader(), constants.BUFFER_SIZE)
     writer = BufferedWriter()
     context = Context()

@@ -110,15 +110,13 @@ class Column:
             return tuple((None if is_null else items[i]) for i, is_null in enumerate(nulls_map))
         return items
 
-    async def read_items(
-        self, n_items,
-    ):
+    async def read_items(self, n_items):
         raise NotImplementedError
 
-    async def read_state_prefix(self,):
+    async def read_state_prefix(self):
         pass
 
-    async def write_state_prefix(self,):
+    async def write_state_prefix(self):
         pass
 
 

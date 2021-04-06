@@ -46,6 +46,14 @@ class BufferedWriter:
             await self.write_varint(len(packet))
             await self.write_bytes(packet)
 
+    async def write_fixed_strings(self, data):
+        for item in data:
+            if isinstance(item, str):
+                packet = item.encode()
+            else:
+                packet = item
+            await self.write_bytes(packet)
+
     async def close(self):
         if not self.writer:
             return
@@ -124,9 +132,17 @@ class BufferedReader:
         self.position = 0
         self.buffer = bytearray()
 
-    async def read_str(self):
+    async def read_str(self, as_bytes: bool = False):
         length = await self.read_varint()
         packet = await self.read_bytes(length)
+        if as_bytes:
+            return packet
+        return packet.decode()
+
+    async def read_fixed_str(self, length: int, as_bytes: bool = False):
+        packet = await self.read_bytes(length)
+        if as_bytes:
+            return packet
         return packet.decode()
 
     async def read_bytes(self, length: int):
