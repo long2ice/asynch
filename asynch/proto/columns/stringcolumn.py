@@ -34,7 +34,7 @@ class FixedString(String):
         super().__init__(reader, writer, **kwargs)
 
     async def write_items(self, items):
-        await self.writer.write_fixed_strings(items)
+        await self.writer.write_fixed_strings(items, self.length)
 
     async def read_items(self, n_items):
         ret = []
