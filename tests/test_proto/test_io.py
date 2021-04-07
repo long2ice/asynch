@@ -36,11 +36,9 @@ async def test_BufferedWriter_overflow(mocker):
 async def test_ByfferedWriter_write_fixed_strings(mocker):
     writer = mocker.Mock()
     writer.drain = mocker.AsyncMock()
-    
+
     b_writer = BufferedWriter(writer, 1024)
 
-    await b_writer.write_fixed_strings(['', '12', b'12'], 2)
+    await b_writer.write_fixed_strings(["", "12", b"12"], 2)
 
-    assert b_writer.buffer == b'\x00\x001212'
-
-
+    assert b_writer.buffer == b"\x00\x001212"
