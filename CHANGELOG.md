@@ -3,6 +3,10 @@
 ## 0.1
 
 
+### 0.1.8
+
+- Fix bug in protocol for `FixedString`
+
 ### 0.1.7
 
 - Fix bug with `FixedString`
