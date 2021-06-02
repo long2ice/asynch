@@ -103,7 +103,7 @@ class LowCardinalityColumn(Column):
 
         # Lowest byte contains info about key type.
         key_type = serialization_type & 0xF
-        keys_column = self.int_types[key_type]()
+        keys_column = self.int_types[key_type](reader=self.reader, writer=self.writer)
 
         nullable = self.nested_column.nullable
         # Prevent null map reading. Reset nested column nullable flag.
