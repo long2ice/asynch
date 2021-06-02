@@ -2,6 +2,9 @@
 
 ## 0.1
 
+### 0.1.9
+
+- Fix LowCardinalityColumn keys column exception. (#17)
 
 ### 0.1.8
 
