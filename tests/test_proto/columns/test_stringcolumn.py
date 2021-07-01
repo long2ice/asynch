@@ -16,7 +16,11 @@ def test_create_string_column(spec, column_options, expected_column):
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "spec, items, expected_buffer",
-    [("String", ["1"], bytearray(b"\x011")), ("FixedString(2)", ["12", "34"], bytearray(b"1234"))],
+    [
+        ("String", ["1"], bytearray(b"\x011")),
+        ("FixedString(2)", ["12", "34"], bytearray(b"1234")),
+        ("FixedString(2)", ["12", "", "34", "5"], bytearray(b"12\x00\x00345\x00")),
+    ],
 )
 async def test_write_data_items(spec, items, expected_buffer, column_options):
     column = get_column_by_spec(spec, column_options)
