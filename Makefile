@@ -22,16 +22,16 @@ deps:
 	@poetry install --no-root
 
 style: deps
-	@isort -src $(checkfiles)
-	@black $(black_opts) $(checkfiles)
+	@poetry run isort -src $(checkfiles)
+	@poetry run black $(black_opts) $(checkfiles)
 
 check: deps
-	@black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
-	@flake8 $(checkfiles)
-	@bandit -x tests -r $(checkfiles) -s B107
+	@poetry run black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
+	@poetry run flake8 $(checkfiles)
+	@poetry run bandit -x tests -r $(checkfiles) -s B107
 
 test: deps
-	$(py_warn) pytest
+	$(py_warn) poetry run pytest
 
 build: deps clean
 	@poetry build
