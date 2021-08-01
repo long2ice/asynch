@@ -571,10 +571,14 @@ class Connection:
     async def force_connect(self):
         if not self.connected:
             await self.connect()
-
-        elif not await self.ping():
-            logger.warning("Connection was closed, reconnecting.")
-            await self.connect()
+        else:
+            try:
+                if not await self.ping():
+                    logger.warning("Connection was closed, reconnecting.")
+                    await self.connect()
+            except:
+                logger.warning("Connection was closed, reconnecting.")
+                await self.connect()
 
     async def process_ordinary_query(
         self,
