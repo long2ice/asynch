@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import ssl
 from time import time
 from types import GeneratorType
 from typing import AsyncGenerator, Optional
@@ -101,16 +102,30 @@ class Connection:
         self.send_receive_timeout = send_receive_timeout
         self.sync_request_timeout = sync_request_timeout
         self.secure_socket = secure
-        self.verify_cert = verify
+        self.verify_cert = True
+
+        ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        ssl_ctx.options |= ssl.OP_NO_TLSv1
+        ssl_ctx.options |= ssl.OP_NO_TLSv1_1
+        ssl_ctx.check_hostname = False
 
         ssl_options = {}
         if ssl_version is not None:
             ssl_options["ssl_version"] = ssl_version
         if ca_certs is not None:
             ssl_options["ca_certs"] = ca_certs
+            ssl_ctx.load_cert_chain(ca_certs, keyfile=ca_certs)
+        else:
+            purpose = ssl.Purpose.SERVER_AUTH
+            ssl_ctx.load_default_certs(purpose)
         if ciphers is not None:
             ssl_options["ciphers"] = ciphers
+            ssl_ctx.set_ciphers(ciphers)
+        if self.verify_cert:
+            ssl_ctx.verify_mode = ssl.VerifyMode.CERT_REQUIRED
         self.ssl_options = ssl_options
+        self.ssl_context = ssl_ctx
+
         # Use LZ4 compression by default.
         if compression is True:
             compression = "lz4"
@@ -447,7 +462,10 @@ class Connection:
 
     async def _init_connection(self, host: str, port: int):
         self.host, self.port = host, port
-        reader, writer = await asyncio.open_connection(host, port)
+        if self.secure_socket:
+            reader, writer = await asyncio.open_connection(host, port, ssl=self.ssl_context)
+        else:
+            reader, writer = await asyncio.open_connection(host, port)
         self.writer = BufferedWriter(writer, constants.BUFFER_SIZE)
         self.reader = BufferedReader(reader, constants.BUFFER_SIZE)
         self.block_in_stream = self.get_block_in_stream()
