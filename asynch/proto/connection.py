@@ -102,7 +102,7 @@ class Connection:
         self.send_receive_timeout = send_receive_timeout
         self.sync_request_timeout = sync_request_timeout
         self.secure_socket = secure
-        self.verify_cert = True
+        self.verify_cert = verify
 
         ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS)
         ssl_ctx.options |= ssl.OP_NO_TLSv1
