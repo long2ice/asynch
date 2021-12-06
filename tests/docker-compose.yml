@@ -1,5 +1,13 @@
 version: '3'
 services:
   clickhouse:
-    network_mode: host
+#    network_mode: host
     image: yandex/clickhouse-server
+    ports:
+      - '127.0.0.1:9000:9000'
+    volumes:
+      - clickhouse:/var/lib/clickhouse
+    restart: unless-stopped
+
+volumes:
+  clickhouse:
