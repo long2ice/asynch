@@ -8,6 +8,7 @@ import uvloop
 from clickhouse_driver import Client
 
 from asynch import connect
+from conftest import CONNECTION_DSN
 
 insert_data = (  # nosec:B104
     1,
@@ -24,7 +25,7 @@ sql = """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4
 
 
 async def init_table():
-    conn = await connect()
+    conn = await connect(dsn=CONNECTION_DSN)
     async with conn.cursor() as cursor:
         await cursor.execute("create database if not exists test")
         await cursor.execute(
@@ -48,7 +49,7 @@ async def init_table():
 
 
 def clickhouse_driver_insert():
-    client = Client("localhost")
+    client = Client(dsn=CONNECTION_DSN)
     start_time = time()
     data = []
     count = 0
@@ -67,7 +68,7 @@ def clickhouse_driver_insert():
 
 
 async def asynch_insert():
-    conn = await connect()
+    conn = await connect(dsn=CONNECTION_DSN)
     start_time = time()
     data = []
     count = 0
