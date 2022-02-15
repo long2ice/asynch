@@ -287,15 +287,24 @@ class Connection:
         return ssl_ctx
 
     async def ping(self):
-        await self.writer.write_varint(ClientPacket.PING)
-        await self.writer.flush()
-        packet_type = await self.reader.read_varint()
-        while packet_type == ServerPacket.PROGRESS:
-            await self.receive_progress()
+        try:
+            await self.writer.write_varint(ClientPacket.PING)
+            await self.writer.flush()
             packet_type = await self.reader.read_varint()
-        if packet_type != ServerPacket.PONG:
-            msg = self.unexpected_packet_message("Pong", packet_type)
-            raise UnexpectedPacketFromServerError(msg)
+            while packet_type == ServerPacket.PROGRESS:
+                await self.receive_progress()
+                packet_type = await self.reader.read_varint()
+            if packet_type != ServerPacket.PONG:
+                msg = self.unexpected_packet_message("Pong", packet_type)
+                raise UnexpectedPacketFromServerError(msg)
+        except IndexError as e:
+            logger.warning(
+                "Ping package smaller than expected or empty. "
+                "There may be connection or network problems - "
+                "we believe that the connection is incorrect.",
+                exc_info=e,
+            )
+            return False
         return True
 
     async def receive_data(self, raw=False):
