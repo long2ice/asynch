@@ -27,7 +27,7 @@ ciso8601 = "*"
 [tool.poetry.dev-dependencies]
 flake8 = "*"
 isort = "*"
-black = "^19.10b0"
+black = "^21.9b0"
 pytest = "*"
 pytest-mock = "*"
 bandit = "*"
