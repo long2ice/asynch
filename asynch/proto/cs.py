@@ -79,25 +79,51 @@ class ClientInfo:
                 "Method ClientInfo.write is called " "for unsupported server revision"
             )
 
-        await writer.write_int8(self.query_kind,)
+        await writer.write_int8(
+            self.query_kind,
+        )
         if self.empty:
             return
 
-        await writer.write_str(self.initial_user,)
-        await writer.write_str(self.initial_query_id,)
-        await writer.write_str(self.initial_address,)
+        await writer.write_str(
+            self.initial_user,
+        )
+        await writer.write_str(
+            self.initial_query_id,
+        )
+        await writer.write_str(
+            self.initial_address,
+        )
 
-        await writer.write_uint8(self.interface,)
+        await writer.write_uint8(
+            self.interface,
+        )
 
-        await writer.write_str(self.os_user,)
-        await writer.write_str(self.client_hostname,)
-        await writer.write_str(self.client_name,)
-        await writer.write_varint(self.client_version_major,)
-        await writer.write_varint(self.client_version_minor,)
-        await writer.write_varint(self.client_revision,)
+        await writer.write_str(
+            self.os_user,
+        )
+        await writer.write_str(
+            self.client_hostname,
+        )
+        await writer.write_str(
+            self.client_name,
+        )
+        await writer.write_varint(
+            self.client_version_major,
+        )
+        await writer.write_varint(
+            self.client_version_minor,
+        )
+        await writer.write_varint(
+            self.client_revision,
+        )
 
         if revision >= constants.DBMS_MIN_REVISION_WITH_QUOTA_KEY_IN_CLIENT_INFO:
-            await writer.write_str(self.quota_key,)
+            await writer.write_str(
+                self.quota_key,
+            )
 
         if revision >= constants.DBMS_MIN_REVISION_WITH_VERSION_PATCH:
-            await writer.write_varint(self.client_version_patch,)
+            await writer.write_varint(
+                self.client_version_patch,
+            )

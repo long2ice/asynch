@@ -15,7 +15,9 @@ async def write_settings(writer: BufferedWriter, settings: Dict, settings_as_str
         # anything about them, so we can write any setting.
         if settings_as_strings:
             await writer.write_str(setting)
-            await writer.write_uint8(is_important,)
+            await writer.write_uint8(
+                is_important,
+            )
             await writer.write_str(str(value))
 
         else:
@@ -25,7 +27,9 @@ async def write_settings(writer: BufferedWriter, settings: Dict, settings_as_str
             if not setting_writer:
                 logger.warning("Unknown setting %s. Skipping", setting)
                 continue
-            await writer.write_str(setting,)
+            await writer.write_str(
+                setting,
+            )
             await setting_writer.write(writer, value)
 
     await writer.write_str("")  # end of settings

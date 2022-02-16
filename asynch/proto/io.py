@@ -65,7 +65,8 @@ class BufferedWriter:
         await self.write_bytes(struct.pack(fmt, data))
 
     async def write_int8(
-        self, data: int,
+        self,
+        data: int,
     ):
         await self.write_int(data, "b")
 
@@ -85,7 +86,8 @@ class BufferedWriter:
         await self.write_int(data, "H")
 
     async def write_uint32(
-        self, data: int,
+        self,
+        data: int,
     ):
         await self.write_int(data, "I")
 
@@ -165,31 +167,49 @@ class BufferedReader:
         packet = await self.read_bytes(s.size)
         return s.unpack(packet)[0]
 
-    async def read_int8(self,):
+    async def read_int8(
+        self,
+    ):
         return await self.read_int("b")
 
-    async def read_int16(self,):
+    async def read_int16(
+        self,
+    ):
         return await self.read_int("h")
 
-    async def read_int32(self,):
+    async def read_int32(
+        self,
+    ):
         return await self.read_int("i")
 
-    async def read_int64(self,):
+    async def read_int64(
+        self,
+    ):
         return await self.read_int("q")
 
-    async def read_uint8(self,):
+    async def read_uint8(
+        self,
+    ):
         return await self.read_int("B")
 
-    async def read_uint16(self,):
+    async def read_uint16(
+        self,
+    ):
         return await self.read_int("H")
 
-    async def read_uint32(self,):
+    async def read_uint32(
+        self,
+    ):
         return await self.read_int("I")
 
-    async def read_uint64(self,):
+    async def read_uint64(
+        self,
+    ):
         return await self.read_int("Q")
 
-    async def read_uint128(self,):
+    async def read_uint128(
+        self,
+    ):
         hi = await self.read_int("Q")
         lo = await self.read_int("Q")
         return (hi << 64) + lo

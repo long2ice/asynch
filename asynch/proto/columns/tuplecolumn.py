@@ -9,30 +9,45 @@ class TupleColumn(Column):
         super(TupleColumn, self).__init__(**kwargs)
 
     async def write_data(
-        self, items,
+        self,
+        items,
     ):
         if not items:
             return
         items = list(zip(*items))
 
         for i, x in enumerate(self.nested_columns):
-            await x.write_data(list(items[i]),)
+            await x.write_data(
+                list(items[i]),
+            )
 
     async def write_items(
-        self, items,
+        self,
+        items,
     ):
-        return await self.write_data(items,)
+        return await self.write_data(
+            items,
+        )
 
     async def read_data(
-        self, n_items,
+        self,
+        n_items,
     ):
-        rv = [await x.read_data(n_items,) for x in self.nested_columns]
+        rv = [
+            await x.read_data(
+                n_items,
+            )
+            for x in self.nested_columns
+        ]
         return list(zip(*rv))
 
     async def read_items(
-        self, n_items,
+        self,
+        n_items,
     ):
-        return await self.read_data(n_items,)
+        return await self.read_data(
+            n_items,
+        )
 
 
 def create_tuple_column(spec, column_by_spec_getter, column_options):

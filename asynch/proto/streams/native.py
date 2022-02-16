@@ -24,8 +24,12 @@ class BlockOutputStream:
         await self.writer.write_varint(n_rows)
 
         for i, (col_name, col_type) in enumerate(block.columns_with_types):
-            await self.writer.write_str(col_name,)
-            await self.writer.write_str(col_type,)
+            await self.writer.write_str(
+                col_name,
+            )
+            await self.writer.write_str(
+                col_type,
+            )
 
             if n_columns:
                 try:
@@ -76,12 +80,19 @@ class BlockInputStream:
 
             if n_rows:
                 column = await read_column(
-                    self.reader, self.writer, self.context, column_type, n_rows,
+                    self.reader,
+                    self.writer,
+                    self.context,
+                    column_type,
+                    n_rows,
                 )
                 data.append(column)
 
         block = ColumnOrientedBlock(
-            reader=self.reader, columns_with_types=list(zip(names, types)), data=data, info=info,
+            reader=self.reader,
+            columns_with_types=list(zip(names, types)),
+            data=data,
+            info=info,
         )
 
         return block

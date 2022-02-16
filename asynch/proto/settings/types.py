@@ -29,7 +29,9 @@ class SettingString(SettingType):
 class SettingChar(SettingType):
     @classmethod
     async def write(cls, writer, value):
-        await writer.write_str(value[0],)
+        await writer.write_str(
+            value[0],
+        )
 
 
 class SettingFloat(SettingType):
@@ -38,7 +40,9 @@ class SettingFloat(SettingType):
         """
         Float is written in string representation.
         """
-        await writer.write_str(str(value),)
+        await writer.write_str(
+            str(value),
+        )
 
 
 class SettingMaxThreads(SettingUInt64):

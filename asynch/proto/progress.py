@@ -12,7 +12,8 @@ class Progress:
         self.reader = reader
 
     async def read(
-        self, server_revision,
+        self,
+        server_revision,
     ):
         self.rows = await self.reader.read_varint()
         self.bytes = await self.reader.read_varint()

@@ -97,7 +97,7 @@ class DateTime64Column(DateTimeColumn):
         super(DateTime64Column, self).__init__(**kwargs)
 
     def after_read_items(self, items, nulls_map=None):
-        scale = float(10 ** self.scale)
+        scale = float(10**self.scale)
 
         tz = self.timezone
         fromts = datetime.fromtimestamp
@@ -132,7 +132,7 @@ class DateTime64Column(DateTimeColumn):
                 )
 
     def before_write_items(self, items, nulls_map=None):
-        scale = 10 ** self.scale
+        scale = 10**self.scale
         frac_scale = 10 ** (self.max_scale - self.scale)
 
         timezone = self.timezone

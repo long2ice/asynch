@@ -207,7 +207,9 @@ class BlockStreamProfileInfo:
         self.calculated_rows_before_limit = 0  # bool
         self.reader = reader
 
-    async def read(self,):
+    async def read(
+        self,
+    ):
         self.rows = await self.reader.read_varint()
         self.blocks = await self.reader.read_varint()
         self.bytes = await self.reader.read_varint()

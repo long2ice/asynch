@@ -27,7 +27,7 @@ class DecimalColumn(FormatColumn):
 
     def after_read_items(self, items, nulls_map=None):
         if self.scale > 1:
-            scale = 10 ** self.scale
+            scale = 10**self.scale
 
             if nulls_map is None:
                 return tuple(Decimal(item) / scale for item in items)
@@ -48,7 +48,7 @@ class DecimalColumn(FormatColumn):
         null_value = self.null_value
 
         if self.scale > 1:
-            scale = 10 ** self.scale
+            scale = 10**self.scale
 
             for i, item in enumerate(items):
                 if nulls_map and nulls_map[i]:
@@ -65,11 +65,14 @@ class DecimalColumn(FormatColumn):
 
     # Override default precision to the maximum supported by underlying type.
     async def _write_data(
-        self, items,
+        self,
+        items,
     ):
         with localcontext() as ctx:
             ctx.prec = self.max_precision
-            await super(DecimalColumn, self)._write_data(items,)
+            await super(DecimalColumn, self)._write_data(
+                items,
+            )
 
     async def _read_data(self, n_items, nulls_map=None):
         with localcontext() as ctx:
@@ -95,7 +98,8 @@ class Decimal128Column(DecimalColumn):
     int_size = 16
 
     async def write_items(
-        self, items,
+        self,
+        items,
     ):
         n_items = len(items)
 
@@ -117,7 +121,8 @@ class Decimal128Column(DecimalColumn):
         await self.writer.write_bytes(s.pack(*uint_64_pairs))
 
     async def read_items(
-        self, n_items,
+        self,
+        n_items,
     ):
         # TODO: cythonize
         s = self.make_struct(2 * n_items)

@@ -85,10 +85,13 @@ class Column:
         await self._write_data(items)
 
     async def _write_data(
-        self, items,
+        self,
+        items,
     ):
         prepared = self.prepare_items(items)
-        await self.write_items(prepared,)
+        await self.write_items(
+            prepared,
+        )
 
     async def write_items(self, items):
         raise NotImplementedError
@@ -102,7 +105,9 @@ class Column:
         return await self._read_data(n_items, nulls_map=nulls_map)
 
     async def _read_data(self, n_items, nulls_map=None):
-        items = await self.read_items(n_items,)
+        items = await self.read_items(
+            n_items,
+        )
 
         if self.after_read_items:
             return self.after_read_items(items, nulls_map)
@@ -131,7 +136,8 @@ class FormatColumn(Column):
         return Struct("<{}{}".format(n_items, self.format))
 
     async def write_items(
-        self, items,
+        self,
+        items,
     ):
         s = self.make_struct(len(items))
         try:
@@ -141,7 +147,8 @@ class FormatColumn(Column):
             raise StructPackException(e)
 
     async def read_items(
-        self, n_items,
+        self,
+        n_items,
     ):
         s = self.make_struct(n_items)
         unpack_data = s.unpack(await self.reader.read_bytes(s.size))

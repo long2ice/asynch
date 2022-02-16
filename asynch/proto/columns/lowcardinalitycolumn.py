@@ -33,15 +33,20 @@ class LowCardinalityColumn(Column):
         self.nested_column = nested_column
         super(LowCardinalityColumn, self).__init__(**kwargs)
 
-    async def read_state_prefix(self,):
+    async def read_state_prefix(
+        self,
+    ):
         return await self.reader.read_uint64()
 
-    async def write_state_prefix(self,):
+    async def write_state_prefix(
+        self,
+    ):
         # KeysSerializationVersion. See ClickHouse docs.
         return await self.writer.write_int64(1)
 
     async def _write_data(
-        self, items,
+        self,
+        items,
     ):
         index, keys = [], []
         key_by_index_element = {}
@@ -90,10 +95,14 @@ class LowCardinalityColumn(Column):
         await self.writer.write_int64(serialization_type)
         await self.writer.write_int64(len(index))
 
-        await self.nested_column.write_data(index,)
+        await self.nested_column.write_data(
+            index,
+        )
         await self.writer.write_int64(len(items))
 
-        await int_column.write_data(keys,)
+        await int_column.write_data(
+            keys,
+        )
 
     async def _read_data(self, n_items, nulls_map=None):
         if not n_items:
@@ -110,11 +119,15 @@ class LowCardinalityColumn(Column):
         self.nested_column.nullable = False
 
         index_size = await self.reader.read_uint64()
-        index = await self.nested_column.read_data(index_size,)
+        index = await self.nested_column.read_data(
+            index_size,
+        )
         if nullable:
             index = (None,) + index[1:]
 
         await self.reader.read_uint64()  # number of keys
-        keys = await keys_column.read_data(n_items,)
+        keys = await keys_column.read_data(
+            n_items,
+        )
 
         return tuple(index[x] for x in keys)

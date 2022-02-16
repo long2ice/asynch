@@ -138,7 +138,7 @@ ENGINE = MergeTree
 @pytest.mark.asyncio
 async def test_insert_buffer_overflow():
     old_buffer_size = constants.BUFFER_SIZE
-    constants.BUFFER_SIZE = 2 ** 6 + 1
+    constants.BUFFER_SIZE = 2**6 + 1
 
     async with conn.cursor() as cursor:
         await cursor.execute("DROP TABLE if exists test.test")

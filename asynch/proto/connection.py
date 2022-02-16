@@ -134,7 +134,10 @@ class Connection:
         self.settings = kwargs.pop("settings", {}).copy()
         self.client_settings = {
             "insert_block_size": int(
-                self.settings.pop("insert_block_size", constants.DEFAULT_INSERT_BLOCK_SIZE,)
+                self.settings.pop(
+                    "insert_block_size",
+                    constants.DEFAULT_INSERT_BLOCK_SIZE,
+                )
             ),
             "strings_as_bytes": self.settings.pop("strings_as_bytes", False),
             "strings_encoding": self.settings.pop("strings_encoding", constants.STRINGS_ENCODING),
@@ -415,7 +418,9 @@ class Connection:
 
     async def receive_progress(self):
         progress = Progress(self.reader)
-        await progress.read(self.server_info.revision,)
+        await progress.read(
+            self.server_info.revision,
+        )
         return progress
 
     async def send_cancel(self):
@@ -439,7 +444,9 @@ class Connection:
         await self.writer.write_varint(QueryProcessingStage.COMPLETE)
         await self.writer.write_varint(self.compression)
 
-        await self.writer.write_str(query,)
+        await self.writer.write_str(
+            query,
+        )
 
         logger.debug("Query: %s", query)
 
@@ -609,7 +616,9 @@ class Connection:
 
         revision = self.server_info.revision
         if revision >= constants.DBMS_MIN_REVISION_WITH_TEMPORARY_TABLES:
-            await self.writer.write_str(table_name,)
+            await self.writer.write_str(
+                table_name,
+            )
 
         await self.block_out_stream.write(block)
 

@@ -31,7 +31,9 @@ class CompressedBlockOutputStream(BlockOutputStream):
         compressed_size = len(compressed)
 
         compressed_hash = self.get_compressed_hash(compressed)
-        await self.writer.write_uint128(compressed_hash,)
+        await self.writer.write_uint128(
+            compressed_hash,
+        )
 
         block_size = self.compress_block_size
 

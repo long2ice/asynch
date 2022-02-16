@@ -13,7 +13,8 @@ class UUIDColumn(FormatColumn):
 
     # UUID is stored by two uint64 numbers.
     async def write_items(
-        self, items,
+        self,
+        items,
     ):
         n_items = len(items)
 
@@ -27,7 +28,8 @@ class UUIDColumn(FormatColumn):
         await self.writer.write_bytes(s.pack(*uint_64_pairs))
 
     async def read_items(
-        self, n_items,
+        self,
+        n_items,
     ):
         # TODO: cythonize
         s = self.make_struct(2 * n_items)

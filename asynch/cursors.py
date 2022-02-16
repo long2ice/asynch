@@ -51,7 +51,9 @@ class Cursor:
         self._connection = None
 
     async def execute(
-        self, query: str, args=None,
+        self,
+        query: str,
+        args=None,
     ):
         self._check_cursor_closed()
         self._begin_query()
@@ -140,7 +142,9 @@ class Cursor:
 
         return rv
 
-    def fetchall(self,):
+    def fetchall(
+        self,
+    ):
         self._check_query_started()
 
         if self._stream_results:
