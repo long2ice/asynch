@@ -298,13 +298,21 @@ class Connection:
                 msg = self.unexpected_packet_message("Pong", packet_type)
                 raise UnexpectedPacketFromServerError(msg)
         except IndexError as e:
-            logger.warning(
+            logger.debug(
                 "Ping package smaller than expected or empty. "
                 "There may be connection or network problems - "
                 "we believe that the connection is incorrect.",
                 exc_info=e,
             )
             return False
+        except (ConnectionError, OSError, RuntimeError) as e:
+            # If raised RuntimeError with "TCPTransport the handler is closed" - just returning false,
+            # because this is a connection loss case
+            if isinstance(e, RuntimeError) and "TCPTransport closed=True" not in str(e):
+                raise
+            logger.debug("Socket closed", exc_info=e)
+            return False
+
         return True
 
     async def receive_data(self, raw=False):
