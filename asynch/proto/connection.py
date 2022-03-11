@@ -244,15 +244,23 @@ class Connection:
             raise UnexpectedPacketFromServerError(message)
 
     async def ping(self):
-        await self.writer.write_varint(ClientPacket.PING)
-        await self.writer.flush()
-        packet_type = await self.reader.read_varint()
-        while packet_type == ServerPacket.PROGRESS:
-            await self.receive_progress()
+        try:
+            await self.writer.write_varint(ClientPacket.PING)
+            await self.writer.flush()
             packet_type = await self.reader.read_varint()
-        if packet_type != ServerPacket.PONG:
-            msg = self.unexpected_packet_message("Pong", packet_type)
-            raise UnexpectedPacketFromServerError(msg)
+            while packet_type == ServerPacket.PROGRESS:
+                await self.receive_progress()
+                packet_type = await self.reader.read_varint()
+            if packet_type != ServerPacket.PONG:
+                msg = self.unexpected_packet_message("Pong", packet_type)
+                raise UnexpectedPacketFromServerError(msg)
+        except IndexError:
+            logger.warning(
+                "Ping packet smaller than expected or empty. "
+                "There may be connection or network problems - "
+                "we believe that the connection is incorrect."
+            )
+            return False
         return True
 
     async def receive_data(self):
