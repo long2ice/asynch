@@ -309,7 +309,7 @@ class Connection:
             # If raised RuntimeError with "TCPTransport the handler is closed" - just returning false,
             # because this is a connection loss case
             if isinstance(e, RuntimeError) and "TCPTransport closed=True" not in str(e):
-                raise
+                raise e
             logger.debug("Socket closed", exc_info=e)
             return False
 
