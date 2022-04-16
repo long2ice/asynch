@@ -1,4 +1,4 @@
-from itertools import islice
+from itertools import islice, tee
 
 
 def chunks(seq, n):
@@ -25,3 +25,9 @@ def column_chunks(columns, n):
         if not any(item):
             break
         yield item
+
+
+def pairwise(iterable):
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
