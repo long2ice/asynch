@@ -17,8 +17,8 @@ insert_data = (  # nosec:B104
     1,
     UUID("59e182c4-545d-4f30-8b32-cefea2d0d5ba"),  # uuid str invest many resources
     "1",
-    ip_address("0.0.0.0"),  # ip address str invest many resources
-    ip_address("::"),  # ip address str invest many resources
+    ip_address("0.0.0.0"),  # nosec:B104  # ip address str invest many resources
+    ip_address("::"),  # nosec:B104  # ip address str invest many resources
 )
 sql = """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES"""
 

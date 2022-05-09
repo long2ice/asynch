@@ -4,6 +4,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from asynch import errors
 from asynch.cursors import Cursor
+from asynch.proto import constants
 from asynch.proto.connection import Connection as ProtoConnection
 from asynch.proto.utils.compat import asbool
 
@@ -14,9 +15,9 @@ class Connection:
         dsn: str = None,
         host: str = "127.0.0.1",
         port: int = 9000,
-        database: str = "default",
-        user: str = "default",
-        password: str = "",
+        database: str = constants.DEFAULT_DATABASE,
+        user: str = constants.DEFAULT_USER,
+        password: str = constants.DEFAULT_PASSWORD,
         cursor_cls=Cursor,
         echo=False,
         stack_track=False,

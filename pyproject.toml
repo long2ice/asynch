@@ -12,7 +12,7 @@ keywords = ["ClickHouse", "asyncio", "driver"]
 packages = [
     { include = "asynch" }
 ]
-include = ["LICENSE", "README.md"]
+include = ["LICENSE", "README.md", "CHANGELOG.md"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
@@ -26,6 +26,7 @@ ciso8601 = "*"
 
 [tool.poetry.dev-dependencies]
 flake8 = "*"
+pyproject-flake8 = "*"
 isort = "*"
 black = "*"
 pytest = "*"
@@ -38,3 +39,14 @@ uvloop = "*"
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ["py36", "py37", "py38", "py39"]
+
+[tool.flake8]
+ignore = "E501,W503,DAR101,DAR201,DAR402"
+max-line-length = 100
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

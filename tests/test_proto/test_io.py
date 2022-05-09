@@ -1,8 +1,9 @@
 from asyncio import StreamReader
+from unittest.mock import AsyncMock
 
 import pytest
 
-from asynch.proto.io import BufferedReader, BufferedWriter
+from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 
 
 @pytest.mark.asyncio
@@ -21,7 +22,7 @@ async def test_BufferedReader_overflow():
 @pytest.mark.asyncio
 async def test_BufferedWriter_overflow(mocker):
     writer = mocker.Mock()
-    writer.drain = mocker.AsyncMock()
+    writer.drain = AsyncMock()
     b_writer = BufferedWriter(writer, 1)
 
     await b_writer.write_bytes(b"1234")
@@ -35,7 +36,7 @@ async def test_BufferedWriter_overflow(mocker):
 @pytest.mark.asyncio
 async def test_ByfferedWriter_write_fixed_strings(mocker):
     writer = mocker.Mock()
-    writer.drain = mocker.AsyncMock()
+    writer.drain = AsyncMock()
 
     b_writer = BufferedWriter(writer, 1024)
 

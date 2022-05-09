@@ -442,6 +442,13 @@ class CannotParseDomainError(ClickHouseException):
     code = ErrorCode.CANNOT_PARSE_DOMAIN_VALUE_FROM_STRING
 
 
+class PartiallyConsumedQueryError(ClickHouseException):
+    code = -1
+
+    def __str__(self):
+        return "Simultaneous queries on single connection detected"
+
+
 class ColumnException(ClickHouseException):
     pass
 

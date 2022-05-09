@@ -2,6 +2,10 @@
 
 ## 0.1
 
+### 0.1.10
+
+- Fix compression not working. (#36)
+
 ### 0.1.9
 
 - Fix LowCardinalityColumn keys column exception. (#17)

@@ -9,15 +9,14 @@ class Compressor(BaseCompressor):
     method_byte = CompressionMethodByte.ZSTD
     compress_func = zstd.compress
 
+    def compress_data(self, data):
+        return zstd.compress(bytes(data))
+
 
 class Decompressor(BaseDecompressor):
     method = CompressionMethod.ZSTD
     method_byte = CompressionMethodByte.ZSTD
     decompress_func = zstd.decompress
 
-    async def get_decompressed_data(self, method_byte, compressed_hash, extra_header_size):
-        compressed = await super(Decompressor, self).get_decompressed_data(
-            method_byte, compressed_hash, extra_header_size
-        )
-
-        return zstd.decompress(compressed)
+    def decompress_data(self, data, uncompressed_size):
+        return zstd.decompress(data)

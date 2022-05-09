@@ -1,5 +1,5 @@
 from asynch.proto import constants
-from asynch.proto.io import BufferedReader
+from asynch.proto.streams.buffered import BufferedReader
 
 
 class Progress:

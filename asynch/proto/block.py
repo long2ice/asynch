@@ -1,50 +1,42 @@
-from asynch.proto.io import BufferedReader, BufferedWriter
+from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 
 
 class BlockInfo:
     is_overflows = False
     bucket_num = -1
 
-    def __init__(self, writer: BufferedWriter = None, reader: BufferedReader = None):
-        self.writer = writer
-        self.reader = reader
-
-    async def write(self):
+    async def write(self, writer: BufferedWriter):
         # Set of pairs (`FIELD_NUM`, value) in binary form. Then 0.
-        await self.writer.write_varint(1)
-        await self.writer.write_uint8(self.is_overflows)
-        await self.writer.write_varint(2)
-        await self.writer.write_int32(self.bucket_num)
-        await self.writer.write_varint(0)
+        await writer.write_varint(1)
+        await writer.write_uint8(self.is_overflows)
+        await writer.write_varint(2)
+        await writer.write_int32(self.bucket_num)
+        await writer.write_varint(0)
 
-    async def read(self):
+    async def read(self, reader: BufferedReader):
         while True:
-            field_num = await self.reader.read_varint()
+            field_num = await reader.read_varint()
             if not field_num:
                 break
 
             if field_num == 1:
-                self.is_overflows = bool(await self.reader.read_uint8())
+                self.is_overflows = bool(await reader.read_uint8())
 
             elif field_num == 2:
-                self.bucket_num = await self.reader.read_uint32()
+                self.bucket_num = await reader.read_uint32()
 
 
 class BaseBlock:
     def __init__(
         self,
-        writer: BufferedWriter = None,
-        reader: BufferedReader = None,
         columns_with_types=None,
         data=None,
         info=None,
         types_check=False,
     ):
-        self.writer = writer
-        self.reader = reader
         self.columns_with_types = columns_with_types or []
         self.types_check = types_check
-        self.info = info or BlockInfo(writer, reader)
+        self.info = info or BlockInfo()
         self.data = self.normalize(data or [])
 
     def normalize(self, data):
