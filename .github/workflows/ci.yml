@@ -9,13 +9,21 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        clickhouse:
+          - 19.11
+          - 20.1
+          - 21.11
+          - 22.1
+          - latest
     services:
       clickhouse:
-        image: yandex/clickhouse-server
+        image: yandex/clickhouse-server:${{ matrix.clickhouse }}
         ports:
           - 9000:9000
-          - 8123:8123
-        options: --health-cmd="curl localhost:8123/ping" --health-interval 10s --health-timeout 5s --health-retries 5
+        options: --ulimit nofile=262144:262144
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
