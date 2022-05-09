@@ -21,7 +21,7 @@ from asynch.proto.protocol import ClientPacket, Compression, ServerPacket
 from asynch.proto.result import IterQueryResult, ProgressQueryResult, QueryInfo, QueryResult
 from asynch.proto.settings import write_settings
 from asynch.proto.streams.block import BlockReader, BlockWriter
-from asynch.proto.streams.buffered import BufferedReader, BufferedWriter, CompressedBufferedWriter
+from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 from asynch.proto.utils.escape import escape_params
 from asynch.proto.utils.helpers import chunks, column_chunks
 

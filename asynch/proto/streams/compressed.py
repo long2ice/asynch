@@ -1,7 +1,7 @@
 from clickhouse_cityhash.cityhash import CityHash128
 
 from asynch.proto import constants
-from asynch.proto.compression import BaseCompressor, get_decompressor_cls
+from asynch.proto.compression import BaseCompressor
 from asynch.proto.context import Context
 from asynch.proto.streams.block import BlockReader, BlockWriter
 from asynch.proto.streams.buffered import (
