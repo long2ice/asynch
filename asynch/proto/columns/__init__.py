@@ -32,6 +32,7 @@ from .intervalcolumn import (
 )
 from .ipcolumn import IPv4Column, IPv6Column
 from .lowcardinalitycolumn import create_low_cardinality_column
+from .mapcolumn import create_map_column
 from .nothingcolumn import NothingColumn
 from .nullablecolumn import create_nullable_column
 from .nullcolumn import NullColumn
@@ -39,7 +40,6 @@ from .simpleaggregatefunctioncolumn import create_simple_aggregate_function_colu
 from .stringcolumn import create_string_column
 from .tuplecolumn import create_tuple_column
 from .uuidcolumn import UUIDColumn
-from .mapcolumn import create_map_column
 
 column_by_type = {
     c.ch_type: c

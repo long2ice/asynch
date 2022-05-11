@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import ssl
 from time import time
 from types import GeneratorType
 from typing import AsyncGenerator, Optional, Union
@@ -266,6 +267,25 @@ class Connection:
             message = self.unexpected_packet_message("Hello or Exception", packet_type)
             raise UnexpectedPacketFromServerError(message)
 
+    def _get_ssl_context(self):
+        if not self.secure_socket:
+            return None
+        ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_version = self.ssl_options.get("ssl_version")
+        if ssl_version:
+            ssl_ctx.options |= ssl_version
+        ca_certs = self.ssl_options.get("ca_certs")
+        if ca_certs:
+            ssl_ctx.load_verify_locations(ca_certs)
+        else:
+            ssl_ctx.load_default_certs(ssl.Purpose.SERVER_AUTH)
+        ciphers = self.ssl_options.get("ciphers")
+        if ciphers:
+            ssl_ctx.set_ciphers(ciphers)
+        if self.verify_cert:
+            ssl_ctx.verify_mode = ssl.VerifyMode.CERT_REQUIRED
+        return ssl_ctx
+
     async def ping(self):
         await self.writer.write_varint(ClientPacket.PING)
         await self.writer.flush()
@@ -486,7 +506,7 @@ class Connection:
 
     async def _init_connection(self, host: str, port: int):
         self.host, self.port = host, port
-        reader, writer = await asyncio.open_connection(host, port)
+        reader, writer = await asyncio.open_connection(host, port, ssl=self._get_ssl_context())
         self.writer = BufferedWriter(writer)
         self.reader = BufferedReader(reader)
         self.block_reader = self.get_block_reader()

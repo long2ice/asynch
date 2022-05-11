@@ -1,6 +1,7 @@
+from asynch.proto.utils.helpers import pairwise
+
 from .base import Column
 from .intcolumn import UInt64Column
-from asynch.proto.utils.helpers import pairwise
 
 
 class MapColumn(Column):
@@ -29,10 +30,7 @@ class MapColumn(Column):
 
         offsets.insert(0, 0)
 
-        return [
-            dict(zip(keys[begin:end], values[begin:end]))
-            for begin, end in pairwise(offsets)
-        ]
+        return [dict(zip(keys[begin:end], values[begin:end])) for begin, end in pairwise(offsets)]
 
     async def write_items(self, items):
         offsets = []
@@ -52,7 +50,7 @@ class MapColumn(Column):
 
 
 def create_map_column(spec, column_by_spec_getter):
-    key, value = spec[4:-1].split(',')
+    key, value = spec[4:-1].split(",")
     key_column = column_by_spec_getter(key.strip())
     value_column = column_by_spec_getter(value.strip())
 
