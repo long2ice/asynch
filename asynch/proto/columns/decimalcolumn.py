@@ -1,7 +1,7 @@
 from decimal import Decimal, localcontext
 
 from ...errors import ColumnTypeMismatchException
-from ..io import MAX_INT64, MAX_UINT64
+from ..streams.buffered import MAX_INT64, MAX_UINT64
 from ..utils import compat
 from .base import FormatColumn
 

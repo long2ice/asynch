@@ -1,11 +1,30 @@
 import asyncio
+from asyncio.streams import StreamReader
+
 import pytest
+
 import asynch
 from asynch import connect
 from asynch.cursors import DictCursor
+from asynch.proto import constants
+from asynch.proto.context import Context
+from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 
 
-@pytest.yield_fixture(scope="session")
+@pytest.fixture
+def column_options():
+    reader = BufferedReader(StreamReader(), constants.BUFFER_SIZE)
+    writer = BufferedWriter()
+    context = Context()
+    context.client_settings = {
+        "strings_as_bytes": False,
+        "strings_encoding": constants.STRINGS_ENCODING,
+    }
+    column_options = {"reader": reader, "writer": writer, "context": context}
+    return column_options
+
+
+@pytest.fixture(scope="session")
 def event_loop():
     policy = asyncio.get_event_loop_policy()
     res = policy.new_event_loop()

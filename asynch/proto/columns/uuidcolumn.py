@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from ...errors import CannotParseUuidError
-from ..io import MAX_UINT64
+from ..streams.buffered import MAX_UINT64
 from ..utils import compat
 from .base import FormatColumn
 

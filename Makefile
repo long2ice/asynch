@@ -27,7 +27,7 @@ style: deps
 
 check: deps
 	@black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
-	@flake8 $(checkfiles)
+	@pflake8 $(checkfiles)
 	@bandit -x tests -r $(checkfiles) -s B107
 
 test: deps

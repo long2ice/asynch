@@ -4,7 +4,7 @@ from ...errors import (
     TypeMismatchError,
     UnknownTypeError,
 )
-from ..io import BufferedReader, BufferedWriter
+from ..streams.buffered import BufferedReader, BufferedWriter
 from .arraycolumn import create_array_column
 from .datecolumn import DateColumn
 from .datetimecolumn import create_datetime_column

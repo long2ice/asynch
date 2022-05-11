@@ -1,5 +1,5 @@
 from asynch.proto.columns.base import Column
-from asynch.proto.io import BufferedReader, BufferedWriter
+from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 from asynch.proto.utils import compat
 
 

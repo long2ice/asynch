@@ -1,28 +1,31 @@
 from clickhouse_cityhash.cityhash import CityHash128
 
-from asynch.proto.compression import get_decompressor_cls
+from asynch.proto import constants
+from asynch.proto.compression import BaseCompressor
 from asynch.proto.context import Context
-from asynch.proto.io import BufferedReader, BufferedWriter
-from asynch.proto.streams.native import BlockInputStream, BlockOutputStream
+from asynch.proto.streams.block import BlockReader, BlockWriter
+from asynch.proto.streams.buffered import (
+    BufferedReader,
+    BufferedWriter,
+    CompressedBufferedReader,
+    CompressedBufferedWriter,
+)
 
 
-class CompressedBlockOutputStream(BlockOutputStream):
+class CompressedBlockWriter(BlockWriter):
     def __init__(
         self,
         reader: BufferedReader,
         writer: BufferedWriter,
         context: Context,
-        compressor_cls,
-        compress_block_size,
+        compressor: BaseCompressor,
+        compress_block_size: int,
     ):
-        super().__init__(reader, writer, context)
-        self.compressor_cls = compressor_cls
+        self.compressor = compressor
         self.compress_block_size = compress_block_size
-
-        self.compressor = self.compressor_cls(writer)
-
-    def get_compressed_hash(self, data):
-        return CityHash128(data)
+        self.raw_writer = writer
+        self.writer = CompressedBufferedWriter(compressor, writer.writer, constants.BUFFER_SIZE)
+        super().__init__(reader, self.writer, context)
 
     async def finalize(self):
         await self.writer.flush()
@@ -30,8 +33,8 @@ class CompressedBlockOutputStream(BlockOutputStream):
         compressed = await self.get_compressed()
         compressed_size = len(compressed)
 
-        compressed_hash = self.get_compressed_hash(compressed)
-        await self.writer.write_uint128(
+        compressed_hash = CityHash128(compressed)
+        await self.raw_writer.write_uint128(
             compressed_hash,
         )
 
@@ -39,40 +42,35 @@ class CompressedBlockOutputStream(BlockOutputStream):
 
         i = 0
         while i < compressed_size:
-            await self.writer.write_bytes(compressed[i : i + block_size])  # noqa: E203
+            await self.raw_writer.write_bytes(compressed[i : i + block_size])  # noqa: E203
             i += block_size
 
-        await self.writer.flush()
+        await self.raw_writer.flush()
 
     async def get_compressed(self):
-        compressed = BufferedWriter()
+        writer = BufferedWriter()
 
         if self.compressor.method_byte is not None:
-            await compressed.write_uint8(self.compressor.method_byte)
+            await writer.write_uint8(self.compressor.method_byte)
             extra_header_size = 1  # method
         else:
             extra_header_size = 0
 
-        data = self.compressor.get_compressed_data(extra_header_size)
-        await compressed.write_bytes(data)
+        data = await self.compressor.get_compressed_data(extra_header_size)
+        await writer.write_bytes(data)
 
-        return compressed.buffer
+        return writer.buffer
 
 
-class CompressedBlockInputStream(BlockInputStream):
-    def get_compressed_hash(self, data):
-        return CityHash128(data)
-
-    async def read_block(self):
-        compressed_hash = await self.reader.read_uint128()
-        method_byte = await self.reader.read_uint8()
-
-        decompressor_cls = get_decompressor_cls(method_byte)
-        decompressor = decompressor_cls(self.reader)
-
-        if decompressor.method_byte is not None:
-            extra_header_size = 1  # method
-        else:
-            extra_header_size = 0
-
-        return decompressor.get_decompressed_data(method_byte, compressed_hash, extra_header_size)
+class CompressedBlockReader(BlockReader):
+    def __init__(
+        self,
+        reader: BufferedReader,
+        writer: BufferedWriter,
+        context,
+    ):
+        self.raw_reader = reader
+        self.reader = CompressedBufferedReader(
+            self.raw_reader, reader.reader, constants.BUFFER_SIZE
+        )
+        super().__init__(self.reader, writer, context)

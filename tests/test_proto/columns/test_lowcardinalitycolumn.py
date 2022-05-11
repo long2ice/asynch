@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock
+
 import pytest
 
 from asynch.proto.columns import get_column_by_spec
@@ -28,13 +30,11 @@ async def test_lc_column_write_data(low_cardinality_column):
 
 
 @pytest.mark.asyncio
-async def test_lc_column_read_data(low_cardinality_column, mocker):
+async def test_lc_column_read_data(low_cardinality_column):
     s = "1234567890"
     await low_cardinality_column.write_data([s])
-    mocker.patch.object(
-        low_cardinality_column.reader.reader,
-        "read",
-        return_value=low_cardinality_column.writer.buffer,
+    low_cardinality_column.reader.reader.read = AsyncMock(
+        return_value=low_cardinality_column.writer.buffer
     )
     resp = await low_cardinality_column.read_data(1)
     assert resp[0] == s

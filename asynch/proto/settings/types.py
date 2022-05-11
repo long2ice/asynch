@@ -1,4 +1,4 @@
-from asynch.proto.io import BufferedWriter
+from asynch.proto.streams.buffered import BufferedWriter
 from asynch.proto.utils.compat import asbool
 
 

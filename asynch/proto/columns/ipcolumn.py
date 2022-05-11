@@ -1,7 +1,7 @@
 from ipaddress import AddressValueError, IPv4Address, IPv6Address
 
 from ...errors import CannotParseDomainError, ColumnTypeMismatchException
-from ..io import BufferedReader, BufferedWriter
+from ..streams.buffered import BufferedReader, BufferedWriter
 from ..utils import compat
 from .intcolumn import UInt32Column
 from .stringcolumn import ByteFixedString

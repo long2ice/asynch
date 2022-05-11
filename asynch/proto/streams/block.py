@@ -2,10 +2,10 @@ from asynch.proto import constants
 from asynch.proto.block import BaseBlock, BlockInfo, ColumnOrientedBlock
 from asynch.proto.columns import read_column, write_column
 from asynch.proto.context import Context
-from asynch.proto.io import BufferedReader, BufferedWriter
+from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 
 
-class BlockOutputStream:
+class BlockWriter:
     def __init__(self, reader: BufferedReader, writer: BufferedWriter, context: Context):
         self.reader = reader
         self.writer = writer
@@ -14,7 +14,7 @@ class BlockOutputStream:
     async def write(self, block: BaseBlock):
         revision = self.context.server_info.revision
         if revision >= constants.DBMS_MIN_REVISION_WITH_BLOCK_INFO:
-            await block.info.write()
+            await block.info.write(self.writer)
 
         # We write transposed data.
         n_columns = block.num_columns
@@ -53,18 +53,18 @@ class BlockOutputStream:
         await self.writer.flush()
 
 
-class BlockInputStream:
+class BlockReader:
     def __init__(self, reader: BufferedReader, writer: BufferedWriter, context):
         self.writer = writer
         self.reader = reader
         self.context = context
 
     async def read(self):
-        info = BlockInfo(reader=self.reader)
+        info = BlockInfo()
 
         revision = self.context.server_info.revision
         if revision >= constants.DBMS_MIN_REVISION_WITH_BLOCK_INFO:
-            await info.read()
+            await info.read(self.reader)
 
         n_columns = await self.reader.read_varint()
         n_rows = await self.reader.read_varint()
@@ -89,7 +89,6 @@ class BlockInputStream:
                 data.append(column)
 
         block = ColumnOrientedBlock(
-            reader=self.reader,
             columns_with_types=list(zip(names, types)),
             data=data,
             info=info,

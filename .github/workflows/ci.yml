@@ -1,12 +1,21 @@
 name: ci
-on: [ push, pull_request ]
+on:
+  push:
+    branches-ignore:
+      - master
+  pull_request:
+    branches-ignore:
+      - master
 jobs:
   ci:
     runs-on: ubuntu-latest
+    services:
+      clickhouse:
+        image: yandex/clickhouse-server
+        ports:
+          - 9000:9000
     steps:
       - uses: actions/checkout@v2
-      - name: Run docker-compose
-        run: docker-compose -f tests/docker-compose.yml up -d
       - uses: actions/setup-python@v2
         with:
           python-version: "3.x"

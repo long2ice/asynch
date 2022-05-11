@@ -2,7 +2,7 @@ from struct import Struct
 from struct import error as struct_error
 
 from ...errors import ColumnTypeMismatchException, StructPackException
-from ..io import BufferedReader, BufferedWriter
+from ..streams.buffered import BufferedReader, BufferedWriter
 
 
 class Column:

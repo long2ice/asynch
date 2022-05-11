@@ -1,8 +1,8 @@
 from typing import AsyncGenerator
 
-from .block import BlockStreamProfileInfo
-from .io import BufferedReader
-from .progress import Progress
+from asynch.proto.block import BlockStreamProfileInfo
+from asynch.proto.progress import Progress
+from asynch.proto.streams.buffered import BufferedReader
 
 
 class QueryResult:
@@ -81,7 +81,7 @@ class ProgressQueryResult(QueryResult):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         while True:
             packet = next(self.packet_generator)
             progress_packet = getattr(packet, "progress", None)
@@ -90,9 +90,6 @@ class ProgressQueryResult(QueryResult):
                 return self.progress_totals.rows, self.progress_totals.total_rows
             else:
                 self.store(packet)
-
-    # For Python 3.
-    __next__ = next
 
     async def get_result(self):
         # Read all progress packets.
