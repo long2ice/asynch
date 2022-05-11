@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import ssl
 from time import time
 from types import GeneratorType
 from typing import AsyncGenerator, Optional
@@ -469,9 +470,28 @@ class Connection:
 
         await self.writer.flush()
 
+    def _get_ssl_context(self):
+        if not self.secure_socket:
+            return None
+        ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_version = self.ssl_options.get("ssl_version")
+        if ssl_version:
+            ssl_ctx.options |= ssl_version
+        ca_certs = self.ssl_options.get("ca_certs")
+        if ca_certs:
+            ssl_ctx.load_verify_locations(ca_certs)
+        else:
+            ssl_ctx.load_default_certs(ssl.Purpose.SERVER_AUTH)
+        ciphers = self.ssl_options.get("ciphers")
+        if ciphers:
+            ssl_ctx.set_ciphers(ciphers)
+        if self.verify_cert:
+            ssl_ctx.verify_mode = ssl.VerifyMode.CERT_REQUIRED
+        return ssl_ctx
+
     async def _init_connection(self, host: str, port: int):
         self.host, self.port = host, port
-        reader, writer = await asyncio.open_connection(host, port)
+        reader, writer = await asyncio.open_connection(host, port, ssl=self._get_ssl_context())
         self.writer = BufferedWriter(writer, constants.BUFFER_SIZE)
         self.reader = BufferedReader(reader, constants.BUFFER_SIZE)
         self.block_in_stream = self.get_block_in_stream()
