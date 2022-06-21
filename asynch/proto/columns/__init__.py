@@ -12,6 +12,7 @@ from .decimalcolumn import create_decimal_column
 from .enumcolumn import create_enum_column
 from .floatcolumn import Float32, Float64
 from .intcolumn import (
+    BoolColumn,
     Int8Column,
     Int16Column,
     Int32Column,
@@ -47,6 +48,7 @@ column_by_type = {
         DateColumn,
         Float32,
         Float64,
+        BoolColumn,
         Int8Column,
         Int16Column,
         Int32Column,

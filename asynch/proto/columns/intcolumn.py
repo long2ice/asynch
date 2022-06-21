@@ -49,6 +49,12 @@ class UIntColumn(IntColumn):
             self.check_item = check_item
 
 
+class BoolColumn(IntColumn):
+    ch_type = "Bool"
+    format = "b"
+    int_size = 1
+
+
 class Int8Column(IntColumn):
     ch_type = "Int8"
     format = "b"
