@@ -52,7 +52,8 @@ async def initialize_tests():
         `uuid`     UUID,
         `string`   String,
         `ipv4`     IPv4,
-        `ipv6`     IPv6
+        `ipv6`     IPv6,
+        `bool`     Bool
     
     )
         ENGINE = MergeTree

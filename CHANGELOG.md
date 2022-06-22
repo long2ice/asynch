@@ -5,6 +5,7 @@
 ### 0.1.10
 
 - Fix compression not working. (#36)
+- Add `BoolColumn`. (#38)
 
 ### 0.1.9
 

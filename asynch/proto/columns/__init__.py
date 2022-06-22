@@ -6,6 +6,7 @@ from ...errors import (
 )
 from ..streams.buffered import BufferedReader, BufferedWriter
 from .arraycolumn import create_array_column
+from .boolcolumn import BoolColumn
 from .datecolumn import DateColumn
 from .datetimecolumn import create_datetime_column
 from .decimalcolumn import create_decimal_column
@@ -47,6 +48,7 @@ column_by_type = {
         DateColumn,
         Float32,
         Float64,
+        BoolColumn,
         Int8Column,
         Int16Column,
         Int32Column,

@@ -51,6 +51,7 @@ async def test_insert_dict():
                     "string": "1",
                     "ipv4": "0.0.0.0",
                     "ipv6": "::",
+                    "bool": True,
                 }
             ],
         )
@@ -73,6 +74,7 @@ async def test_insert_tuple():
                     "1",
                     "0.0.0.0",
                     "::",
+                    True,
                 )
             ],
         )
@@ -95,6 +97,7 @@ async def test_executemany():
                     "1",
                     "0.0.0.0",
                     "::",
+                    True,
                 ),
                 (
                     1,
@@ -106,6 +109,7 @@ async def test_executemany():
                     "1",
                     "0.0.0.0",
                     "::",
+                    True,
                 ),
             ],
         )
