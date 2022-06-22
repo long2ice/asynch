@@ -58,14 +58,16 @@ async def initialize_tests():
     )
         ENGINE = MergeTree
             ORDER BY id""")
-
+    yield
+    await conn.close()
 
 @pytest.fixture(scope="function", autouse=True)
 async def truncate_table():
     conn = await connect()
     async with conn.cursor(cursor=DictCursor) as cursor:
         await cursor.execute("truncate table test.asynch")
-
+    yield
+    await conn.close()
 
 @pytest.fixture(scope="function")
 async def pool():

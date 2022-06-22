@@ -1,7 +1,7 @@
-from asynch.proto.columns.intcolumn import IntColumn
+from asynch.proto.columns.base import FormatColumn
 
 
-class BoolColumn(IntColumn):
+class BoolColumn(FormatColumn):
     ch_type = "Bool"
-    format = "b"
-    int_size = 1
+    py_types = (bool,)
+    format = "?"

@@ -39,7 +39,7 @@ async def test_dict_cursor():
 async def test_insert_dict():
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.execute(
-            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES""",
+            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
             [
                 {
                     "id": 1,
@@ -62,7 +62,7 @@ async def test_insert_dict():
 async def test_insert_tuple():
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.execute(
-            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES""",
+            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
             [
                 (
                     1,
@@ -85,7 +85,7 @@ async def test_insert_tuple():
 async def test_executemany():
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.executemany(
-            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES""",
+            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
             [
                 (
                     1,
