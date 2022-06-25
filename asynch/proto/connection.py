@@ -854,9 +854,7 @@ class Connection:
     def iter_receive_result(self, with_column_types=False):
         gen = self.packet_generator()
 
-        for rows in IterQueryResult(gen, with_column_types=with_column_types):
-            for row in rows:
-                yield row
+        return IterQueryResult(gen, with_column_types=with_column_types)
 
     def track_current_database(self, query):
         query = query.strip("; ")
@@ -866,7 +864,7 @@ class Connection:
     async def execute_iter(
         self,
         query,
-        params=None,
+        args=None,
         with_column_types=False,
         external_tables=None,
         query_id=None,
@@ -901,7 +899,7 @@ class Connection:
 
             return await self.iter_process_ordinary_query(
                 query,
-                params=params,
+                params=args,
                 with_column_types=with_column_types,
                 external_tables=external_tables,
                 query_id=query_id,

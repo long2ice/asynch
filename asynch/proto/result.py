@@ -11,11 +11,11 @@ class QueryResult:
     """
 
     def __init__(
-        self,
-        reader: BufferedReader,
-        packet_generator: AsyncGenerator,
-        with_column_types=False,
-        columnar=False,
+            self,
+            reader: BufferedReader,
+            packet_generator: AsyncGenerator,
+            with_column_types=False,
+            columnar=False,
     ):
         self.reader = reader
         self.packet_generator = packet_generator
@@ -73,7 +73,7 @@ class ProgressQueryResult(QueryResult):
     """
 
     def __init__(
-        self, reader: BufferedReader, packet_generator, with_column_types=False, columnar=False
+            self, reader: BufferedReader, packet_generator, with_column_types=False, columnar=False
     ):
         super().__init__(reader, packet_generator, with_column_types, columnar)
         self.progress_totals = Progress(self.reader)
@@ -113,15 +113,18 @@ class IterQueryResult:
     def __iter__(self):
         return self
 
-    def next(self):
-        packet = next(self.packet_generator)
+    def __aiter__(self):
+        return self
+
+    async def next(self, default=[]):
+        packet = await self.packet_generator.__anext__()
         block = getattr(packet, "block", None)
         if block is None:
-            return []
+            return default
 
         if self.first_block and self.with_column_types:
             self.first_block = False
-            rv = [block.columns_with_types]
+            rv = block.columns_with_types
             rv.extend(block.get_rows())
             return rv
         else:
@@ -129,6 +132,7 @@ class IterQueryResult:
 
     # For Python 3.
     __next__ = next
+    __anext__ = next
 
 
 class QueryInfo:

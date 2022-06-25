@@ -62,14 +62,14 @@ class Cursor:
 
         response = await execute(query, args=args, with_column_types=True, **execute_kwargs)
 
-        self._process_response(response)
+        await self._process_response(response)
         self._end_query()
         if self._echo:
             logger.info(query)
             logger.info("%r", args)
         return self._rowcount
 
-    def _process_response(self, response, executemany=False):
+    async def _process_response(self, response, executemany=False):
         if executemany or isinstance(response, int):
             self._rowcount = response
             response = None
@@ -79,7 +79,7 @@ class Cursor:
             return
 
         if self._stream_results:
-            columns_with_types = next(response)
+            columns_with_types = await response.next()
             rows = response
 
         else:
@@ -109,11 +109,11 @@ class Cursor:
             logger.info("%r", args)
         return self._rowcount
 
-    def fetchone(self):
+    async def fetchone(self):
         self._check_query_started()
 
         if self._stream_results:
-            return next(self._rows, None)
+            return await self._rows.next(None)
 
         else:
             if not self._rows:
@@ -121,7 +121,7 @@ class Cursor:
 
             return self._rows.pop(0)
 
-    def fetchmany(self, size: int):
+    async def fetchmany(self, size: int):
         self._check_query_started()
 
         if size is None:
@@ -129,9 +129,10 @@ class Cursor:
 
         if self._stream_results:
             if size == -1:
-                return list(self._rows)
+                return [i async for i in self._rows]
             else:
-                return list(islice(self._rows, size))
+
+                return [await self._rows.next() for i in range(size)]
 
         if size < 0:
             rv = self._rows
@@ -142,13 +143,13 @@ class Cursor:
 
         return rv
 
-    def fetchall(
+    async def fetchall(
         self,
     ):
         self._check_query_started()
 
         if self._stream_results:
-            return list(self._rows)
+            return [i async for i in self._rows]
 
         rv = self._rows
         self._rows = []
@@ -182,8 +183,8 @@ class Cursor:
 
         if self._stream_results:
             execute = self._connection._connection.execute_iter
-            self.settings = self.settings or {}
-            self.settings["max_block_size"] = self._max_row_buffer
+            self._settings = self._settings or {}
+            self._settings["max_block_size"] = self._max_row_buffer
 
         execute_kwargs = {
             "settings": self._settings,
