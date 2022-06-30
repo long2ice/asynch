@@ -95,3 +95,51 @@ class UInt64Column(UIntColumn):
     ch_type = "UInt64"
     format = "Q"
     int_size = 8
+
+
+class BigIntColumn(IntColumn):
+    async def write_items(self, items):
+        data = b"".join(n.to_bytes(self.int_size, "little", signed=True) for n in items)
+        assert len(data) == len(items) * self.int_size
+        await self.writer.write_bytes(data)
+
+    async def read_items(self, n_items):
+        data = await self.reader.read_bytes(self.int_size * n_items)
+        assert len(data) == self.int_size * n_items
+        chunks = [data[i : i + self.int_size] for i in range(0, len(data), self.int_size)]
+        assert len(chunks) == n_items
+        return [int.from_bytes(chunk, "little", signed=True) for chunk in chunks]
+
+
+class BigUIntColumn(UIntColumn):
+    async def write_items(self, items):
+        data = b"".join(n.to_bytes(self.int_size, "little", signed=False) for n in items)
+        assert len(data) == len(items) * self.int_size
+        await self.writer.write_bytes(data)
+
+    async def read_items(self, n_items):
+        data = await self.reader.read_bytes(self.int_size * n_items)
+        assert len(data) == self.int_size * n_items
+        chunks = [data[i : i + self.int_size] for i in range(0, len(data), self.int_size)]
+        assert len(chunks) == n_items
+        return [int.from_bytes(chunk, "little", signed=False) for chunk in chunks]
+
+
+class Int128Column(BigIntColumn):
+    ch_type = "Int128"
+    int_size = 16
+
+
+class Int256Column(BigIntColumn):
+    ch_type = "Int256"
+    int_size = 32
+
+
+class UInt128Column(BigUIntColumn):
+    ch_type = "UInt128"
+    int_size = 16
+
+
+class UInt256Column(BigUIntColumn):
+    ch_type = "UInt256"
+    int_size = 32
