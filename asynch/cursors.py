@@ -113,7 +113,10 @@ class Cursor:
         self._check_query_started()
 
         if self._stream_results:
-            return await self._rows.next(None)
+            try:
+                return await self._rows.next()
+            except:
+                return None
 
         else:
             if not self._rows:
@@ -124,15 +127,22 @@ class Cursor:
     async def fetchmany(self, size: int):
         self._check_query_started()
 
+        if size == 0:
+            return []
+
         if size is None:
             size = self._arraysize
 
         if self._stream_results:
-            if size == -1:
-                return [i async for i in self._rows]
-            else:
+            rv = []
 
-                return [await self._rows.next() for i in range(size)]
+            async for i in self._rows:
+                rv += i
+
+                if size > 0 and len(rv) >= size:
+                    break
+
+            return rv
 
         if size < 0:
             rv = self._rows
@@ -144,12 +154,15 @@ class Cursor:
         return rv
 
     async def fetchall(
-        self,
+            self,
     ):
         self._check_query_started()
 
         if self._stream_results:
-            return [i async for i in self._rows]
+            rv = []
+            async for i in self._rows:
+                rv += i
+            return rv
 
         rv = self._rows
         self._rows = []

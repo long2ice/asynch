@@ -11,11 +11,11 @@ class QueryResult:
     """
 
     def __init__(
-            self,
-            reader: BufferedReader,
-            packet_generator: AsyncGenerator,
-            with_column_types=False,
-            columnar=False,
+        self,
+        reader: BufferedReader,
+        packet_generator: AsyncGenerator,
+        with_column_types=False,
+        columnar=False,
     ):
         self.reader = reader
         self.packet_generator = packet_generator
@@ -73,7 +73,7 @@ class ProgressQueryResult(QueryResult):
     """
 
     def __init__(
-            self, reader: BufferedReader, packet_generator, with_column_types=False, columnar=False
+        self, reader: BufferedReader, packet_generator, with_column_types=False, columnar=False
     ):
         super().__init__(reader, packet_generator, with_column_types, columnar)
         self.progress_totals = Progress(self.reader)
@@ -108,7 +108,9 @@ class IterQueryResult:
         self.packet_generator = packet_generator
         self.with_column_types = with_column_types
 
+        self.data = []
         self.first_block = True
+        self.EOF = False
 
     def __iter__(self):
         return self
@@ -116,7 +118,7 @@ class IterQueryResult:
     def __aiter__(self):
         return self
 
-    async def next(self, default=[]):
+    async def _get_next_(self, default=[]):
         packet = await self.packet_generator.__anext__()
         block = getattr(packet, "block", None)
         if block is None:
@@ -129,6 +131,22 @@ class IterQueryResult:
             return rv
         else:
             return block.get_rows()
+
+    async def next(self, default=[]):
+        if self.EOF:
+            raise StopAsyncIteration
+
+        if not self.data:
+            rows = await self._get_next_()
+            if not rows:
+                self.EOF = True
+            else:
+                self.data += rows
+
+            return await self.next()
+
+        else:
+            return [self.data.pop(0)]
 
     # For Python 3.
     __next__ = next
