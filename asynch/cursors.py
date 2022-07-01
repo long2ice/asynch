@@ -79,7 +79,7 @@ class Cursor:
             return
 
         if self._stream_results:
-            columns_with_types = await response.next()
+            columns_with_types = await response.get_columns_with_types()
             rows = response
 
         else:
@@ -102,7 +102,7 @@ class Cursor:
 
         response = await execute(query, args=args, **execute_kwargs)
 
-        self._process_response(response, executemany=True)
+        await self._process_response(response, executemany=True)
         self._end_query()
         if self._echo:
             logger.info(query)
@@ -137,7 +137,7 @@ class Cursor:
             rv = []
 
             async for i in self._rows:
-                rv += i
+                rv.append(i)
 
                 if size > 0 and len(rv) >= size:
                     break
@@ -161,7 +161,7 @@ class Cursor:
         if self._stream_results:
             rv = []
             async for i in self._rows:
-                rv += i
+                rv.append(i)
             return rv
 
         rv = self._rows
@@ -308,7 +308,23 @@ class Cursor:
 
 
 class DictCursor(Cursor):
-    def _process_response(self, response, executemany=False):
-        super(DictCursor, self)._process_response(response, executemany)
-        if self._columns and self._rows:
-            self._rows = [dict(zip(self._columns, item)) for item in self._rows]
+    async def fetchone(self):
+        row = await super(DictCursor, self).fetchone()
+        if self._columns and row:
+            return dict(zip(self._columns, row))
+        else:
+            raise AttributeError("Not fould valid columns")
+
+    async def fetchmany(self, size: int):
+        rows = await super(DictCursor, self).fetchmany(size)
+        if self._columns and rows:
+            return [dict(zip(self._columns, item)) for item in rows]
+        else:
+            raise AttributeError("Not fould valid columns")
+
+    async def fetchall(self):
+        rows = await super(DictCursor, self).fetchall()
+        if self._columns and rows:
+            return [dict(zip(self._columns, item)) for item in rows]
+        else:
+            raise AttributeError("Not fould valid columns")

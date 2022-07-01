@@ -4,18 +4,18 @@ from asynch.connection import Connection
 
 
 def test_dsn():
-    dsn = "clickhouse://default:default@127.0.0.1:9000/default"
+    dsn = "clickhouse://default:@192.168.15.103:9000/default"
     conn = Connection(dsn=dsn)
     assert conn.database == "default"
     assert conn.user == "default"
-    assert conn.password == "default"
-    assert conn.host == "127.0.0.1"
+    assert conn.password == ""
+    assert conn.host == "192.168.15.103"
     assert conn.port == 9000
 
 
 def test_secure_dsn():
     dsn = (
-        "clickhouses://default:default@127.0.0.1:9000/default"
+        "clickhouses://default:@192.168.15.103:9000/default"
         "?verify=true"
         "&ssl_version=PROTOCOL_TLSv1"
         "&ca_certs=path/to/CA.crt"
@@ -24,8 +24,8 @@ def test_secure_dsn():
     conn = Connection(dsn=dsn)
     assert conn.database == "default"
     assert conn.user == "default"
-    assert conn.password == "default"
-    assert conn.host == "127.0.0.1"
+    assert conn.password == ""
+    assert conn.host == "192.168.15.103"
     assert conn.port == 9000
     assert conn._connection.secure_socket
     assert conn._connection.verify_cert
@@ -36,10 +36,10 @@ def test_secure_dsn():
 
 def test_secure_connection():
     conn = Connection(
-        host="127.0.0.1",
+        host="192.168.15.103",
         port=9000,
         user="default",
-        password="default",
+        password="",
         database="default",
         secure=True,
         verify=True,
@@ -49,8 +49,8 @@ def test_secure_connection():
     )
     assert conn.database == "default"
     assert conn.user == "default"
-    assert conn.password == "default"
-    assert conn.host == "127.0.0.1"
+    assert conn.password == ""
+    assert conn.host == "192.168.15.103"
     assert conn.port == 9000
     assert conn._connection.secure_socket
     assert conn._connection.verify_cert
@@ -61,10 +61,10 @@ def test_secure_connection():
 
 def test_secure_connection_check_ssl_context():
     conn = Connection(
-        host="127.0.0.1",
+        host="192.168.15.103",
         port=9000,
         user="default",
-        password="default",
+        password="",
         database="default",
         secure=True,
         ciphers="AES",
@@ -72,8 +72,8 @@ def test_secure_connection_check_ssl_context():
     )
     assert conn.database == "default"
     assert conn.user == "default"
-    assert conn.password == "default"
-    assert conn.host == "127.0.0.1"
+    assert conn.password == ""
+    assert conn.host == "192.168.15.103"
     assert conn.port == 9000
     assert conn._connection.secure_socket
     assert conn._connection.verify_cert

@@ -10,6 +10,7 @@ conn = Connection(host='192.168.15.103')
 @pytest.mark.asyncio
 async def test_fetchone():
     async with conn.cursor() as cursor:
+        cursor.set_stream_results(True, 1000)
         await cursor.execute("SELECT 1")
         ret = await cursor.fetchone()
         assert ret == (1,)
@@ -22,6 +23,7 @@ async def test_fetchone():
 @pytest.mark.asyncio
 async def test_fetchall():
     async with conn.cursor() as cursor:
+        cursor.set_stream_results(True, 1000)
         await cursor.execute("SELECT 1")
         ret = await cursor.fetchall()
         assert ret == [(1,)]
@@ -30,6 +32,7 @@ async def test_fetchall():
 @pytest.mark.asyncio
 async def test_dict_cursor():
     async with conn.cursor(cursor=DictCursor) as cursor:
+        cursor.set_stream_results(True, 1000)
         await cursor.execute("SELECT 1")
         ret = await cursor.fetchall()
         assert ret == [{"1": 1}]
@@ -38,6 +41,7 @@ async def test_dict_cursor():
 @pytest.mark.asyncio
 async def test_insert_dict():
     async with conn.cursor(cursor=DictCursor) as cursor:
+        cursor.set_stream_results(True, 1000)
         rows = await cursor.execute(
             """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
             [
@@ -61,6 +65,7 @@ async def test_insert_dict():
 @pytest.mark.asyncio
 async def test_insert_tuple():
     async with conn.cursor(cursor=DictCursor) as cursor:
+        cursor.set_stream_results(True, 1000)
         rows = await cursor.execute(
             """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
             [
@@ -84,6 +89,7 @@ async def test_insert_tuple():
 @pytest.mark.asyncio
 async def test_executemany():
     async with conn.cursor(cursor=DictCursor) as cursor:
+        cursor.set_stream_results(True, 1000)
         rows = await cursor.executemany(
             """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
             [
@@ -119,6 +125,7 @@ async def test_executemany():
 @pytest.mark.asyncio
 async def test_table_ddl():
     async with conn.cursor() as cursor:
+        cursor.set_stream_results(True, 1000)
         await cursor.execute("drop table if exists test.alter_table")
         create_table_sql = """
             CREATE TABLE test.alter_table
@@ -145,6 +152,7 @@ async def test_insert_buffer_overflow():
     constants.BUFFER_SIZE = 2**6 + 1
 
     async with conn.cursor() as cursor:
+        cursor.set_stream_results(True, 1000)
         await cursor.execute("DROP TABLE if exists test.test")
 
         create_table_sql = """CREATE TABLE test.test
