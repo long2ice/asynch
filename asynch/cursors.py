@@ -56,6 +56,7 @@ class Cursor:
         args=None,
     ):
         self._check_cursor_closed()
+        self._check_query_executing()
         self._begin_query()
 
         execute, execute_kwargs = self._prepare()
@@ -96,6 +97,7 @@ class Cursor:
 
     async def executemany(self, query, args=None):
         self._check_cursor_closed()
+        self._check_query_executing()
         self._begin_query()
 
         execute, execute_kwargs = self._prepare()
@@ -237,6 +239,10 @@ class Cursor:
     def _check_query_started(self):
         if self._state == self._states.NONE:
             raise ProgrammingError("no results to fetch")
+
+    def _check_query_executing(self):
+        if self._connection._connection.is_query_executing:
+            raise ProgrammingError("records have not fetched, fetch all before execute next")
 
     def _check_cursor_closed(self):
         if self._state == self._states.CURSOR_CLOSED:

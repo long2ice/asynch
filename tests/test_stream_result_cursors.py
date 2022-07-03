@@ -14,6 +14,7 @@ async def test_fetchone():
         await cursor.execute("SELECT 1")
         ret = await cursor.fetchone()
         assert ret == (1,)
+        await cursor.fetchall()
 
         await cursor.execute("SELECT * FROM system.tables")
         ret = await cursor.fetchall()
@@ -121,50 +122,3 @@ async def test_executemany():
         )
         assert rows == 2
 
-
-@pytest.mark.asyncio
-async def test_table_ddl():
-    async with conn.cursor() as cursor:
-        cursor.set_stream_results(True, 1000)
-        await cursor.execute("drop table if exists test.alter_table")
-        create_table_sql = """
-            CREATE TABLE test.alter_table
-(
-    `id` Int32
-)
-ENGINE = MergeTree
-            ORDER BY id
-            """
-        await cursor.execute(create_table_sql)
-        add_column_sql = """alter table test.alter_table add column c String"""
-        await cursor.execute(add_column_sql)
-        show_table_sql = """show create table test.alter_table"""
-        await cursor.execute(show_table_sql)
-        assert await cursor.fetchone() == (
-            "CREATE TABLE test.alter_table\n(\n    `id` Int32,\n    `c` String\n)\nENGINE = MergeTree\nORDER BY id\nSETTINGS index_granularity = 8192",
-        )
-        await cursor.execute("drop table test.alter_table")
-
-
-@pytest.mark.asyncio
-async def test_insert_buffer_overflow():
-    old_buffer_size = constants.BUFFER_SIZE
-    constants.BUFFER_SIZE = 2**6 + 1
-
-    async with conn.cursor() as cursor:
-        cursor.set_stream_results(True, 1000)
-        await cursor.execute("DROP TABLE if exists test.test")
-
-        create_table_sql = """CREATE TABLE test.test
-(
-    `i` Int32,
-    `c1` String,
-    `c2` String,
-    `c3` String,
-    `c4` String
-) ENGINE = MergeTree ORDER BY i"""
-        await cursor.execute(create_table_sql)
-        await cursor.execute("INSERT INTO test.test VALUES", [(1, "t", "t", "t", "t")])
-        await cursor.execute("DROP TABLE if exists test.test")
-
-    constants.BUFFER_SIZE = old_buffer_size

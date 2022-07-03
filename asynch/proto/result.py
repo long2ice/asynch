@@ -119,11 +119,11 @@ class IterQueryResult:
     def __aiter__(self):
         return self
 
-    async def _get_next_(self, default=[]):
+    async def _get_next_(self):
         packet = await self.packet_generator.__anext__()
         block = getattr(packet, "block", None)
         if block is None:
-            return default
+            return None
 
         if self.first_block and self.with_column_types:
             self.first_block = False
@@ -140,9 +140,10 @@ class IterQueryResult:
 
         if not self.data:
             rows = await self._get_next_()
-            if not rows:
+            if rows is None:
+                # The end of stream
                 self.EOF = True
-            else:
+            elif rows:
                 self.data += rows
 
             return await self.next()
