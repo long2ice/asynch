@@ -36,7 +36,7 @@ async def test_dict_cursor(conn):
 async def test_insert_dict(conn):
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.execute(
-            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES""",
+            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
             [
                 {
                     "id": 1,
@@ -48,6 +48,7 @@ async def test_insert_dict(conn):
                     "string": "1",
                     "ipv4": "0.0.0.0",
                     "ipv6": "::",
+                    "bool": True,
                 }
             ],
         )
@@ -58,7 +59,7 @@ async def test_insert_dict(conn):
 async def test_insert_tuple(conn):
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.execute(
-            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES""",
+            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
             [
                 (
                     1,
@@ -70,6 +71,7 @@ async def test_insert_tuple(conn):
                     "1",
                     "0.0.0.0",
                     "::",
+                    True,
                 )
             ],
         )
@@ -80,7 +82,7 @@ async def test_insert_tuple(conn):
 async def test_executemany(conn):
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.executemany(
-            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6) VALUES""",
+            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
             [
                 (
                     1,
@@ -92,6 +94,7 @@ async def test_executemany(conn):
                     "1",
                     "0.0.0.0",
                     "::",
+                    True,
                 ),
                 (
                     1,
@@ -103,6 +106,7 @@ async def test_executemany(conn):
                     "1",
                     "0.0.0.0",
                     "::",
+                    True,
                 ),
             ],
         )
