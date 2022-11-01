@@ -85,10 +85,10 @@ class IPv6Column(ByteFixedString):
 
     def after_read_items(self, items, nulls_map=None):
         if nulls_map is None:
-            return tuple(IPv6Address(item) for item in items)
+            return tuple(IPv6Address(bytes(item)) for item in items)
         else:
             return tuple(
-                (None if is_null else IPv6Address(items[i])) for i, is_null in enumerate(nulls_map)
+                (None if is_null else IPv6Address(bytes(items[i]))) for i, is_null in enumerate(nulls_map)
             )
 
     def before_write_items(self, items, nulls_map=None):
