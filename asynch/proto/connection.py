@@ -647,10 +647,10 @@ class Connection:
     async def execute_with_progress(
         self,
         query,
-        params=None,
+        args=None,
         with_column_types=False,
         external_tables=None,
-        query_id=None,
+        query_id="",
         settings=None,
         types_check=False,
         columnar=False,
@@ -660,7 +660,7 @@ class Connection:
         See, :ref:`execute-with-progress`.
 
         :param query: query that will be send to server.
-        :param params: substitution parameters for SELECT queries and data for
+        :param args: substitution parameters for SELECT queries and data for
                        INSERT queries. Data for INSERT can be `list`, `tuple`
                        or :data:`~types.GeneratorType`.
                        Defaults to ``None`` (no parameters  or data).
@@ -684,7 +684,7 @@ class Connection:
         async with ExecuteContext(self, query, settings):
             return await self.process_ordinary_query_with_progress(
                 query,
-                params=params,
+                params=args,
                 with_column_types=with_column_types,
                 external_tables=external_tables,
                 query_id=query_id,
@@ -765,6 +765,11 @@ class Connection:
 
     async def send_external_tables(self, tables, types_check=False):
         for table in tables or []:
+            if not table['structure']:
+                raise ValueError(
+                    f'Empty table "{table["name"]}" structure'
+                )
+
             block = RowOrientedBlock(table["structure"], table["data"], types_check=types_check)
             await self.send_block(block, table_name=table["name"])
 
@@ -884,7 +889,7 @@ class Connection:
         args=None,
         with_column_types=False,
         external_tables=None,
-        query_id=None,
+        query_id="",
         settings=None,
         types_check=False,
     ):
@@ -894,7 +899,7 @@ class Connection:
         Executes SELECT query with results streaming. See, :ref:`execute-iter`.
 
         :param query: query that will be send to server.
-        :param params: substitution parameters for SELECT queries and data for
+        :param args: substitution parameters for SELECT queries and data for
                        INSERT queries. Data for INSERT can be `list`, `tuple`
                        or :data:`~types.GeneratorType`.
                        Defaults to ``None`` (no parameters  or data).
@@ -933,3 +938,4 @@ class Connection:
                     query_id=query_id,
                     types_check=types_check,
                 )
+
