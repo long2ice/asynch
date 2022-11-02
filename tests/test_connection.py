@@ -2,20 +2,25 @@ import ssl
 
 from asynch.connection import Connection
 
+HOST = '192.168.15.103'
+PORT = 9000
+USER = 'default'
+PASSWORD = ''
+
 
 def test_dsn():
-    dsn = "clickhouse://default:default@127.0.0.1:9000/default"
+    dsn = f"clickhouse://{USER}:{PASSWORD}@{HOST}:{PORT}/default"
     conn = Connection(dsn=dsn)
     assert conn.database == "default"
-    assert conn.user == "default"
-    assert conn.password == "default"
-    assert conn.host == "127.0.0.1"
-    assert conn.port == 9000
+    assert conn.user == USER
+    assert conn.password == PASSWORD
+    assert conn.host == HOST
+    assert conn.port == PORT
 
 
 def test_secure_dsn():
     dsn = (
-        "clickhouses://default:default@127.0.0.1:9000/default"
+        f"clickhouses://{USER}:{PASSWORD}@{HOST}:{PORT}/default"
         "?verify=true"
         "&ssl_version=PROTOCOL_TLSv1"
         "&ca_certs=path/to/CA.crt"
@@ -23,10 +28,10 @@ def test_secure_dsn():
     )
     conn = Connection(dsn=dsn)
     assert conn.database == "default"
-    assert conn.user == "default"
-    assert conn.password == "default"
-    assert conn.host == "127.0.0.1"
-    assert conn.port == 9000
+    assert conn.user == USER
+    assert conn.password == PASSWORD
+    assert conn.host == HOST
+    assert conn.port == PORT
     assert conn._connection.secure_socket
     assert conn._connection.verify_cert
     assert conn._connection.ssl_options.get("ssl_version") is ssl.PROTOCOL_TLSv1
@@ -36,10 +41,10 @@ def test_secure_dsn():
 
 def test_secure_connection():
     conn = Connection(
-        host="127.0.0.1",
-        port=9000,
-        user="default",
-        password="default",
+        host=HOST,
+        port=PORT,
+        user=USER,
+        password=PASSWORD,
         database="default",
         secure=True,
         verify=True,
@@ -48,10 +53,10 @@ def test_secure_connection():
         ciphers="AES",
     )
     assert conn.database == "default"
-    assert conn.user == "default"
-    assert conn.password == "default"
-    assert conn.host == "127.0.0.1"
-    assert conn.port == 9000
+    assert conn.user == USER
+    assert conn.password == PASSWORD
+    assert conn.host == HOST
+    assert conn.port == PORT
     assert conn._connection.secure_socket
     assert conn._connection.verify_cert
     assert conn._connection.ssl_options.get("ssl_version") is ssl.PROTOCOL_TLSv1
@@ -61,20 +66,20 @@ def test_secure_connection():
 
 def test_secure_connection_check_ssl_context():
     conn = Connection(
-        host="127.0.0.1",
-        port=9000,
-        user="default",
-        password="default",
+        host=HOST,
+        port=PORT,
+        user=USER,
+        password=PASSWORD,
         database="default",
         secure=True,
         ciphers="AES",
         ssl_version=ssl.OP_NO_TLSv1,
     )
     assert conn.database == "default"
-    assert conn.user == "default"
-    assert conn.password == "default"
-    assert conn.host == "127.0.0.1"
-    assert conn.port == 9000
+    assert conn.user == USER
+    assert conn.password == PASSWORD
+    assert conn.host == HOST
+    assert conn.port == PORT
     assert conn._connection.secure_socket
     assert conn._connection.verify_cert
     assert conn._connection.ssl_options.get("ssl_version") is ssl.OP_NO_TLSv1
