@@ -1,11 +1,13 @@
 # ChangeLog
 
-## 0.1
+## 0.2
 
-### 0.1.10
+### 0.2.0
 
 - Fix compression not working. (#36)
 - Add `BoolColumn`. (#38)
+
+## 0.1
 
 ### 0.1.9
 

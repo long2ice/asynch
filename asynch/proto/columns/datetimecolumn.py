@@ -196,7 +196,7 @@ def create_datetime_column(spec, column_options):
     else:
         if not context.settings.get("use_client_time_zone", False):
             try:
-                local_timezone = get_localzone().zone
+                local_timezone = str(get_localzone())
             except Exception:
                 local_timezone = None
 
