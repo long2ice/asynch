@@ -35,6 +35,7 @@ class ArrayColumn(Column):
         self.nested_column = nested_column
         self._write_depth_0_size = True
         super(ArrayColumn, self).__init__(**kwargs)
+        self.null_value = []
 
     def size_pack(self, value):
         return self.size_struct.pack(value)
@@ -43,6 +44,14 @@ class ArrayColumn(Column):
         self,
     ):
         return self.size_struct.unpack(await self.reader.read_bytes(self.size_struct.size))[0]
+
+    async def write_items(
+            self,
+            items,
+    ):
+        return await self.write_data(
+            items,
+        )
 
     async def write_data(
         self,
@@ -142,6 +151,7 @@ class ArrayColumn(Column):
         self,
         value,
     ):
+        value = self.prepare_items(value)
         await self._write_sizes(
             value,
         )
@@ -233,6 +243,6 @@ class ArrayColumn(Column):
         return tuple(data)
 
 
-def create_array_column(spec, column_by_spec_getter):
+def create_array_column(spec, column_by_spec_getter, column_options):
     inner = spec[6:-1]
-    return ArrayColumn(column_by_spec_getter(inner))
+    return ArrayColumn(column_by_spec_getter(inner), **column_options)

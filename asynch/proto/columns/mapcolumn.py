@@ -9,6 +9,8 @@ from .intcolumn import UInt64Column
 class MapColumn(Column):
     py_types = (dict,)
 
+    null_value = {}
+
     def __init__(self, key_column, value_column, **kwargs):
         kwargs.update(dict(reader=key_column.reader, writer=key_column.writer))
         self.offset_column = UInt64Column(**kwargs)
@@ -54,11 +56,12 @@ class MapColumn(Column):
 comma_re = re.compile(r",(?![^()]*\))")
 
 
-def create_map_column(spec, column_by_spec_getter):
+def create_map_column(spec, column_by_spec_getter, column_options):
     # Match commas outside of parentheses so we don't match the comma in
     # Decimal types.
     key, value = comma_re.split(spec[4:-1])
     key_column = column_by_spec_getter(key.strip())
     value_column = column_by_spec_getter(value.strip())
 
-    return MapColumn(key_column, value_column)
+    return MapColumn(key_column, value_column, **column_options)
+

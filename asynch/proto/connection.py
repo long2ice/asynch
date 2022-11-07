@@ -156,6 +156,9 @@ class Connection:
             "opentelemetry_traceparent": self.settings.pop("opentelemetry_traceparent", None),
             "opentelemetry_tracestate": self.settings.pop("opentelemetry_tracestate", ""),
             "quota_key": self.settings.pop("quota_key", ""),
+            "input_format_null_as_default": self.settings.pop(
+                "input_format_null_as_default", False
+            )
         }
         self.last_query: Optional[QueryInfo] = None
         self.available_client_settings = (
@@ -166,6 +169,7 @@ class Connection:
             "opentelemetry_traceparent",
             "opentelemetry_tracestate",
             "quota_key",
+            "input_format_null_as_default",
         )
         self.context.settings = self.settings
         self.context.client_settings = self.client_settings

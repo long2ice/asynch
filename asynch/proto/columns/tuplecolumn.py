@@ -7,6 +7,7 @@ class TupleColumn(Column):
     def __init__(self, nested_columns, **kwargs):
         self.nested_columns = nested_columns
         super(TupleColumn, self).__init__(**kwargs)
+        self.null_value = tuple(x.null_value for x in nested_columns)
 
     async def write_data(
         self,
@@ -14,6 +15,7 @@ class TupleColumn(Column):
     ):
         if not items:
             return
+        items = self.prepare_items(items)
         items = list(zip(*items))
 
         for i, x in enumerate(self.nested_columns):

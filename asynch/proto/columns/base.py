@@ -22,6 +22,11 @@ class Column:
         self.reader = reader
         self.nullable = False
         self.types_check_enabled = types_check
+        self.input_null_as_default = False
+        if 'context' in kwargs:
+            settings = kwargs['context'].client_settings
+            self.input_null_as_default = settings.get('input_format_null_as_default', False)
+
         super(Column, self).__init__()
 
     def make_null_struct(self, n_items):
@@ -43,6 +48,7 @@ class Column:
     def prepare_items(self, items):
         nullable = self.nullable
         null_value = self.null_value
+        null_as_default = self.input_null_as_default
 
         check_item = self.check_item
         if self.types_check_enabled:
@@ -51,7 +57,7 @@ class Column:
             check_item_type = False
 
         if (
-            not self.nullable
+            not (self.nullable or null_as_default)
             and not check_item_type
             and not check_item
             and not self.before_write_items
@@ -60,9 +66,12 @@ class Column:
 
         nulls_map = [False] * len(items) if self.nullable else None
         for i, x in enumerate(items):
-            if x is None and nullable:
-                nulls_map[i] = True
-                x = null_value
+            if x is None:
+                if nullable:
+                    nulls_map[i] = True
+                    x = null_value
+                elif null_as_default:
+                    x = null_value
 
             else:
                 if check_item_type:
