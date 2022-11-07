@@ -1,5 +1,6 @@
 import re
 from unittest.mock import patch
+from contextlib import asynccontextmanager
 
 import pytest
 
@@ -88,3 +89,48 @@ async def test_execute(conn: Connection):
     query = "SELECT 1"
     ret = await conn.execute(query)
     assert ret == [(1,)]
+
+
+@asynccontextmanager
+async def create_table(connection, spec):
+    await connection.execute('DROP TABLE IF EXISTS test.test')
+    await connection.execute(f'CREATE TABLE test.test ({spec}) engine=Memory')
+
+    try:
+        yield
+    finally:
+        await connection.execute('DROP TABLE test.test')
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    'spec, data, expected',
+    [
+        ('a Int8, b String', [(None, None)], [(0, '')]),
+        ('a LowCardinality(String)', [(None, )], [('', )]),
+        ('a Tuple(Int32, Int32)', [(None,)], [((0, 0), )]),
+        ('a Array(Array(Int32))', [(None,)], [([],)]),
+        ('a Map(String, UInt64)', [(None,)], [({},)]),
+        ('a Nested(i Int32)', [(None, )], [([], )]),
+    ],
+    ids=[
+        'int and string',
+        'lowcardinaly string',
+        'tuple',
+        'array',
+        'map',
+        'nested',
+    ]
+)
+async def test_input_format_null_as_default(conn, spec, data, expected):
+    for enabled in (True, False):
+        conn.client_settings['input_format_null_as_default'] = enabled
+
+        async with create_table(conn, spec):
+            try:
+                await conn.execute('INSERT INTO test.test VALUES', data)
+            except:
+                assert not enabled
+                return
+
+            assert await conn.execute('SELECT * FROM test.test') == expected
