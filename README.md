@@ -63,7 +63,7 @@ Use `fetchone`
 async def fetchone():
     async with conn.cursor() as cursor:
         await cursor.execute("SELECT 1")
-        ret = cursor.fetchone()
+        ret = await cursor.fetchone()
         assert ret == (1,)
 ```
 
@@ -73,7 +73,7 @@ Use `fetchmany`
 async def fetchall():
     async with conn.cursor() as cursor:
         await cursor.execute("SELECT 1")
-        ret = cursor.fetchall()
+        ret = await cursor.fetchall()
         assert ret == [(1,)]
 ```
 
@@ -83,7 +83,7 @@ Use `DictCursor` to get result with dict
 async def dict_cursor():
     async with conn.cursor(cursor=DictCursor) as cursor:
         await cursor.execute("SELECT 1")
-        ret = cursor.fetchall()
+        ret = await cursor.fetchall()
         assert ret == [{"1": 1}]
 ```
 
@@ -145,7 +145,7 @@ async def use_pool():
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
             await cursor.execute("SELECT 1")
-            ret = cursor.fetchone()
+            ret = await cursor.fetchone()
             assert ret == (1,)
     pool.close()
     await pool.wait_closed()
