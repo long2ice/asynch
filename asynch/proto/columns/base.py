@@ -98,9 +98,7 @@ class Column:
         items,
     ):
         prepared = self.prepare_items(items)
-        await self.write_items(
-            prepared,
-        )
+        await self.write_items(prepared)
 
     async def write_items(self, items):
         raise NotImplementedError
