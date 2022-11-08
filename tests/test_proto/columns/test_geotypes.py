@@ -68,7 +68,9 @@ async def create_table(cursor, spec):
     ],
 )
 async def test_get_types(conn, spec, data):
+
     async with conn.cursor() as cursor:
+        await cursor.execute("set allow_experimental_geo_types = 1")
         async with create_table(cursor, spec):
             await cursor.execute("INSERT INTO test.test (a) VALUES", data)
             await cursor.execute("SELECT * FROM test.test")

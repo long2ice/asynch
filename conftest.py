@@ -77,6 +77,7 @@ async def initialize_tests():
     yield
     await conn.close()
 
+
 @pytest.fixture(scope="function", autouse=True)
 async def truncate_table():
     conn = await connect(dsn=CONNECTION_DSN)
@@ -84,6 +85,7 @@ async def truncate_table():
         await cursor.execute("truncate table test.asynch")
     yield
     await conn.close()
+
 
 @pytest.fixture(scope="function")
 async def pool():
@@ -96,5 +98,26 @@ async def pool():
 @pytest.fixture(scope="function")
 async def conn():
     conn = await asynch.connect(dsn=CONNECTION_DSN)
+    yield conn
+    await conn.close()
+
+
+@pytest.fixture(scope="function")
+async def conn_lz4():
+    conn = await asynch.connect(dsn=CONNECTION_DSN, compression=True)
+    yield conn
+    await conn.close()
+
+
+@pytest.fixture(scope="function")
+async def conn_lz4hc():
+    conn = await asynch.connect(dsn=CONNECTION_DSN, compression="lz4hc")
+    yield conn
+    await conn.close()
+
+
+@pytest.fixture(scope="function")
+async def conn_zstd():
+    conn = await asynch.connect(dsn=CONNECTION_DSN, compression="zstd")
     yield conn
     await conn.close()

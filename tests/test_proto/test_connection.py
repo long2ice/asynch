@@ -23,7 +23,8 @@ async def conn() -> Connection:
         database=CONNECTION_DB,
     )
     await _conn.connect()
-    return _conn
+    yield _conn
+    await _conn.disconnect()
 
 
 @pytest.mark.asyncio
