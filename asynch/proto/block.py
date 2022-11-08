@@ -1,3 +1,4 @@
+from asynch.proto.columns import nestedcolumn
 from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 
 
@@ -150,17 +151,42 @@ class RowOrientedBlock(BaseBlock):
         return [row[index] for row in self.data]
 
     def _mutate_dicts_to_rows(self, data):
-        column_names = [x[0] for x in self.columns_with_types]
-
         check_row_type = False
         if self.types_check:
             check_row_type = self._check_dict_row_type
+
+        self._pure_mutate_dicts_to_rows(
+            data,
+            self.columns_with_types,
+            check_row_type,
+        )
+
+    def _pure_mutate_dicts_to_rows(
+        self,
+        data,
+        columns_with_types,
+        check_row_type,
+    ):
+        columns_with_cwt = []
+        for x in columns_with_types:
+            cwt = None
+            if x[1].startswith("Nested"):
+                cwt = nestedcolumn.get_columns_with_types(x[1])
+            columns_with_cwt.append((x[0], cwt))
 
         for i, row in enumerate(data):
             if check_row_type:
                 check_row_type(row)
 
-            data[i] = [row[name] for name in column_names]
+            new_data = []
+            for name, cwt in columns_with_cwt:
+                if cwt is None:
+                    new_data.append(row[name])
+                else:
+                    new_data.append(self._pure_mutate_dicts_to_rows(row[name], cwt, check_row_type))
+            data[i] = new_data
+
+        return data
 
     def _check_rows(self, data):
         expected_row_len = len(self.columns_with_types)
