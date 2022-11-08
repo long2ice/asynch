@@ -56,20 +56,21 @@ class Cursor:
         args=None,
     ):
         self._check_cursor_closed()
+        self._check_query_executing()
         self._begin_query()
 
         execute, execute_kwargs = self._prepare()
 
         response = await execute(query, args=args, with_column_types=True, **execute_kwargs)
 
-        self._process_response(response)
+        await self._process_response(response)
         self._end_query()
         if self._echo:
             logger.info(query)
             logger.info("%r", args)
         return self._rowcount
 
-    def _process_response(self, response, executemany=False):
+    async def _process_response(self, response, executemany=False):
         if executemany or isinstance(response, int):
             self._rowcount = response
             response = None
@@ -79,7 +80,7 @@ class Cursor:
             return
 
         if self._stream_results:
-            columns_with_types = next(response)
+            columns_with_types = await response.get_columns_with_types()
             rows = response
 
         else:
@@ -96,24 +97,28 @@ class Cursor:
 
     async def executemany(self, query, args=None):
         self._check_cursor_closed()
+        self._check_query_executing()
         self._begin_query()
 
         execute, execute_kwargs = self._prepare()
 
         response = await execute(query, args=args, **execute_kwargs)
 
-        self._process_response(response, executemany=True)
+        await self._process_response(response, executemany=True)
         self._end_query()
         if self._echo:
             logger.info(query)
             logger.info("%r", args)
         return self._rowcount
 
-    def fetchone(self):
+    async def fetchone(self):
         self._check_query_started()
 
         if self._stream_results:
-            return next(self._rows, None)
+            try:
+                return await self._rows.next()
+            except:
+                return None
 
         else:
             if not self._rows:
@@ -121,17 +126,25 @@ class Cursor:
 
             return self._rows.pop(0)
 
-    def fetchmany(self, size: int):
+    async def fetchmany(self, size: int):
         self._check_query_started()
+
+        if size == 0:
+            return []
 
         if size is None:
             size = self._arraysize
 
         if self._stream_results:
-            if size == -1:
-                return list(self._rows)
-            else:
-                return list(islice(self._rows, size))
+            rv = []
+
+            async for i in self._rows:
+                rv.append(i)
+
+                if size > 0 and len(rv) >= size:
+                    break
+
+            return rv
 
         if size < 0:
             rv = self._rows
@@ -142,13 +155,16 @@ class Cursor:
 
         return rv
 
-    def fetchall(
-        self,
+    async def fetchall(
+            self,
     ):
         self._check_query_started()
 
         if self._stream_results:
-            return list(self._rows)
+            rv = []
+            async for i in self._rows:
+                rv.append(i)
+            return rv
 
         rv = self._rows
         self._rows = []
@@ -182,8 +198,8 @@ class Cursor:
 
         if self._stream_results:
             execute = self._connection._connection.execute_iter
-            self.settings = self.settings or {}
-            self.settings["max_block_size"] = self._max_row_buffer
+            self._settings = self._settings or {}
+            self._settings["max_block_size"] = self._max_row_buffer
 
         execute_kwargs = {
             "settings": self._settings,
@@ -223,6 +239,10 @@ class Cursor:
     def _check_query_started(self):
         if self._state == self._states.NONE:
             raise ProgrammingError("no results to fetch")
+
+    def _check_query_executing(self):
+        if self._connection._connection.is_query_executing:
+            raise ProgrammingError("records have not fetched, fetch all before execute next")
 
     def _check_cursor_closed(self):
         if self._state == self._states.CURSOR_CLOSED:
@@ -294,7 +314,23 @@ class Cursor:
 
 
 class DictCursor(Cursor):
-    def _process_response(self, response, executemany=False):
-        super(DictCursor, self)._process_response(response, executemany)
-        if self._columns and self._rows:
-            self._rows = [dict(zip(self._columns, item)) for item in self._rows]
+    async def fetchone(self):
+        row = await super(DictCursor, self).fetchone()
+        if self._columns and row:
+            return dict(zip(self._columns, row))
+        else:
+            raise AttributeError("Not fould valid columns")
+
+    async def fetchmany(self, size: int):
+        rows = await super(DictCursor, self).fetchmany(size)
+        if self._columns and rows:
+            return [dict(zip(self._columns, item)) for item in rows]
+        else:
+            raise AttributeError("Not fould valid columns")
+
+    async def fetchall(self):
+        rows = await super(DictCursor, self).fetchall()
+        if self._columns and rows:
+            return [dict(zip(self._columns, item)) for item in rows]
+        else:
+            raise AttributeError("Not fould valid columns")

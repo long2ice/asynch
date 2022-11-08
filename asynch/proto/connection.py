@@ -391,7 +391,7 @@ class Connection:
 
         elif packet.type == ServerPacket.PROGRESS:
             self.last_query.store_progress(packet.progress)
-            return packet
+            return True
 
         elif packet.type == ServerPacket.END_OF_STREAM:
             return False
@@ -871,9 +871,7 @@ class Connection:
     def iter_receive_result(self, with_column_types=False):
         gen = self.packet_generator()
 
-        for rows in IterQueryResult(gen, with_column_types=with_column_types):
-            for row in rows:
-                yield row
+        return IterQueryResult(gen, with_column_types=with_column_types)
 
     def track_current_database(self, query):
         query = query.strip("; ")
@@ -883,7 +881,7 @@ class Connection:
     async def execute_iter(
         self,
         query,
-        params=None,
+        args=None,
         with_column_types=False,
         external_tables=None,
         query_id=None,
@@ -915,12 +913,23 @@ class Connection:
         """
 
         async with ExecuteContext(self, query, settings):
+            is_insert = isinstance(args, (list, tuple, GeneratorType))
 
-            return await self.iter_process_ordinary_query(
-                query,
-                params=params,
-                with_column_types=with_column_types,
-                external_tables=external_tables,
-                query_id=query_id,
-                types_check=types_check,
-            )
+            if is_insert:
+                return await self.process_insert_query(
+                    query,
+                    args,
+                    external_tables=external_tables,
+                    query_id=query_id,
+                    types_check=types_check,
+                    columnar=False,
+                )
+            else:
+                return await self.iter_process_ordinary_query(
+                    query,
+                    params=args,
+                    with_column_types=with_column_types,
+                    external_tables=external_tables,
+                    query_id=query_id,
+                    types_check=types_check,
+                )

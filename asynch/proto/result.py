@@ -107,28 +107,63 @@ class IterQueryResult:
     def __init__(self, packet_generator, with_column_types=False):
         self.packet_generator = packet_generator
         self.with_column_types = with_column_types
+        self._columns_with_types = []
 
+        self.data = []
         self.first_block = True
+        self.EOF = False
 
     def __iter__(self):
         return self
 
-    def next(self):
-        packet = next(self.packet_generator)
+    def __aiter__(self):
+        return self
+
+    async def _get_next_(self):
+        packet = await self.packet_generator.__anext__()
         block = getattr(packet, "block", None)
         if block is None:
-            return []
+            return None
 
         if self.first_block and self.with_column_types:
             self.first_block = False
-            rv = [block.columns_with_types]
+            self._columns_with_types = block.columns_with_types
+            rv = []
             rv.extend(block.get_rows())
             return rv
         else:
             return block.get_rows()
 
+    async def next(self, default=[]):
+        if self.EOF:
+            raise StopAsyncIteration
+
+        if not self.data:
+            rows = await self._get_next_()
+            if rows is None:
+                # The end of stream
+                self.EOF = True
+            elif rows:
+                self.data += rows
+
+            return await self.next()
+
+        else:
+            return self.data.pop(0)
+
+    async def get_columns_with_types(self):
+        if self._columns_with_types:
+            return self._columns_with_types
+
+        if self.first_block and self.with_column_types:
+            self.data += await self._get_next_()
+            return self._columns_with_types
+        else:
+            return []
+
     # For Python 3.
     __next__ = next
+    __anext__ = next
 
 
 class QueryInfo:

@@ -51,7 +51,7 @@ class ExecuteContext:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            if exc_type in [Exception, KeyboardInterrupt]:
+            if issubclass(exc_type, (Exception, KeyboardInterrupt)):
                 await self._connection.disconnect()
                 raise exc_val
         self._connection.track_current_database(self._query)
