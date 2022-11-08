@@ -1,5 +1,6 @@
-from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 from asynch.proto.columns import nestedcolumn
+from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
+
 
 class BlockInfo:
     is_overflows = False
@@ -161,15 +162,15 @@ class RowOrientedBlock(BaseBlock):
         )
 
     def _pure_mutate_dicts_to_rows(
-            self,
-            data,
-            columns_with_types,
-            check_row_type,
+        self,
+        data,
+        columns_with_types,
+        check_row_type,
     ):
         columns_with_cwt = []
         for x in columns_with_types:
             cwt = None
-            if x[1].startswith('Nested'):
+            if x[1].startswith("Nested"):
                 cwt = nestedcolumn.get_columns_with_types(x[1])
             columns_with_cwt.append((x[0], cwt))
 
@@ -182,11 +183,7 @@ class RowOrientedBlock(BaseBlock):
                 if cwt is None:
                     new_data.append(row[name])
                 else:
-                    new_data.append(self._pure_mutate_dicts_to_rows(
-                        row[name],
-                        cwt,
-                        check_row_type
-                    ))
+                    new_data.append(self._pure_mutate_dicts_to_rows(row[name], cwt, check_row_type))
             data[i] = new_data
 
         return data

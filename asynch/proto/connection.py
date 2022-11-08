@@ -158,7 +158,7 @@ class Connection:
             "quota_key": self.settings.pop("quota_key", ""),
             "input_format_null_as_default": self.settings.pop(
                 "input_format_null_as_default", False
-            )
+            ),
         }
         self.last_query: Optional[QueryInfo] = None
         self.available_client_settings = (

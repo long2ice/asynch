@@ -46,8 +46,8 @@ class ArrayColumn(Column):
         return self.size_struct.unpack(await self.reader.read_bytes(self.size_struct.size))[0]
 
     async def write_items(
-            self,
-            items,
+        self,
+        items,
     ):
         return await self.write_data(
             items,

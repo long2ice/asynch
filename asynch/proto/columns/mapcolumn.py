@@ -64,4 +64,3 @@ def create_map_column(spec, column_by_spec_getter, column_options):
     value_column = column_by_spec_getter(value.strip())
 
     return MapColumn(key_column, value_column, **column_options)
-

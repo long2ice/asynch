@@ -34,8 +34,8 @@ from .intervalcolumn import (
 from .ipcolumn import IPv4Column, IPv6Column
 from .lowcardinalitycolumn import create_low_cardinality_column
 from .mapcolumn import create_map_column
-from .nothingcolumn import NothingColumn
 from .nestedcolumn import create_nested_column
+from .nothingcolumn import NothingColumn
 from .nullablecolumn import create_nullable_column
 from .nullcolumn import NullColumn
 from .simpleaggregatefunctioncolumn import create_simple_aggregate_function_column
@@ -107,9 +107,7 @@ def get_column_by_spec(spec, column_options):
         return create_tuple_column(spec, create_column_with_options, column_options)
 
     elif spec.startswith("Nested"):
-        return create_nested_column(
-            spec, create_column_with_options, column_options
-        )
+        return create_nested_column(spec, create_column_with_options, column_options)
 
     elif spec.startswith("Nullable"):
         return create_nullable_column(spec, create_column_with_options)
