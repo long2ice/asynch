@@ -1,6 +1,5 @@
 import logging
 from collections import namedtuple
-from itertools import islice
 
 from asynch.errors import InterfaceError, ProgrammingError
 
@@ -118,7 +117,7 @@ class Cursor:
         if self._stream_results:
             try:
                 return await self._rows.next()
-            except:
+            except:  # noqa: E722
                 return None
 
         else:
@@ -157,7 +156,7 @@ class Cursor:
         return rv
 
     async def fetchall(
-            self,
+        self,
     ):
         self._check_query_started()
 
@@ -192,16 +191,12 @@ class Cursor:
     def _make_external_tables(self):
         tables = []
         for name, (structure, data) in self._external_tables.items():
-            tables.append({
-                'name': name,
-                'structure': structure,
-                'data': data
-            })
+            tables.append({"name": name, "structure": structure, "data": data})
 
         return tables
 
     def make_external_tables(self, dialect, execution_options):
-        external_tables = execution_options.get('external_tables', [])
+        external_tables = execution_options.get("external_tables", [])
 
         tables = []
         type_compiler = dialect.type_compiler
@@ -212,11 +207,13 @@ class Cursor:
                 type_ = type_compiler.process(c.type, type_expression=c)
                 structure.append((c.name, type_))
 
-            tables.append({
-                'name': table.name,
-                'structure': structure,
-                'data': table.dialect_options['clickhouse']['data']
-            })
+            tables.append(
+                {
+                    "name": table.name,
+                    "structure": structure,
+                    "data": table.dialect_options["clickhouse"]["data"],
+                }
+            )
 
         # for backward compatibility
         tables.extend(self._make_external_tables())
@@ -227,29 +224,27 @@ class Cursor:
         if context:
             execution_options = context.execution_options
 
-            external_tables = self.make_external_tables(
-                context.dialect, execution_options
-            )
+            external_tables = self.make_external_tables(context.dialect, execution_options)
         else:
             execution_options = {}
             external_tables = self._make_external_tables() or None
 
         execute = self._connection._connection.execute  # noqa
-        settings = execution_options.get('settings', self._settings or {})
-        self._stream_results = execution_options.get('stream_results', self._stream_results)
+        settings = execution_options.get("settings", self._settings or {})
+        self._stream_results = execution_options.get("stream_results", self._stream_results)
 
         if self._stream_results:
             execute = self._connection._connection.execute_iter  # noqa
-            self._max_row_buffer = execution_options.get('max_block_size', self._max_row_buffer)
-            settings['max_block_size'] = self._max_row_buffer
+            self._max_row_buffer = execution_options.get("max_block_size", self._max_row_buffer)
+            settings["max_block_size"] = self._max_row_buffer
 
         self._settings = settings
 
         execute_kwargs = {
-            'settings': settings,
-            'external_tables': external_tables,
-            'types_check': execution_options.get('types_check', self._types_check),
-            'query_id': self._query_id,
+            "settings": settings,
+            "external_tables": external_tables,
+            "types_check": execution_options.get("types_check", self._types_check),
+            "query_id": self._query_id,
         }
 
         return execute, execute_kwargs

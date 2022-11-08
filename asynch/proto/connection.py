@@ -765,10 +765,8 @@ class Connection:
 
     async def send_external_tables(self, tables, types_check=False):
         for table in tables or []:
-            if not table['structure']:
-                raise ValueError(
-                    f'Empty table "{table["name"]}" structure'
-                )
+            if not table["structure"]:
+                raise ValueError(f'Empty table "{table["name"]}" structure')
 
             block = RowOrientedBlock(table["structure"], table["data"], types_check=types_check)
             await self.send_block(block, table_name=table["name"])
@@ -938,4 +936,3 @@ class Connection:
                     query_id=query_id,
                     types_check=types_check,
                 )
-

@@ -3,6 +3,7 @@ import pytest
 from asynch.cursors import DictCursor
 from asynch.proto import constants
 
+
 @pytest.mark.asyncio
 async def test_fetchone(conn):
     async with conn.cursor() as cursor:

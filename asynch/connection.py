@@ -126,7 +126,6 @@ class Connection:
         if url.hostname is not None:
             self._host = kwargs["host"] = unquote(url.hostname)
 
-
         if url.port is not None:
             self._port = kwargs["port"] = url.port
 

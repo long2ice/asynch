@@ -88,7 +88,8 @@ class IPv6Column(ByteFixedString):
             return tuple(IPv6Address(bytes(item)) for item in items)
         else:
             return tuple(
-                (None if is_null else IPv6Address(bytes(items[i]))) for i, is_null in enumerate(nulls_map)
+                (None if is_null else IPv6Address(bytes(items[i])))
+                for i, is_null in enumerate(nulls_map)
             )
 
     def before_write_items(self, items, nulls_map=None):

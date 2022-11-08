@@ -51,7 +51,7 @@ class MapColumn(Column):
         await self.value_column.write_data(values)
 
 
-comma_re = re.compile(r',(?![^()]*\))')
+comma_re = re.compile(r",(?![^()]*\))")
 
 
 def create_map_column(spec, column_by_spec_getter):

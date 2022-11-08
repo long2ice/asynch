@@ -75,12 +75,13 @@ column_by_type = {
 
 aliases = [
     # Begin Geo types
-    ('Point', 'Tuple(Float64, Float64)'),
-    ('Ring', 'Array(Point)'),
-    ('Polygon', 'Array(Ring)'),
-    ('MultiPolygon', 'Array(Polygon)')
+    ("Point", "Tuple(Float64, Float64)"),
+    ("Ring", "Array(Point)"),
+    ("Polygon", "Array(Ring)"),
+    ("MultiPolygon", "Array(Polygon)")
     # End Geo types
 ]
+
 
 def get_column_by_spec(spec, column_options):
     def create_column_with_options(x):
@@ -119,9 +120,7 @@ def get_column_by_spec(spec, column_options):
     else:
         for alias, primitive in aliases:
             if spec.startswith(alias):
-                return create_column_with_options(
-                    primitive + spec[len(alias):]
-                )
+                return create_column_with_options(primitive + spec[len(alias) :])  # noqa: E203
 
         try:
             cls = column_by_type[spec]

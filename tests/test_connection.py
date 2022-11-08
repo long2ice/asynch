@@ -2,10 +2,10 @@ import ssl
 
 from asynch.connection import Connection
 
-HOST = '192.168.15.103'
+HOST = "192.168.15.103"
 PORT = 9000
-USER = 'default'
-PASSWORD = ''
+USER = "default"
+PASSWORD = ""
 
 
 def test_dsn():
