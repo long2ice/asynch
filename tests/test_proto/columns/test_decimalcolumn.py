@@ -118,6 +118,27 @@ async def create_table(cursor, spec):
             "*",
             None,
         ],
+        [
+            "a Decimal256(2)",
+            [
+                (1.66,),
+                (1.15,),
+                # 300.42 + (1 << 200)
+                (Decimal("1606938044258990275541962092341162602522202993782792835301676.42"),),
+                (Decimal("-1606938044258990275541962092341162602522202993782792835301676.42"),),
+            ],
+            [
+                [
+                    (Decimal("1.66"),),
+                    (Decimal("1.15"),),
+                    # 300.42 + (1 << 200)
+                    (Decimal("1606938044258990275541962092341162602522202993782792835301676.42"),),
+                    (Decimal("-1606938044258990275541962092341162602522202993782792835301676.42"),),
+                ],
+            ],
+            "*",
+            None,
+        ],
     ],
     ids=[
         "simple",
@@ -130,6 +151,7 @@ async def create_table(cursor, spec):
         "preserve_precision",
         "precision_one_sign_after_point",
         "truncates_scale",
+        "decimal256",
     ],
 )
 async def test_decimal_column(conn, spec, data, expected, select_sql, expected_exc):
