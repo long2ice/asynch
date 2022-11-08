@@ -2,6 +2,22 @@
 
 ## 0.2
 
+### 0.2.2
+
+- Add `Int128Column`, `Int256Column`, `UInt128Column`, `UInt256Column`, `Decimal256Column`. (#57)
+- Add Geo type support. (#56)
+- Add decimals in map support. (#55)
+- Add `NestedColumn`. (#54)
+- Add execution_options support. (#53)
+- Fix `IPv6Column`. (#52)
+- Fix execution context exception handling. (#51)
+- Fix stream_mode. (#44)
+- Fix `SimpleAggregateFunction` for nested. (#41)
+
+### 0.2.1
+
+- Fix ping message for unstable network. (#48)
+
 ### 0.2.0
 
 - Fix compression not working. (#36)
