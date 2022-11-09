@@ -157,3 +157,35 @@ async def test_insert_buffer_overflow(conn):
         await cursor.execute("DROP TABLE if exists test.test")
 
     constants.BUFFER_SIZE = old_buffer_size
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "size, expected_size, with_select",
+    [
+        [0, 0, True],
+        [10, 10, True],
+        [100, 0, False],
+    ],
+    ids=[
+        "empty",
+        "10 elements",
+        "without select",
+    ],
+)
+async def test_cursror_iter(conn, size, expected_size, with_select):
+    async with conn.cursor() as cursor:
+        await cursor.execute("DROP TABLE IF EXISTS test.test")
+        await cursor.execute("CREATE TABLE test.test (a UInt8) ENGINE=Memory")
+
+        data = [(v,) for v in range(size)]
+        await cursor.execute("INSERT INTO test.test (a) VALUES", data)
+        if with_select:
+            await cursor.execute("SELECT * FROM test.test")
+
+        index = 0
+        async for one in cursor:
+            assert one == data[index]
+            index += 1
+
+        assert expected_size == index
