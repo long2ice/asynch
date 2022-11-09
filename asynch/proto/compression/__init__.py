@@ -57,7 +57,9 @@ class BaseCompressor:
         await self.writer.write_uint32(header_size + len(compressed))
         await self.writer.write_uint32(len(data))
         await self.writer.write_bytes(compressed)
-        return self.writer.buffer
+        result = self.writer.buffer
+        self.writer.buffer = bytearray()
+        return result
 
 
 class BaseDecompressor:
