@@ -249,12 +249,15 @@ class Cursor:
 
         return execute, execute_kwargs
 
-    def __iter__(self):
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
         while True:
-            one = self.fetchone()
+            one = await self.fetchone()
             if one is None:
-                return
-            yield one
+                raise StopAsyncIteration
+            return one
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
