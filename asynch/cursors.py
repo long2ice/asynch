@@ -43,11 +43,7 @@ class Cursor:
         """Does nothing, required by DB API."""
 
     async def close(self):
-        conn = self._connection
-        if conn is None:
-            return
-        await self._connection.close()
-        self._connection = None
+        self._state = self._states.CURSOR_CLOSED
 
     async def execute(
         self,
