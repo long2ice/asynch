@@ -357,18 +357,18 @@ class DictCursor(Cursor):
         if self._columns and row:
             return dict(zip(self._columns, row))
         else:
-            raise AttributeError("Not fould valid columns")
+            return {}
 
     async def fetchmany(self, size: int):
         rows = await super(DictCursor, self).fetchmany(size)
         if self._columns and rows:
             return [dict(zip(self._columns, item)) for item in rows]
         else:
-            raise AttributeError("Not fould valid columns")
+            return []
 
     async def fetchall(self):
         rows = await super(DictCursor, self).fetchall()
         if self._columns and rows:
             return [dict(zip(self._columns, item)) for item in rows]
         else:
-            raise AttributeError("Not fould valid columns")
+            return []
