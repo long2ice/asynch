@@ -354,21 +354,21 @@ class Cursor:
 class DictCursor(Cursor):
     async def fetchone(self):
         row = await super(DictCursor, self).fetchone()
-        if self._columns and row:
-            return dict(zip(self._columns, row))
+        if self._columns:
+            return dict(zip(self._columns, row)) if row else {}
         else:
-            return {}
+            raise AttributeError("Invalid columns.")
 
     async def fetchmany(self, size: int):
         rows = await super(DictCursor, self).fetchmany(size)
-        if self._columns and rows:
-            return [dict(zip(self._columns, item)) for item in rows]
+        if self._columns:
+            return [dict(zip(self._columns, item)) for item in rows] if rows else []
         else:
-            return []
+            raise AttributeError("Invalid columns.")
 
     async def fetchall(self):
         rows = await super(DictCursor, self).fetchall()
-        if self._columns and rows:
-            return [dict(zip(self._columns, item)) for item in rows]
+        if self._columns:
+            return [dict(zip(self._columns, item)) for item in rows] if rows else []
         else:
-            return []
+            raise AttributeError("Invalid columns.")
