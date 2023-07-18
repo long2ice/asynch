@@ -33,7 +33,7 @@ def test_secure_dsn():
     assert conn.host == HOST
     assert conn.port == PORT
     assert conn._connection.secure_socket
-    assert conn._connection.verify_cert
+    assert conn._connection.verify
     assert conn._connection.ssl_options.get("ssl_version") is ssl.PROTOCOL_TLSv1
     assert conn._connection.ssl_options.get("ca_certs") == "path/to/CA.crt"
     assert conn._connection.ssl_options.get("ciphers") == "AES"
@@ -58,7 +58,7 @@ def test_secure_connection():
     assert conn.host == HOST
     assert conn.port == PORT
     assert conn._connection.secure_socket
-    assert conn._connection.verify_cert
+    assert conn._connection.verify
     assert conn._connection.ssl_options.get("ssl_version") is ssl.PROTOCOL_TLSv1
     assert conn._connection.ssl_options.get("ca_certs") == "path/to/CA.crt"
     assert conn._connection.ssl_options.get("ciphers") == "AES"
@@ -81,7 +81,7 @@ def test_secure_connection_check_ssl_context():
     assert conn.host == HOST
     assert conn.port == PORT
     assert conn._connection.secure_socket
-    assert conn._connection.verify_cert
+    assert conn._connection.verify
     assert conn._connection.ssl_options.get("ssl_version") is ssl.OP_NO_TLSv1
     assert conn._connection.ssl_options.get("ca_certs") is None
     assert conn._connection.ssl_options.get("ciphers") == "AES"
