@@ -108,7 +108,7 @@ class Connection:
         self.settings_is_important = settings_is_important
         self._lock = asyncio.Lock()
         self.secure_socket = secure
-        self.verify_cert = verify
+        self.verify = verify
 
         ssl_options = {}
         if ssl_version is not None:
@@ -286,8 +286,11 @@ class Connection:
         ciphers = self.ssl_options.get("ciphers")
         if ciphers:
             ssl_ctx.set_ciphers(ciphers)
-        if self.verify_cert:
+        if self.verify:
             ssl_ctx.verify_mode = ssl.VerifyMode.CERT_REQUIRED
+        else:
+            ssl_ctx.verify_mode = ssl.VerifyMode.CERT_NONE
+            ssl_ctx.check_hostname = False
         return ssl_ctx
 
     async def ping(self):
