@@ -36,6 +36,7 @@ from .intervalcolumn import (
     IntervalYearColumn,
 )
 from .ipcolumn import IPv4Column, IPv6Column
+from .jsoncolumn import create_json_column
 from .lowcardinalitycolumn import create_low_cardinality_column
 from .mapcolumn import create_map_column
 from .nestedcolumn import create_nested_column
@@ -128,7 +129,8 @@ def get_column_by_spec(spec, column_options):
 
     elif spec.startswith("Map"):
         return create_map_column(spec, create_column_with_options, column_options)
-
+    elif spec.startswith("Object('json')"):
+        return create_json_column(spec, create_column_with_options, column_options)
     else:
         for alias, primitive in aliases:
             if spec.startswith(alias):
