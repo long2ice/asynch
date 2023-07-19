@@ -289,8 +289,8 @@ class Connection:
         if self.verify:
             ssl_ctx.verify_mode = ssl.VerifyMode.CERT_REQUIRED
         else:
-            ssl_ctx.verify_mode = ssl.VerifyMode.CERT_NONE
             ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.VerifyMode.CERT_NONE
         return ssl_ctx
 
     async def ping(self):
