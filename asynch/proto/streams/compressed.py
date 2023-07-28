@@ -1,7 +1,5 @@
-from clickhouse_cityhash.cityhash import CityHash128
-
 from asynch.proto import constants
-from asynch.proto.compression import BaseCompressor
+from asynch.proto.compression import BaseCompressor, import_cityhash
 from asynch.proto.context import Context
 from asynch.proto.streams.block import BlockReader, BlockWriter
 from asynch.proto.streams.buffered import (
@@ -28,6 +26,7 @@ class CompressedBlockWriter(BlockWriter):
         super().__init__(reader, self.writer, context)
 
     async def finalize(self):
+        CityHash128 = import_cityhash()
         await self.writer.flush()
 
         compressed = await self.get_compressed()
