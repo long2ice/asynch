@@ -19,14 +19,15 @@ python = "^3.7"
 leb128 = "*"
 pytz = "*"
 lz4 = "*"
+clickhouse-cityhash = { version = "*", optional = true }
 zstd = "*"
 tzlocal = "*"
 ciso8601 = "*"
 
-[tool.poetry.group.compressoin.dependencies]
-clickhouse-cityhash = "*"
+[tool.poetry.extras]
+compression = ["clickhouse-cityhash"]
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.dev.dependencies]
 flake8 = "*"
 pyproject-flake8 = "*"
 isort = "*"
