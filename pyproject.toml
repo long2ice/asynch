@@ -27,7 +27,7 @@ ciso8601 = "*"
 [tool.poetry.extras]
 compression = ["clickhouse-cityhash"]
 
-[tool.poetry.dev.dependencies]
+[tool.poetry.dev-dependencies]
 flake8 = "*"
 pyproject-flake8 = "*"
 isort = "*"
