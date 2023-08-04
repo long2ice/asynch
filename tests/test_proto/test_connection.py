@@ -134,3 +134,16 @@ async def test_input_format_null_as_default(conn, spec, data, expected):
                 return
 
             assert await conn.execute("SELECT * FROM test.test") == expected
+
+
+@pytest.mark.asyncio
+async def test_watch_zero_limit(conn: Connection) -> None:
+    await conn.execute("DROP TABLE IF EXISTS test.test")
+    await conn.execute("CREATE TABLE test.test (x Int8) ENGINE=Memory;")
+    await conn.execute("SET allow_experimental_live_view = 1")
+    await conn.execute("DROP VIEW IF EXISTS lv")
+    await conn.execute("CREATE LIVE VIEW lv AS SELECT sum(x) FROM test.test")
+    await conn.execute("INSERT INTO test.test VALUES (10)")
+    iter = await conn.execute_iter("WATCH lv LIMIT 0")
+    async for data in iter:
+        assert data == (10, 1)
