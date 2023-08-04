@@ -135,6 +135,7 @@ async def test_input_format_null_as_default(conn, spec, data, expected):
 
             assert await conn.execute("SELECT * FROM test.test") == expected
 
+
 @pytest.mark.asyncio
 async def test_watch_zero_limit(conn: Connection) -> None:
     await conn.execute("DROP TABLE IF EXISTS test.test")
