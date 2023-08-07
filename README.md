@@ -15,6 +15,13 @@
 > pip install asynch
 ```
 
+or if you want to install [`clickhouse-cityhash`](https://pypi.org/project/clickhouse-cityhash/) to enable
+transport compression
+
+```shell
+> pip install asynch[compression]
+```
+
 ## Usage
 
 Connect to ClickHouse

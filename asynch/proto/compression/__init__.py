@@ -1,8 +1,6 @@
 import importlib
 from typing import TYPE_CHECKING, Type
 
-from clickhouse_cityhash.cityhash import CityHash128
-
 from asynch.errors import ChecksumDoesntMatchError, UnknownCompressionMethod
 from asynch.proto.protocol import CompressionMethodByte
 
@@ -74,6 +72,8 @@ class BaseDecompressor:
         raise NotImplementedError
 
     async def get_decompressed_data(self, method_byte, compressed_hash, extra_header_size):
+        CityHash128 = import_cityhash()
+
         size_with_header = await self.reader.read_uint32()
         compressed_size = size_with_header - extra_header_size - 4
 
@@ -90,3 +90,12 @@ class BaseDecompressor:
         uncompressed_size = await reader.read_uint32()
         compressed = compressed[4:compressed_size]
         return self.decompress_data(compressed, uncompressed_size)
+
+
+def import_cityhash():
+    try:
+        from clickhouse_cityhash.cityhash import CityHash128
+    except ImportError as e:
+        raise ImportError("Please install clickhouse-cityhash to enable compression") from e
+    else:
+        return CityHash128

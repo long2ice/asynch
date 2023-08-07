@@ -25,7 +25,7 @@ up:
 	@poetry update
 
 deps:
-	@poetry install --no-root
+	@poetry install --extras compression --no-root
 
 style: deps
 	@isort -src $(checkfiles)
