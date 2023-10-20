@@ -187,7 +187,7 @@ class Pool(asyncio.AbstractServer):
                     await self._cond.wait()
 
     async def initialize(self):
-        while self.freesize < self.minsize:
+        while self.freesize < self.minsize and self.size <= self.maxsize:
             conn = await connect(**self._connection_kwargs)
             self._free.append(conn)
             self._cond.notify()
