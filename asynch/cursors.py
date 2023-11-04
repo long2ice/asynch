@@ -279,12 +279,14 @@ class Cursor:
             raise ProgrammingError("no results to fetch")
 
     def _check_query_executing(self):
-        if self._connection._connection.is_query_executing:
-            raise ProgrammingError("records have not fetched, fetch all before execute next")
+        if self._connection.is_query_executing:
+            raise ProgrammingError(
+                "some records have not been fetched. fetch remaining records before executing the next query"
+            )
 
     def _check_cursor_closed(self):
         if self._state == self._states.CURSOR_CLOSED:
-            raise InterfaceError("cursor already closed")
+            raise InterfaceError("cursor is already closed")
 
     def _begin_query(self):
         self._state = self._states.RUNNING

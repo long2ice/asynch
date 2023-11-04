@@ -80,6 +80,10 @@ class Connection:
     def echo(self):
         return self._echo
 
+    @property
+    def is_query_executing(self) -> bool:
+        return self._connection.is_query_executing
+
     async def close(self):
         if self._is_closed:
             return

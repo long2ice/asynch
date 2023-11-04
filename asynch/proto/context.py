@@ -46,8 +46,12 @@ class ExecuteContext:
         self._connection.make_query_settings(settings)
 
     async def __aenter__(self):
-        await self._connection.force_connect()
-        self._connection.last_query = QueryInfo(self._connection.reader)
+        try:
+            await self._connection.force_connect()
+            self._connection.last_query = QueryInfo(self._connection.reader)
+        except:  # noqa
+            await self._connection.disconnect()
+            raise
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
