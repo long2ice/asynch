@@ -13,13 +13,22 @@ from asynch.errors import (
     UnknownPacketFromServerError,
 )
 from asynch.proto import constants
-from asynch.proto.block import BlockStreamProfileInfo, ColumnOrientedBlock, RowOrientedBlock
+from asynch.proto.block import (
+    BlockStreamProfileInfo,
+    ColumnOrientedBlock,
+    RowOrientedBlock,
+)
 from asynch.proto.compression import get_compressor_cls
 from asynch.proto.context import Context, ExecuteContext
 from asynch.proto.cs import ClientInfo, QueryKind, ServerInfo
 from asynch.proto.progress import Progress
 from asynch.proto.protocol import ClientPacket, Compression, ServerPacket
-from asynch.proto.result import IterQueryResult, ProgressQueryResult, QueryInfo, QueryResult
+from asynch.proto.result import (
+    IterQueryResult,
+    ProgressQueryResult,
+    QueryInfo,
+    QueryResult,
+)
 from asynch.proto.settings import write_settings
 from asynch.proto.streams.block import BlockReader, BlockWriter
 from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
@@ -108,7 +117,7 @@ class Connection:
         self.settings_is_important = settings_is_important
         self._lock = asyncio.Lock()
         self.secure_socket = secure
-        self.verify_cert = verify
+        self.verify = verify
 
         ssl_options = {}
         if ssl_version is not None:
@@ -286,8 +295,11 @@ class Connection:
         ciphers = self.ssl_options.get("ciphers")
         if ciphers:
             ssl_ctx.set_ciphers(ciphers)
-        if self.verify_cert:
+        if self.verify:
             ssl_ctx.verify_mode = ssl.VerifyMode.CERT_REQUIRED
+        else:
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.VerifyMode.CERT_NONE
         return ssl_ctx
 
     async def ping(self):
@@ -472,7 +484,6 @@ class Connection:
             yield packet
 
     async def receive_result(self, with_column_types=False, progress=False, columnar=False):
-
         generator = self.packet_generator()
 
         if progress:
@@ -539,7 +550,6 @@ class Connection:
         await self.receive_hello()
 
     def reset_state(self):
-
         self.writer = None
         self.reader = None
         self.block_reader = None
@@ -621,7 +631,6 @@ class Connection:
 
         start_time = time()
         async with ExecuteContext(self, query, settings):
-
             # INSERT queries can use list/tuple/generator of list/tuples/dicts.
             # For SELECT parameters can be passed in only in dict right now.
             is_insert = isinstance(args, (list, tuple, GeneratorType))
@@ -706,7 +715,6 @@ class Connection:
         types_check=False,
         columnar=False,
     ):
-
         if params is not None:
             query = self.substitute_params(query, params)
 
@@ -759,7 +767,6 @@ class Connection:
         types_check=False,
         columnar=False,
     ):
-
         if params is not None:
             query = self.substitute_params(query, params)
 
@@ -867,7 +874,6 @@ class Connection:
         query_id=None,
         types_check=False,
     ):
-
         if params is not None:
             query = self.substitute_params(query, params)
 

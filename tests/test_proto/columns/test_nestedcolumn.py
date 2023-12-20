@@ -64,7 +64,6 @@ async def test_nested_column(conn, data, expected_dict):
                 ("n.i", expected_dict["i"]),
                 ("n.s", expected_dict["s"]),
             ):
-
                 await cursor.execute(f"SELECT {select_str} FROM test.test")
                 assert await cursor.fetchall() == expected
 

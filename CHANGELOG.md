@@ -2,6 +2,13 @@
 
 ## 0.2
 
+### 0.2.3
+
+- Support json column. (#73)
+- Fix connection with `secure=True` and `verify=False`.
+- Fix compression.
+- Fix exception `Cannot set verify_mode to CERT_NONE when check_hostname is enabled`.
+
 ### 0.2.2
 
 - Add `Int128Column`, `Int256Column`, `UInt128Column`, `UInt256Column`, `Decimal256Column`. (#57)
