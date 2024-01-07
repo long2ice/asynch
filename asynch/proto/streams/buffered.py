@@ -122,11 +122,11 @@ class BufferedReader:
         return packet
 
     async def read_varint(self):
-        if self.position == self.current_buffer_size:
-            self._reset_buffer()
-            await self._read_into_buffer()
         packets = bytearray()
         while True:
+            if self.position == self.current_buffer_size:
+                self._reset_buffer()
+                await self._read_into_buffer()
             packet = self._read_one()
             packets.append(packet)
             if packet < 0x80:
