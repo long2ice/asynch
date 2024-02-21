@@ -58,6 +58,7 @@ async def initialize_tests():
     conn = await connect(dsn=CONNECTION_DSN)
     async with conn.cursor(cursor=DictCursor) as cursor:
         await cursor.execute('create database if not exists test')
+        await cursor.execute('drop table if exists test.asynch')
         await cursor.execute("""CREATE TABLE if not exists test.asynch
     (
         `id`       Int32,

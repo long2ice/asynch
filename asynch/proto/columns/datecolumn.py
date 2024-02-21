@@ -1,5 +1,7 @@
 from datetime import date, timedelta
 
+import ciso8601
+
 from .base import FormatColumn
 
 epoch_start = date(1970, 1, 1)
@@ -32,10 +34,10 @@ class DateColumn(FormatColumn):
             if nulls_map and nulls_map[i]:
                 items[i] = null_value
                 continue
-
+            if isinstance(item, str):
+                item = ciso8601.parse_datetime(item).date()
             if item is not date:
                 item = date(item.year, item.month, item.day)
-
             if min_value <= item <= max_value:
                 items[i] = date_lut_reverse[item]
             else:
