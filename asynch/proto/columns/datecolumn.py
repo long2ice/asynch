@@ -2,7 +2,6 @@ from datetime import date, timedelta
 
 from .base import FormatColumn
 
-
 epoch_start = date(1970, 1, 1)
 epoch_end = date(2149, 6, 6)
 
@@ -11,9 +10,9 @@ epoch_end_date32 = date(2283, 11, 11)
 
 
 class DateColumn(FormatColumn):
-    ch_type = 'Date'
-    py_types = (date, )
-    format = 'H'
+    ch_type = "Date"
+    py_types = (date,)
+    format = "H"
 
     min_value = epoch_start
     max_value = epoch_end
@@ -49,14 +48,13 @@ class DateColumn(FormatColumn):
             return tuple(date_lut[item] for item in items)
         else:
             return tuple(
-                (None if is_null else date_lut[items[i]])
-                for i, is_null in enumerate(nulls_map)
+                (None if is_null else date_lut[items[i]]) for i, is_null in enumerate(nulls_map)
             )
 
 
 class Date32Column(DateColumn):
-    ch_type = 'Date32'
-    format = 'i'
+    ch_type = "Date32"
+    format = "i"
 
     min_value = epoch_start_date32
     max_value = epoch_end_date32
