@@ -7,7 +7,7 @@ from ...errors import (
 from ..streams.buffered import BufferedReader, BufferedWriter
 from .arraycolumn import create_array_column
 from .boolcolumn import BoolColumn
-from .datecolumn import DateColumn
+from .datecolumn import DateColumn, Date32Column
 from .datetimecolumn import create_datetime_column
 from .decimalcolumn import create_decimal_column
 from .enumcolumn import create_enum_column
@@ -52,6 +52,7 @@ column_by_type = {
     c.ch_type: c
     for c in [
         DateColumn,
+        Date32Column,
         Float32,
         Float64,
         BoolColumn,
