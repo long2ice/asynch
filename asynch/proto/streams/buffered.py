@@ -111,12 +111,23 @@ class BufferedReader:
         self.current_buffer_size = 0
         self.position = 0
 
+    def _reset_buffer(self):
+        self.position = 0
+        self.buffer = bytearray()
+
     async def _read_into_buffer(self):
         packet = await self.reader.read(self.buffer_max_size)
         self.buffer.extend(packet)
         self.current_buffer_size = len(self.buffer)
 
+    async def _update_buffer_if_full(self):
+        if self.position == self.current_buffer_size:
+            self._reset_buffer()
+            await self._read_into_buffer()
+
     def _read_one(self):
+        if not self.buffer and not self.position:
+            return b""
         packet = self.buffer[self.position]
         self.position += 1
         return packet
@@ -124,18 +135,23 @@ class BufferedReader:
     async def read_varint(self):
         packets = bytearray()
         while True:
-            if self.position == self.current_buffer_size:
-                self._reset_buffer()
-                await self._read_into_buffer()
+            await self._update_buffer_if_full()
             packet = self._read_one()
             packets.append(packet)
             if packet < 0x80:
                 break
         return leb128.u.decode(packets)
 
-    def _reset_buffer(self):
-        self.position = 0
-        self.buffer = bytearray()
+    async def read_bytes(self, length: int):
+        packets = bytearray()
+        while length > 0:
+            await self._update_buffer_if_full()
+            read_position = self.position + length
+            packet = self.buffer[self.position : read_position]  # noqa: E203
+            length -= len(packet)
+            self.position += len(packet)
+            packets.extend(packet)
+        return packets
 
     async def read_str(self, as_bytes: bool = False):
         length = await self.read_varint()
@@ -149,21 +165,6 @@ class BufferedReader:
         if as_bytes:
             return packet
         return packet.decode()
-
-    async def read_bytes(self, length: int):
-        packets = bytearray()
-        while length > 0:
-            if self.position == self.current_buffer_size:
-                self._reset_buffer()
-                await self._read_into_buffer()
-
-            read_position = self.position + length
-            packet = self.buffer[self.position : read_position]  # noqa: E203
-            length -= len(packet)
-            self.position += len(packet)
-            packets.extend(packet)
-
-        return packets
 
     async def read_int(self, fmt: str):
         s = struct.Struct("<" + fmt)
