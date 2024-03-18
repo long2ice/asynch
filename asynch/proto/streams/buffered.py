@@ -126,7 +126,7 @@ class BufferedReader:
             await self._read_into_buffer()
 
     def _read_one(self):
-        if not self.buffer and not self.position:
+        if not (self.buffer or self.position):
             return b""
         packet = self.buffer[self.position]
         self.position += 1
@@ -153,67 +153,46 @@ class BufferedReader:
             packets.extend(packet)
         return packets
 
-    async def read_str(self, as_bytes: bool = False):
-        length = await self.read_varint()
-        packet = await self.read_bytes(length)
-        if as_bytes:
-            return packet
-        return packet.decode()
-
     async def read_fixed_str(self, length: int, as_bytes: bool = False):
         packet = await self.read_bytes(length)
         if as_bytes:
             return packet
         return packet.decode()
 
+    async def read_str(self, as_bytes: bool = False):
+        length = await self.read_varint()
+        return await self.read_fixed_str(length=length, as_bytes=as_bytes)
+
     async def read_int(self, fmt: str):
         s = struct.Struct("<" + fmt)
         packet = await self.read_bytes(s.size)
         return s.unpack(packet)[0]
 
-    async def read_int8(
-        self,
-    ):
+    async def read_int8(self):
         return await self.read_int("b")
 
-    async def read_int16(
-        self,
-    ):
+    async def read_int16(self):
         return await self.read_int("h")
 
-    async def read_int32(
-        self,
-    ):
+    async def read_int32(self):
         return await self.read_int("i")
 
-    async def read_int64(
-        self,
-    ):
+    async def read_int64(self):
         return await self.read_int("q")
 
-    async def read_uint8(
-        self,
-    ):
+    async def read_uint8(self):
         return await self.read_int("B")
 
-    async def read_uint16(
-        self,
-    ):
+    async def read_uint16(self):
         return await self.read_int("H")
 
-    async def read_uint32(
-        self,
-    ):
+    async def read_uint32(self):
         return await self.read_int("I")
 
-    async def read_uint64(
-        self,
-    ):
+    async def read_uint64(self):
         return await self.read_int("Q")
 
-    async def read_uint128(
-        self,
-    ):
+    async def read_uint128(self):
         hi = await self.read_int("Q")
         lo = await self.read_int("Q")
         return (hi << 64) + lo
