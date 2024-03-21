@@ -33,7 +33,6 @@ class Connection:
         self._is_closed = False
         self._echo = echo
         self._cursor_cls = cursor_cls
-        self._connected = False
         if dsn:
             self._connection = ProtoConnection(
                 **self._parse_dsn(dsn), stack_track=stack_track, **kwargs
@@ -54,7 +53,7 @@ class Connection:
 
     @property
     def connected(self):
-        return self._connected
+        return self._connection.connected
 
     @property
     def host(self):
@@ -93,10 +92,9 @@ class Connection:
         raise errors.NotSupportedError
 
     async def connect(self):
-        if self._connected:
+        if self.connected:
             return
         await self._connection.connect()
-        self._connected = True
 
     def cursor(self, cursor: Type[Cursor] = None) -> Cursor:
         cursor_cls = cursor or self._cursor_cls
