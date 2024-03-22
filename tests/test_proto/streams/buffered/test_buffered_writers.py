@@ -1,22 +1,8 @@
-from asyncio import StreamReader
 from unittest.mock import AsyncMock
 
 import pytest
 
-from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
-
-
-@pytest.mark.asyncio
-async def test_BufferedReader_overflow():
-    stream_data = b"1234"
-
-    stream_reader = StreamReader()
-    stream_reader.feed_data(stream_data)
-    reader = BufferedReader(stream_reader, 1)
-
-    result = await reader.read_bytes(4)
-
-    assert result == stream_data
+from asynch.proto.streams.buffered import BufferedWriter
 
 
 @pytest.mark.asyncio
