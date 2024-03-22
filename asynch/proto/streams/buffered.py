@@ -111,7 +111,7 @@ class BufferedReader:
         self.current_buffer_size = 0
         self.position = 0
 
-    async def _refill_buffer(self) -> bool:
+    async def _refill_buffer(self):
         if self.position == self.current_buffer_size:
             self._reset_buffer()
             await self._read_into_buffer()
@@ -119,7 +119,7 @@ class BufferedReader:
     def _is_buffer_empty(self):
         return not (self.buffer or self.position)
 
-    async def _is_buffer_readable(self):
+    async def _is_buffer_readable(self) -> bool:
         await self._refill_buffer()
         if self._is_buffer_empty():
             return False
