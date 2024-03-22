@@ -111,6 +111,20 @@ class BufferedReader:
         self.current_buffer_size = 0
         self.position = 0
 
+    async def _refill_buffer(self) -> bool:
+        if self.position == self.current_buffer_size:
+            self._reset_buffer()
+            await self._read_into_buffer()
+
+    def _is_buffer_empty(self):
+        return not (self.buffer or self.position)
+
+    async def _is_buffer_readable(self):
+        await self._refill_buffer()
+        if self._is_buffer_empty():
+            return False
+        return True
+
     def _reset_buffer(self):
         self.position = 0
         self.buffer = bytearray()
@@ -120,14 +134,7 @@ class BufferedReader:
         self.buffer.extend(packet)
         self.current_buffer_size = len(self.buffer)
 
-    async def _update_buffer_if_full(self):
-        if self.position == self.current_buffer_size:
-            self._reset_buffer()
-            await self._read_into_buffer()
-
     def _read_one(self):
-        if not (self.buffer or self.position):
-            return b""
         packet = self.buffer[self.position]
         self.position += 1
         return packet
@@ -135,7 +142,8 @@ class BufferedReader:
     async def read_varint(self):
         packets = bytearray()
         while True:
-            await self._update_buffer_if_full()
+            if not (await self._is_buffer_readable()):
+                break
             packet = self._read_one()
             packets.append(packet)
             if packet < 0x80:
@@ -145,7 +153,8 @@ class BufferedReader:
     async def read_bytes(self, length: int):
         packets = bytearray()
         while length > 0:
-            await self._update_buffer_if_full()
+            if not (await self._is_buffer_readable()):
+                break
             read_position = self.position + length
             packet = self.buffer[self.position : read_position]  # noqa: E203
             length -= len(packet)
