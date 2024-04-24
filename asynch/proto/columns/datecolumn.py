@@ -8,7 +8,20 @@ epoch_start = date(1970, 1, 1)
 epoch_end = date(2149, 6, 6)
 
 epoch_start_date32 = date(1900, 1, 1)
-epoch_end_date32 = date(2283, 11, 11)
+epoch_end_date32 = date(2299, 12, 31)
+
+
+class LazyLUT(dict):
+    def __init__(self, *args, _factory, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._default_factory = _factory
+
+    def __missing__(self, key):
+        return self.setdefault(key, self._default_factory(key))
+
+
+lazy_date_lut = LazyLUT(_factory=lambda x: epoch_start + timedelta(x))
+lazy_date_lut_reverse = LazyLUT(_factory=lambda x: (x - epoch_start).days)
 
 
 class DateColumn(FormatColumn):
@@ -19,9 +32,8 @@ class DateColumn(FormatColumn):
     min_value = epoch_start
     max_value = epoch_end
 
-    date_lut_days = (epoch_end - epoch_start).days + 1
-    date_lut = {x: epoch_start + timedelta(x) for x in range(date_lut_days)}
-    date_lut_reverse = {value: key for key, value in date_lut.items()}
+    date_lut = lazy_date_lut
+    date_lut_reverse = lazy_date_lut_reverse
 
     def before_write_items(self, items, nulls_map=None):
         null_value = self.null_value
@@ -61,9 +73,5 @@ class Date32Column(DateColumn):
     min_value = epoch_start_date32
     max_value = epoch_end_date32
 
-    date_lut_days = (epoch_end_date32 - epoch_start).days + 1
-    date_lut = {
-        x: epoch_start + timedelta(x)
-        for x in range((epoch_start_date32 - epoch_start).days, date_lut_days)
-    }
-    date_lut_reverse = {value: key for key, value in date_lut.items()}
+    date_lut = lazy_date_lut
+    date_lut_reverse = lazy_date_lut_reverse
