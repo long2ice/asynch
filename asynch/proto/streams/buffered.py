@@ -111,6 +111,24 @@ class BufferedReader:
         self.current_buffer_size = 0
         self.position = 0
 
+    async def _refill_buffer(self):
+        if self.position == self.current_buffer_size:
+            self._reset_buffer()
+            await self._read_into_buffer()
+
+    def _is_buffer_empty(self):
+        return not (self.buffer or self.position)
+
+    async def _is_buffer_readable(self) -> bool:
+        await self._refill_buffer()
+        if self._is_buffer_empty():
+            return False
+        return True
+
+    def _reset_buffer(self):
+        self.position = 0
+        self.buffer = bytearray()
+
     async def _read_into_buffer(self):
         packet = await self.reader.read(self.buffer_max_size)
         self.buffer.extend(packet)
@@ -122,27 +140,27 @@ class BufferedReader:
         return packet
 
     async def read_varint(self):
-        if self.position == self.current_buffer_size:
-            self._reset_buffer()
-            await self._read_into_buffer()
         packets = bytearray()
         while True:
+            if not (await self._is_buffer_readable()):
+                break
             packet = self._read_one()
             packets.append(packet)
             if packet < 0x80:
                 break
         return leb128.u.decode(packets)
 
-    def _reset_buffer(self):
-        self.position = 0
-        self.buffer = bytearray()
-
-    async def read_str(self, as_bytes: bool = False):
-        length = await self.read_varint()
-        packet = await self.read_bytes(length)
-        if as_bytes:
-            return packet
-        return packet.decode()
+    async def read_bytes(self, length: int):
+        packets = bytearray()
+        while length > 0:
+            if not (await self._is_buffer_readable()):
+                break
+            read_position = self.position + length
+            packet = self.buffer[self.position : read_position]  # noqa: E203
+            length -= len(packet)
+            self.position += len(packet)
+            packets.extend(packet)
+        return packets
 
     async def read_fixed_str(self, length: int, as_bytes: bool = False):
         packet = await self.read_bytes(length)
@@ -150,69 +168,40 @@ class BufferedReader:
             return packet
         return packet.decode()
 
-    async def read_bytes(self, length: int):
-        packets = bytearray()
-        while length > 0:
-            if self.position == self.current_buffer_size:
-                self._reset_buffer()
-                await self._read_into_buffer()
-
-            read_position = self.position + length
-            packet = self.buffer[self.position : read_position]  # noqa: E203
-            length -= len(packet)
-            self.position += len(packet)
-            packets.extend(packet)
-
-        return packets
+    async def read_str(self, as_bytes: bool = False):
+        length = await self.read_varint()
+        return await self.read_fixed_str(length=length, as_bytes=as_bytes)
 
     async def read_int(self, fmt: str):
         s = struct.Struct("<" + fmt)
         packet = await self.read_bytes(s.size)
         return s.unpack(packet)[0]
 
-    async def read_int8(
-        self,
-    ):
+    async def read_int8(self):
         return await self.read_int("b")
 
-    async def read_int16(
-        self,
-    ):
+    async def read_int16(self):
         return await self.read_int("h")
 
-    async def read_int32(
-        self,
-    ):
+    async def read_int32(self):
         return await self.read_int("i")
 
-    async def read_int64(
-        self,
-    ):
+    async def read_int64(self):
         return await self.read_int("q")
 
-    async def read_uint8(
-        self,
-    ):
+    async def read_uint8(self):
         return await self.read_int("B")
 
-    async def read_uint16(
-        self,
-    ):
+    async def read_uint16(self):
         return await self.read_int("H")
 
-    async def read_uint32(
-        self,
-    ):
+    async def read_uint32(self):
         return await self.read_int("I")
 
-    async def read_uint64(
-        self,
-    ):
+    async def read_uint64(self):
         return await self.read_int("Q")
 
-    async def read_uint128(
-        self,
-    ):
+    async def read_uint128(self):
         hi = await self.read_int("Q")
         lo = await self.read_int("Q")
         return (hi << 64) + lo
