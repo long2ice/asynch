@@ -144,6 +144,7 @@ class Pool(asyncio.AbstractServer):
             if self._closing:
                 await connection.close()
             else:
+                connection._connection.reset_state()
                 self._free.append(connection)
         fut = self._loop.create_task(self._wakeup())
         return fut
