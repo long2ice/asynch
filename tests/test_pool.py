@@ -46,10 +46,7 @@ async def test_clean_pool_connection_on_error(pool):
             async with conn.cursor() as cursor:
                 try:
                     # simulate network error while executing the query
-                    await gather(
-                        cursor.execute('SELECT 1'),
-                        raise_net_error()
-                    )
+                    await gather(cursor.execute("SELECT 1"), raise_net_error())
                 except gaierror:
                     pass
 
