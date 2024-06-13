@@ -1,10 +1,13 @@
 import asyncio
 import collections
+import logging
 from asyncio import Condition
 from collections.abc import Coroutine
 from typing import Deque, Set
 
 from asynch.connection import Connection, connect
+
+logger = logging.getLogger(__name__)
 
 
 class _ContextManager(Coroutine):
@@ -156,6 +159,15 @@ class Pool(asyncio.AbstractServer):
     def _wait(self):
         return len(self._terminated) > 0
 
+    async def _check_conn(self, conn) -> bool:
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute("SELECT 1")
+            return True
+        except Exception as e:
+            logger.warning(e)
+            return False
+
     def acquire(self):
         return _PoolAcquireContextManager(self._acquire(), self)
 
@@ -171,13 +183,16 @@ class Pool(asyncio.AbstractServer):
 
                 if self._free:
                     conn = self._free.popleft()
-                    self._used.add(conn)
-                    return conn
+                    if await self._check_conn(conn):
+                        self._used.add(conn)
+                        return conn
+                    else:
+                        continue
                 else:
                     await self._cond.wait()
 
     async def initialize(self):
-        while self.size < self.minsize:
+        while self.freesize < self.minsize and self.size <= self.maxsize:
             await self.init_one_connection()
 
     async def init_one_connection(self):
