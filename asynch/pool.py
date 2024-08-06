@@ -90,7 +90,9 @@ class _PoolAcquireContextManager(_ContextManager):
 
 
 class Pool(asyncio.AbstractServer):
-    def __init__(self, minsize: int = 1, maxsize: int = 10, loop=None, **kwargs):
+    def __init__(
+        self, minsize: int = 1, maxsize: int = 10, loop: asyncio.AbstractEventLoop = None, **kwargs
+    ):
         self._maxsize = maxsize
         self._minsize = minsize
         self._connection_kwargs = kwargs
@@ -102,33 +104,31 @@ class Pool(asyncio.AbstractServer):
         self._free: Deque[Connection] = collections.deque(maxlen=maxsize)
         self._loop = loop
 
-        if maxsize <= 0:
+        if maxsize < 1:
             raise ValueError("maxsize is expected to be greater than zero")
-
         if minsize < 0:
             raise ValueError("minsize is expected to be greater or equal to zero")
-
         if minsize > maxsize:
             raise ValueError("minsize is greater than max_size")
 
     @property
-    def maxsize(self):
+    def maxsize(self) -> int:
         return self._maxsize
 
     @property
-    def minsize(self):
+    def minsize(self) -> int:
         return self._minsize
 
     @property
-    def freesize(self):
+    def freesize(self) -> int:
         return len(self._free)
 
     @property
-    def size(self):
+    def size(self) -> int:
         return self.freesize + len(self._used)
 
     @property
-    def cond(self):
+    def cond(self) -> Condition:
         return self._cond
 
     async def release(self, connection: Connection):
@@ -159,7 +159,7 @@ class Pool(asyncio.AbstractServer):
     def _wait(self):
         return len(self._terminated) > 0
 
-    async def _check_conn(self, conn) -> bool:
+    async def _check_conn(self, conn: Connection) -> bool:
         try:
             async with conn.cursor() as cursor:
                 await cursor.execute("SELECT 1")
@@ -202,6 +202,7 @@ class Pool(asyncio.AbstractServer):
 
     async def clear(self):
         """Close all free connections in pool."""
+
         async with self._cond:
             while self._free:
                 conn = self._free.popleft()
@@ -232,6 +233,7 @@ class Pool(asyncio.AbstractServer):
         Mark all pool connections to be closed on getting back to pool.
         Closed pool doesn't allow to acquire new connections.
         """
+
         if self._closed:
             return
         self._closing = True
