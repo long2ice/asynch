@@ -4,7 +4,7 @@
 
 ### 0.2.5
 
-- Make Python3.9 the minimum supported version. Update project dependencies and metadata. By @stankudrow in #???
+- Make Python3.9 the minimum supported version. Update project dependencies, metadata, tests. By @stankudrow in #106.
 
 ### 0.2.4
 
@@ -17,7 +17,6 @@
 - Fix a bytearray index out of range error while reading a string. By @pufit in #90.
 - Make a connection be closed for `ExecuteContext` manager class. By @KPull in #82.
 - Add connection validity check in `acquire` method. By @lxneng in #81.
-
 
 ### 0.2.3
 
