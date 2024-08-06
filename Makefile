@@ -5,7 +5,6 @@
 export
 
 checkfiles = asynch/ tests/ benchmark/
-black_opts = -l 100 -t py38
 py_warn = PYTHONDEVMODE=1
 
 up:
@@ -16,11 +15,12 @@ deps:
 
 style: deps
 	@isort -src $(checkfiles)
-	@black $(black_opts) $(checkfiles)
+	@black $(checkfiles)
+	@ruff check --fix $(checkfiles)
 
 check: deps
 	@black --check $(checkfiles)
-	@ruff $(checkfiles) --fix
+	@ruff check $(checkfiles)
 
 test: deps
 	$(py_warn) pytest
