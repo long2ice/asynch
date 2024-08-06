@@ -1,16 +1,19 @@
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, nullcontext
+from typing import ContextManager
 from uuid import UUID
 
 import pytest
 
 from asynch import errors
+from asynch.connection import Connection
+from asynch.cursors import Cursor
 from asynch.proto.columns import get_column_by_spec
 from asynch.proto.columns.arraycolumn import ArrayColumn
 from asynch.proto.columns.intcolumn import UInt8Column
 
 
 @asynccontextmanager
-async def create_table(cursor, spec):
+async def create_table(cursor: Cursor, spec: str):
     await cursor.execute("DROP TABLE IF EXISTS test.test")
     await cursor.execute(f"CREATE TABLE test.test ({spec}) engine=Memory")
 
@@ -22,27 +25,27 @@ async def create_table(cursor, spec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "spec, data, expected_exc",
+    "spec, data, expectation",
     [
         [
             "a Array(Int32)",
             [([],)],
-            None,
+            nullcontext(),
         ],
         [
             "a Array(Int32)",
             [([100, 500],)],
-            None,
+            nullcontext(),
         ],
         [
             "a Array(Int32)",
             [([100, 500],), ([100, 500],)],
-            None,
+            nullcontext(),
         ],
         [
             "a Array(Array(Enum8('hello' = -1, 'world' = 2)))",
             [([["hello", "world"], ["hello"]],)],
-            None,
+            nullcontext(),
         ],
         [
             "a Array(Array(Array(Int32))), b Array(Array(Array(Int32)))",
@@ -60,7 +63,7 @@ async def create_table(cursor, spec):
                     ],
                 )
             ],
-            None,
+            nullcontext(),
         ],
         [
             "a Array(Array(Array(Nullable(String))))",
@@ -69,7 +72,7 @@ async def create_table(cursor, spec):
                 ([[["str2_1", "str2_2", None], [None]]],),
                 ([[["str3_1", "str3_2", None], [None]]],),
             ],
-            None,
+            nullcontext(),
         ],
         [
             "a Array(Array(Array(Int32))), b Array(Array(Array(Int32)))",
@@ -79,24 +82,24 @@ async def create_table(cursor, spec):
                     [[]],
                 ),
             ],
-            None,
+            nullcontext(),
         ],
         [
             "a Array(Int32)",
             [("test",)],
-            errors.TypeMismatchError,
+            pytest.raises(errors.TypeMismatchError),
         ],
         [
             "a Array(Int32)",
             [(["test"],)],
-            errors.TypeMismatchError,
+            pytest.raises(errors.TypeMismatchError),
         ],
         [
             "a Array(String)",
             [(["aaa", "bbb"],)],
-            None,
+            nullcontext(),
         ],
-        ["a Array(Nullable(String))", [(["aaa", None, "bbb"],)], None],
+        ["a Array(Nullable(String))", [(["aaa", None, "bbb"],)], nullcontext()],
         [
             "a Array(UUID)",
             [
@@ -107,7 +110,7 @@ async def create_table(cursor, spec):
                     ],
                 )
             ],
-            None,
+            nullcontext(),
         ],
         [
             "a Array(Nullable(UUID))",
@@ -120,12 +123,12 @@ async def create_table(cursor, spec):
                     ],
                 )
             ],
-            None,
+            nullcontext(),
         ],
         [
             "a Array(Tuple(Int32))",
             [([],)],
-            None,
+            nullcontext(),
         ],
     ],
     ids=[
@@ -145,17 +148,19 @@ async def create_table(cursor, spec):
         "tuple_array",
     ],
 )
-async def test_array_column(conn, spec, data, expected_exc):
+async def test_array_column(
+    spec: str,
+    data: list[tuple[list, ...]],
+    expectation: ContextManager,
+    conn: Connection,
+):
     async with conn.cursor() as cursor:
         async with create_table(cursor, spec):
-            try:
+            with expectation:
                 await cursor.execute("INSERT INTO test.test (*) VALUES", data)
                 await cursor.execute("SELECT * FROM test.test")
-            except Exception as e:
-                assert isinstance(e, expected_exc)  # noqa
-                return
 
-            assert await cursor.fetchall() == data
+                assert await cursor.fetchall() == data
 
 
 @pytest.fixture
