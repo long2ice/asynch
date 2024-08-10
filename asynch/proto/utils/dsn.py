@@ -64,8 +64,7 @@ def parse_dsn(dsn: str, *, strict: bool = False) -> dict[str, Any]:
         kwargs["secure"] = True
 
     for name, value in parse_qs(url.query).items():
-        print(f"VALUE = {value}")
-        if not value or not len(value):
+        if not value:
             continue
         value = value[0]
         if name == "compression":

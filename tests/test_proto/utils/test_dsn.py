@@ -4,7 +4,7 @@ from typing import Any, ContextManager, Optional
 
 import pytest
 
-from asynch.proto.models.enums import CompressionAlgorithms
+from asynch.proto.models.enums import CompressionAlgorithms, Schemes
 from asynch.proto.utils.dsn import DSNError, parse_dsn
 
 
@@ -14,10 +14,10 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
         ("", False, does_not_raise(), {}),
         ("some_scheme://", False, does_not_raise(), {"database": "some_scheme:/"}),
         ("some_scheme://", True, pytest.raises(DSNError), None),
-        ("clickhouse://", True, does_not_raise(), {}),
-        ("clickhouses://", True, does_not_raise(), {"secure": True}),
+        (f"{Schemes.clickhouse}://", True, does_not_raise(), {}),
+        (f"{Schemes.clickhouses}://", True, does_not_raise(), {"secure": True}),
         (
-            "clickhouse://ch@lochost/",
+            f"{Schemes.clickhouse}://ch@lochost/",
             False,
             does_not_raise(),
             {
@@ -26,7 +26,7 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
             },
         ),
         (
-            "clickhouse://ch:pwd@lochost/",
+            f"{Schemes.clickhouse}://ch:pwd@lochost/",
             False,
             does_not_raise(),
             {
@@ -36,7 +36,7 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
             },
         ),
         (
-            "clickhouse://ch@lochost:4321/",
+            f"{Schemes.clickhouse}://ch@lochost:4321/",
             False,
             does_not_raise(),
             {
@@ -46,7 +46,7 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
             },
         ),
         (
-            "clickhouse://ch:pwd@lochost:1234/db",
+            f"{Schemes.clickhouse}://ch:pwd@lochost:1234/db",
             False,
             does_not_raise(),
             {
@@ -72,8 +72,8 @@ def test_dsn_basic_credentials(
     ("dsn", "query", "answer"),
     [
         (
-            "clickhouses://ch:pwd@loc:1029/def",
-            ("verify=true" "&ssl_version=PROTOCOL_TLSv1" "&ca_certs=path/to/CA.crt" "&ciphers=AES"),
+            f"{Schemes.clickhouses}://ch:pwd@loc:1029/def",
+            "verify=true&ssl_version=PROTOCOL_TLSv1&ca_certs=path/to/CA.crt&ciphers=AES&client_name",
             {
                 "verify": True,
                 "ssl_version": ssl.PROTOCOL_TLSv1,
