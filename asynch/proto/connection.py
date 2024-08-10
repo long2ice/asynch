@@ -14,6 +14,7 @@ from asynch.errors import (
 )
 from asynch.proto import constants
 from asynch.proto.block import (
+    BaseBlock,
     BlockStreamProfileInfo,
     ColumnOrientedBlock,
     RowOrientedBlock,
@@ -332,10 +333,8 @@ class Connection:
 
     async def receive_data(self, raw=False):
         revision = self.server_info.revision
-
         if revision >= constants.DBMS_MIN_REVISION_WITH_TEMPORARY_TABLES:
             await self.reader.read_str()
-
         return await (self.block_reader_raw if raw else self.block_reader).read()
 
     async def receive_exception(self):
@@ -374,7 +373,7 @@ class Connection:
         num = ServerPacket.strings_in_message(packet_type)
         return [await self.reader.read_str() for _i in range(num)]
 
-    def log_block(self, block):
+    def log_block(self, block: BaseBlock):
         column_names = [x[0] for x in block.columns_with_types]
 
         for row in block.get_rows():
