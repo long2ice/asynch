@@ -1,4 +1,5 @@
 import ssl
+from typing import Optional
 
 from asynch.connection import Connection
 
@@ -28,12 +29,15 @@ def _test_connection_credentials(
 
 
 def _test_connectivity_invariant(
-    conn: Connection, *, is_connected: bool = False, is_closed: bool = False
+    conn: Connection,
+    *,
+    is_connected: Optional[bool] = None,
+    is_closed: Optional[bool] = None,
 ) -> None:
     __tracebackhide__ = True
 
-    assert conn.connected == is_connected
-    assert conn.closed == is_closed
+    assert conn.connected is is_connected
+    assert conn.closed is is_closed
 
 
 def test_dsn():
@@ -120,32 +124,31 @@ def test_secure_connection_check_ssl_context():
 
 def test_connection_status_offline():
     conn = Connection()
-    repstr = f"<connection object at 0x{id(conn):x}; closed: False>"
+    repstr = f"<Connection object at 0x{id(conn):x}; status: created>"
 
     assert repr(conn) == repstr
-    assert not conn.connected
-    assert not conn.closed
+    assert conn.connected is None
+    assert conn.closed is None
 
 
 async def test_connection_status_online():
     conn = Connection()
     conn_id = id(conn)
 
-    repstr = f"<connection object at 0x{conn_id:x}"
-    assert repr(conn) == f"{repstr}; closed: False>"
+    repstr = f"<{conn.__class__.__name__} object at 0x{conn_id:x}"
 
     try:
         await conn.connect()
-        assert repr(conn) == f"{repstr}; closed: False>"
+        assert repr(conn) == f"{repstr}; status: opened>"
         assert conn.connected
-        assert not conn.closed
+        assert conn.closed is None
 
         await conn.close()
-        assert repr(conn) == f"{repstr}; closed: True>"
-        assert not conn.connected
+        assert repr(conn) == f"{repstr}; status: closed>"
+        assert conn.connected is False
         assert conn.closed
     finally:
         await conn.close()
-        assert repr(conn) == f"{repstr}; closed: True>"
+        assert repr(conn) == f"{repstr}; status: closed>"
         assert not conn.connected
         assert conn.closed

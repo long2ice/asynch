@@ -56,7 +56,7 @@ async def test_clean_pool_connection_on_error(pool):
     assert conn._connection.block_reader is None
     assert conn._connection.block_reader_raw is None
     assert conn._connection.block_writer is None
-    assert conn._connection.connected is False
+    assert conn._connection.connected is None
     assert conn._connection.client_trace_context is None
     assert conn._connection.server_info is None
     assert conn._connection.is_query_executing is False

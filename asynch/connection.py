@@ -1,3 +1,5 @@
+from typing import Optional
+
 from asynch import errors
 from asynch.cursors import Cursor
 from asynch.proto import constants
@@ -9,7 +11,7 @@ from asynch.proto.utils.dsn import parse_dsn
 class Connection:
     def __init__(
         self,
-        dsn: None | str = None,
+        dsn: Optional[str] = None,
         user: str = constants.DEFAULT_USER,
         password: str = constants.DEFAULT_PASSWORD,
         host: str = constants.DEFAULT_HOST,
@@ -46,8 +48,8 @@ class Connection:
         self._port = port
         self._database = database
         # connection additional settings
-        self._is_connected: None | bool = None
-        self._is_closed: None | bool = None
+        self._is_connected: Optional[bool] = None
+        self._is_closed: Optional[bool] = None
         self._echo = echo
         self._cursor_cls = cursor_cls
         self._connection_kwargs = kwargs
@@ -71,7 +73,7 @@ class Connection:
         return f"{prefix}>"
 
     @property
-    def connected(self) -> None | bool:
+    def connected(self) -> Optional[bool]:
         """Returns the connection open status.
 
         If the return value is None,
@@ -85,7 +87,7 @@ class Connection:
         return self._is_connected
 
     @property
-    def closed(self) -> None | bool:
+    def closed(self) -> Optional[bool]:
         """Returns the connection close status.
 
         If the return value is None,
@@ -139,13 +141,13 @@ class Connection:
             await self._connection.connect()
             self._is_connected = True
 
-    def cursor(self, cursor: None | Cursor = None, *, echo: bool = False) -> Cursor:
+    def cursor(self, cursor: Optional[Cursor] = None, *, echo: bool = False) -> Cursor:
         cursor_cls = cursor or self._cursor_cls
         return cursor_cls(self, self._echo or echo)
 
 
 async def connect(
-    dsn: None | str = None,
+    dsn: Optional[str] = None,
     user: str = constants.DEFAULT_USER,
     password: str = constants.DEFAULT_PASSWORD,
     host: str = constants.DEFAULT_HOST,
