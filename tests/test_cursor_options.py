@@ -185,9 +185,9 @@ settings_test_params = dict(
         [
             "rv",
             "SELECT name, value, changed FROM system.settings WHERE name = 'max_threads'",
-            [("max_threads", "100500", 1)],
+            [("max_threads", "1234", 1)],
             None,
-            dict(max_threads=100500),
+            dict(max_threads=1234),
         ],
         [
             "rv",

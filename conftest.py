@@ -1,20 +1,21 @@
-import os
 import asyncio
-from asyncio.streams import StreamReader
+import os
 
 import pytest
 
 import asynch
 from asynch import connect
 from asynch.cursors import DictCursor
+from asynch.pool import Pool
+import asynch.pool
 from asynch.proto import constants
 from asynch.proto.context import Context
 from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 
 
 @pytest.fixture
-def column_options():
-    reader = BufferedReader(StreamReader(), constants.BUFFER_SIZE)
+async def column_options():
+    reader = BufferedReader(asyncio.StreamReader(), constants.BUFFER_SIZE)
     writer = BufferedWriter()
     context = Context()
     context.client_settings = {
@@ -22,7 +23,8 @@ def column_options():
         "strings_encoding": constants.STRINGS_ENCODING,
     }
     column_options = {"reader": reader, "writer": writer, "context": context}
-    return column_options
+    yield column_options
+    await writer.close()
 
 
 CONNECTION_HOST = os.environ.get("CLICKHOUSE_HOST", default="127.0.0.1")
@@ -40,41 +42,31 @@ CONNECTION_DSN = os.environ.get(
 )
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    policy = asyncio.get_event_loop_policy()
-    res = policy.new_event_loop()
-    asyncio.set_event_loop(res)
-    res._close = res.close
-    res.close = lambda: None
-
-    yield res
-
-    res._close()
-
-
 @pytest.fixture(scope="session", autouse=True)
 async def initialize_tests():
     conn = await connect(dsn=CONNECTION_DSN)
     async with conn.cursor(cursor=DictCursor) as cursor:
         await cursor.execute('create database if not exists test')
         await cursor.execute('drop table if exists test.asynch')
-        await cursor.execute("""CREATE TABLE if not exists test.asynch
-    (
-        `id`       Int32,
-        `decimal`  Decimal(10, 2),
-        `date`     Date,
-        `datetime` DateTime,
-        `float`    Float32,
-        `uuid`     UUID,
-        `string`   String,
-        `ipv4`     IPv4,
-        `ipv6`     IPv6,
-        `bool`     Bool
-    
-    )
-        ENGINE = MergeTree
-            ORDER BY id""")
+        await cursor.execute(
+            """
+            CREATE TABLE if not exists test.asynch
+            (
+                `id`       Int32,
+                `decimal`  Decimal(10, 2),
+                `date`     Date,
+                `datetime` DateTime,
+                `float`    Float32,
+                `uuid`     UUID,
+                `string`   String,
+                `ipv4`     IPv4,
+                `ipv6`     IPv6,
+                `bool`     Bool
+            )
+            ENGINE = MergeTree
+            ORDER BY id
+            """
+        )
     yield
     await conn.close()
 

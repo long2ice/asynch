@@ -1,5 +1,5 @@
 import ssl
-from typing import Type
+from typing import Optional
 from urllib.parse import parse_qs, unquote, urlparse
 
 from asynch import errors
@@ -12,15 +12,15 @@ from asynch.proto.utils.compat import asbool
 class Connection:
     def __init__(
         self,
-        dsn: str = None,
-        host: str = "127.0.0.1",
-        port: int = 9000,
+        dsn: Optional[str] = None,
+        host: str = constants.DEFAULT_HOST,
+        port: int = constants.DEFAULT_PORT,
         database: str = constants.DEFAULT_DATABASE,
         user: str = constants.DEFAULT_USER,
         password: str = constants.DEFAULT_PASSWORD,
         cursor_cls=Cursor,
-        echo=False,
-        stack_track=False,
+        echo: bool = False,
+        stack_track: bool = False,
         **kwargs,
     ):
         self._dsn = dsn
@@ -52,34 +52,38 @@ class Connection:
         return "<connection object at 0x{0:x}; closed: {1:}>".format(id(self), self._is_closed)
 
     @property
-    def connected(self):
+    def connected(self) -> bool:
         return self._connection.connected
 
     @property
-    def host(self):
+    def closed(self) -> bool:
+        return self._is_closed
+
+    @property
+    def host(self) -> str:
         return self._host
 
     @property
-    def port(self):
+    def port(self) -> int:
         return self._port
 
     @property
-    def user(self):
+    def user(self) -> str:
         return self._user
 
     @property
-    def password(self):
+    def password(self) -> str:
         return self._password
 
     @property
-    def database(self):
+    def database(self) -> str:
         return self._database
 
     @property
-    def echo(self):
+    def echo(self) -> bool:
         return self._echo
 
-    async def close(self):
+    async def close(self) -> None:
         if self._is_closed:
             return
         await self._connection.disconnect()
@@ -96,7 +100,7 @@ class Connection:
             return
         await self._connection.connect()
 
-    def cursor(self, cursor: Type[Cursor] = None) -> Cursor:
+    def cursor(self, cursor: Optional[Cursor] = None) -> Cursor:
         cursor_cls = cursor or self._cursor_cls
         return cursor_cls(self, self._echo)
 
@@ -187,14 +191,14 @@ class Connection:
 
 
 async def connect(
-    dsn: str = None,
-    host: str = "127.0.0.1",
-    port: int = 9000,
-    database: str = "default",
-    user: str = "default",
-    password: str = "",
+    dsn: Optional[str] = None,
+    host: str = constants.DEFAULT_HOST,
+    port: int = constants.DEFAULT_PORT,
+    database: str = constants.DEFAULT_DATABASE,
+    user: str = constants.DEFAULT_USER,
+    password: str = constants.DEFAULT_PASSWORD,
     cursor_cls=Cursor,
-    echo=False,
+    echo: bool = False,
     **kwargs,
 ) -> Connection:
     conn = Connection(dsn, host, port, database, user, password, cursor_cls, echo=echo, **kwargs)

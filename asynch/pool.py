@@ -1,9 +1,8 @@
 import asyncio
 import collections
 import logging
-from asyncio import Condition
 from collections.abc import Coroutine
-from typing import Deque, Set
+from typing import Deque, Optional, Set
 
 from asynch.connection import Connection, connect
 
@@ -90,45 +89,49 @@ class _PoolAcquireContextManager(_ContextManager):
 
 
 class Pool(asyncio.AbstractServer):
-    def __init__(self, minsize: int = 1, maxsize: int = 10, loop=None, **kwargs):
+    def __init__(
+        self,
+        minsize: int = 1,
+        maxsize: int = 10,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        **kwargs,
+    ):
         self._maxsize = maxsize
         self._minsize = minsize
         self._connection_kwargs = kwargs
         self._terminated: Set[Connection] = set()
         self._used: Set[Connection] = set()
-        self._cond = Condition()
+        self._cond = asyncio.Condition()
         self._closing = False
         self._closed = False
         self._free: Deque[Connection] = collections.deque(maxlen=maxsize)
         self._loop = loop
 
-        if maxsize <= 0:
+        if maxsize < 1:
             raise ValueError("maxsize is expected to be greater than zero")
-
         if minsize < 0:
             raise ValueError("minsize is expected to be greater or equal to zero")
-
         if minsize > maxsize:
             raise ValueError("minsize is greater than max_size")
 
     @property
-    def maxsize(self):
+    def maxsize(self) -> int:
         return self._maxsize
 
     @property
-    def minsize(self):
+    def minsize(self) -> int:
         return self._minsize
 
     @property
-    def freesize(self):
+    def freesize(self) -> int:
         return len(self._free)
 
     @property
-    def size(self):
+    def size(self) -> int:
         return self.freesize + len(self._used)
 
     @property
-    def cond(self):
+    def cond(self) -> asyncio.Condition:
         return self._cond
 
     async def release(self, connection: Connection):
@@ -136,6 +139,7 @@ class Pool(asyncio.AbstractServer):
 
         This is **NOT** a coroutine.
         """
+
         fut = self._loop.create_future()
         fut.set_result(None)
 
@@ -159,7 +163,7 @@ class Pool(asyncio.AbstractServer):
     def _wait(self):
         return len(self._terminated) > 0
 
-    async def _check_conn(self, conn) -> bool:
+    async def _check_conn(self, conn: Connection) -> bool:
         try:
             async with conn.cursor() as cursor:
                 await cursor.execute("SELECT 1")
@@ -202,6 +206,7 @@ class Pool(asyncio.AbstractServer):
 
     async def clear(self):
         """Close all free connections in pool."""
+
         async with self._cond:
             while self._free:
                 conn = self._free.popleft()
@@ -232,6 +237,7 @@ class Pool(asyncio.AbstractServer):
         Mark all pool connections to be closed on getting back to pool.
         Closed pool doesn't allow to acquire new connections.
         """
+
         if self._closed:
             return
         self._closing = True
@@ -251,12 +257,16 @@ class Pool(asyncio.AbstractServer):
         self._used.clear()
 
 
-def create_pool(minsize: int = 1, maxsize: int = 10, loop=None, **kwargs):
+def create_pool(
+    minsize: int = 1, maxsize: int = 10, loop: Optional[asyncio.AbstractEventLoop] = None, **kwargs
+):
     coro = _create_pool(minsize=minsize, maxsize=maxsize, loop=loop, **kwargs)
     return _PoolContextManager(coro)
 
 
-async def _create_pool(minsize: int = 1, maxsize: int = 10, loop=None, **kwargs):
+async def _create_pool(
+    minsize: int = 1, maxsize: int = 10, loop: Optional[asyncio.AbstractEventLoop] = None, **kwargs
+):
     if loop is None:
         loop = asyncio.get_event_loop()
     pool = Pool(minsize, maxsize, loop, **kwargs)

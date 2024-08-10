@@ -2,6 +2,22 @@
 
 ## 0.2
 
+### 0.2.5
+
+- Make Python3.9 the minimum supported version. Update project dependencies, metadata, tests. By @stankudrow in #106.
+
+### 0.2.4
+
+- Reset connection state. By @boolka in #101.
+- Add lazy date_lut, similar to clickhouse-driver. By @DaniilAnichin in #99.
+- Correct check life connection (#71). By @gnomeby in #98.
+- Use maxsize for pool connections (#68). By @gnomeby in #97.
+- Add Date32 column (#95). By @cortelf in #96.
+- Eliminate `IndexError` cases from `BufferedReader` class methods when reading from an empty buffer. By @stankudrow in #94.
+- Fix a bytearray index out of range error while reading a string. By @pufit in #90.
+- Make a connection be closed for `ExecuteContext` manager class. By @KPull in #82.
+- Add connection validity check in `acquire` method. By @lxneng in #81.
+
 ### 0.2.3
 
 - Support json column. (#73)
