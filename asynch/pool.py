@@ -1,9 +1,8 @@
 import asyncio
 import collections
 import logging
-from asyncio import Condition
 from collections.abc import Coroutine
-from typing import Deque, Set
+from typing import Deque, Optional, Set
 
 from asynch.connection import Connection, connect
 
@@ -91,14 +90,18 @@ class _PoolAcquireContextManager(_ContextManager):
 
 class Pool(asyncio.AbstractServer):
     def __init__(
-        self, minsize: int = 1, maxsize: int = 10, loop: asyncio.AbstractEventLoop = None, **kwargs
+        self,
+        minsize: int = 1,
+        maxsize: int = 10,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        **kwargs,
     ):
         self._maxsize = maxsize
         self._minsize = minsize
         self._connection_kwargs = kwargs
         self._terminated: Set[Connection] = set()
         self._used: Set[Connection] = set()
-        self._cond = Condition()
+        self._cond = asyncio.Condition()
         self._closing = False
         self._closed = False
         self._free: Deque[Connection] = collections.deque(maxlen=maxsize)
@@ -128,7 +131,7 @@ class Pool(asyncio.AbstractServer):
         return self.freesize + len(self._used)
 
     @property
-    def cond(self) -> Condition:
+    def cond(self) -> asyncio.Condition:
         return self._cond
 
     async def release(self, connection: Connection):
@@ -136,6 +139,7 @@ class Pool(asyncio.AbstractServer):
 
         This is **NOT** a coroutine.
         """
+
         fut = self._loop.create_future()
         fut.set_result(None)
 
@@ -253,12 +257,16 @@ class Pool(asyncio.AbstractServer):
         self._used.clear()
 
 
-def create_pool(minsize: int = 1, maxsize: int = 10, loop=None, **kwargs):
+def create_pool(
+    minsize: int = 1, maxsize: int = 10, loop: Optional[asyncio.AbstractEventLoop] = None, **kwargs
+):
     coro = _create_pool(minsize=minsize, maxsize=maxsize, loop=loop, **kwargs)
     return _PoolContextManager(coro)
 
 
-async def _create_pool(minsize: int = 1, maxsize: int = 10, loop=None, **kwargs):
+async def _create_pool(
+    minsize: int = 1, maxsize: int = 10, loop: Optional[asyncio.AbstractEventLoop] = None, **kwargs
+):
     if loop is None:
         loop = asyncio.get_event_loop()
     pool = Pool(minsize, maxsize, loop, **kwargs)
