@@ -21,6 +21,7 @@ from asynch.proto.block import (
 from asynch.proto.compression import get_compressor_cls
 from asynch.proto.context import Context, ExecuteContext
 from asynch.proto.cs import ClientInfo, QueryKind, ServerInfo
+from asynch.proto.models.enums import Schemes
 from asynch.proto.progress import Progress
 from asynch.proto.protocol import ClientPacket, Compression, ServerPacket
 from asynch.proto.result import (
@@ -39,9 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 class QueryProcessingStage:
-    """
-    Determines till which state SELECT query should be executed.
-    """
+    """Determines till which state SELECT query should be executed."""
 
     FETCH_COLUMNS = 0
     WITH_MERGEABLE_STATE = 1
@@ -73,11 +72,11 @@ class Connection:
 
     def __init__(  # nosec:B107
         self,
-        host: str = "127.0.0.1",
-        port: int = 9000,
-        database: str = "default",
-        user: str = "default",
-        password: str = "",
+        user: str = constants.DEFAULT_USER,
+        password: str = constants.DEFAULT_PASSWORD,
+        host: str = constants.DEFAULT_HOST,
+        port: int = constants.DEFAULT_PORT,
+        database: str = constants.DEFAULT_DATABASE,
         client_name: str = constants.CLIENT_NAME,
         connect_timeout: int = constants.DBMS_DEFAULT_CONNECT_TIMEOUT_SEC,
         send_receive_timeout: int = constants.DBMS_DEFAULT_TIMEOUT_SEC,
@@ -103,7 +102,7 @@ class Connection:
         self.hosts = [(host, port or default_port)]
         if alt_hosts:
             for host in alt_hosts.split(","):
-                url = urlparse("clickhouse://" + host)
+                url = urlparse(Schemes.clickhouse + host)
                 self.hosts.append((url.hostname, url.port or default_port))
         self.database = database
         self.host = None
@@ -139,7 +138,7 @@ class Connection:
             self.compression = Compression.ENABLED
             self.compressor_cls = get_compressor_cls(compression)
             self.compress_block_size = compress_block_size
-        self.connected = False
+        self.connected: None | bool = None  # False
         self.reader: Optional[BufferedReader] = None
         self.writer: Optional[BufferedWriter] = None
         self.server_info: Optional[ServerInfo] = None
@@ -555,7 +554,7 @@ class Connection:
         self.block_reader = None
         self.block_reader_raw = None
         self.block_writer = None
-        self.connected = False
+        self.connected = None  # False
 
         self.client_trace_context = None
         self.server_info = None
@@ -566,7 +565,6 @@ class Connection:
         if self.connected:
             self.connected = False
             await self.writer.close()
-
         self.reset_state()
 
     async def connect(self):
