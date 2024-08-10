@@ -4,7 +4,8 @@
 
 ### 0.2.5
 
-- Make Python3.9 the minimum supported version. Update project dependencies, metadata, tests. By @stankudrow in #106.
+- Refactor the `asynch.Connection` class: 1) add asynchronouse context manager support; 2) when created, the `connected` and `closed` attributes of a connection instance take `None` "values". By @stankudrow in 107
+- Make Python3.9 the minimum supported version. Update the project dependencies, metadata, tests. By @stankudrow in #106.
 
 ### 0.2.4
 
