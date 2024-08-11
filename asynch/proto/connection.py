@@ -302,7 +302,7 @@ class Connection:
             ssl_ctx.verify_mode = ssl.VerifyMode.CERT_NONE
         return ssl_ctx
 
-    async def ping(self):
+    async def ping(self) -> bool:
         try:
             await self.writer.write_varint(ClientPacket.PING)
             await self.writer.flush()
@@ -313,6 +313,10 @@ class Connection:
             if packet_type != ServerPacket.PONG:
                 msg = self.unexpected_packet_message("Pong", packet_type)
                 raise UnexpectedPacketFromServerError(msg)
+            return True
+        except AttributeError:
+            logger.debug(f"The connection {self} is not open")
+            return False
         except IndexError as e:
             logger.debug(
                 "Ping package smaller than expected or empty. "
@@ -328,8 +332,6 @@ class Connection:
                 raise e
             logger.debug("Socket closed", exc_info=e)
             return False
-
-        return True
 
     async def receive_data(self, raw=False):
         revision = self.server_info.revision

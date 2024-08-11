@@ -156,11 +156,18 @@ async def test_connection_status_online():
 
 async def test_async_context_manager_interface():
     conn = Connection()
-    _test_connectivity_invariant()
+    _test_connectivity_invariant(conn=conn)
 
     async with conn:
-        _test_connectivity_invariant(is_connected=True, is_closed=None)
-    _test_connectivity_invariant(is_connected=False, is_closed=True)
+        _test_connectivity_invariant(conn=conn, is_connected=True, is_closed=None)
+        await conn.ping()
+
+    _test_connectivity_invariant(conn=conn, is_connected=False, is_closed=True)
+    try:
+        await conn.ping()
+    except ConnectionError:
+        pass
 
     async with conn:
-        _test_connectivity_invariant(is_connected=True, is_closed=False)
+        _test_connectivity_invariant(conn=conn, is_connected=True, is_closed=False)
+        await conn.ping()

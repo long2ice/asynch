@@ -140,10 +140,15 @@ class Connection:
         if not self._is_connected:
             await self._connection.connect()
             self._is_connected = True
+            if self._is_closed is True:
+                self._is_closed = False
 
     def cursor(self, cursor: Optional[Cursor] = None, *, echo: bool = False) -> Cursor:
         cursor_cls = cursor or self._cursor_cls
         return cursor_cls(self, self._echo or echo)
+
+    async def ping(self):
+        await self._connection.ping()
 
 
 async def connect(
