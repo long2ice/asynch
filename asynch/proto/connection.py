@@ -139,7 +139,7 @@ class Connection:
             self.compression = Compression.ENABLED
             self.compressor_cls = get_compressor_cls(compression)
             self.compress_block_size = compress_block_size
-        self.connected: Optional[bool] = None  # False
+        self.connected: Optional[bool] = None
         self.reader: Optional[BufferedReader] = None
         self.writer: Optional[BufferedWriter] = None
         self.server_info: Optional[ServerInfo] = None
@@ -555,7 +555,7 @@ class Connection:
         self.block_reader = None
         self.block_reader_raw = None
         self.block_writer = None
-        self.connected = None  # False
+        self.connected = None
 
         self.client_trace_context = None
         self.server_info = None
