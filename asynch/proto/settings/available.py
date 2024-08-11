@@ -15,19 +15,9 @@ SettingSeconds = SettingMilliseconds = SettingUInt64
 # Server cares about possible choices validation.
 # See https://github.com/yandex/ClickHouse/blob/master/dbms/src/
 # Interpreters/Settings.h for all choices.
-SettingLoadBalancing = (
-    SettingTotalsMode
-) = (
-    SettingCompressionMethod
-) = (
+SettingLoadBalancing = SettingTotalsMode = SettingCompressionMethod = (
     SettingDistributedProductMode
-) = (
-    SettingGlobalSubqueriesMethod
-) = (
-    SettingDateTimeInputFormat
-) = (
-    SettingURI
-) = (
+) = SettingGlobalSubqueriesMethod = SettingDateTimeInputFormat = SettingURI = (
     SettingJoinAlgorithm
 ) = SettingSpecialSort = SettingLogQueriesType = SettingDefaultDatabaseEngine = SettingString
 
