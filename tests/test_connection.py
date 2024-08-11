@@ -152,3 +152,15 @@ async def test_connection_status_online():
         assert repr(conn) == f"{repstr}; status: closed>"
         assert not conn.connected
         assert conn.closed
+
+
+async def test_async_context_manager_interface():
+    conn = Connection()
+    _test_connectivity_invariant()
+
+    async with conn:
+        _test_connectivity_invariant(is_connected=True, is_closed=None)
+    _test_connectivity_invariant(is_connected=False, is_closed=True)
+
+    async with conn:
+        _test_connectivity_invariant(is_connected=True, is_closed=False)
