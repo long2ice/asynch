@@ -22,7 +22,7 @@ from asynch.proto.block import (
 from asynch.proto.compression import get_compressor_cls
 from asynch.proto.context import Context, ExecuteContext
 from asynch.proto.cs import ClientInfo, QueryKind, ServerInfo
-from asynch.proto.models.enums import Schemes
+from asynch.proto.models.enums import CompressionAlgorithms, Schemes
 from asynch.proto.progress import Progress
 from asynch.proto.protocol import ClientPacket, Compression, ServerPacket
 from asynch.proto.result import (
@@ -129,7 +129,7 @@ class Connection:
         self.ssl_options = ssl_options
         # Use LZ4 compression by default.
         if compression is True:
-            compression = "lz4"
+            compression = CompressionAlgorithms.lz4
 
         if compression is False:
             self.compression = Compression.DISABLED
