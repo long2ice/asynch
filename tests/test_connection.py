@@ -1,6 +1,8 @@
 import ssl
 from typing import Optional
 
+import pytest
+
 from asynch.connection import Connection
 
 HOST = "192.168.15.103"
@@ -131,6 +133,7 @@ def test_connection_status_offline():
     assert conn.closed is None
 
 
+@pytest.mark.asyncio
 async def test_connection_status_online():
     conn = Connection()
     conn_id = id(conn)
@@ -154,6 +157,7 @@ async def test_connection_status_online():
         assert conn.closed
 
 
+@pytest.mark.asyncio
 async def test_async_context_manager_interface():
     conn = Connection()
     _test_connectivity_invariant(conn=conn)

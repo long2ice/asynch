@@ -1,13 +1,12 @@
 import asyncio
 import os
+from typing import AsyncIterator
 
 import pytest
 
-import asynch
-from asynch import connect
+from asynch.connection import Connection, connect
 from asynch.cursors import DictCursor
-from asynch.pool import Pool
-import asynch.pool
+from asynch.pool import create_pool
 from asynch.proto import constants
 from asynch.proto.context import Context
 from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
@@ -82,35 +81,31 @@ async def truncate_table():
 
 @pytest.fixture(scope="function")
 async def pool():
-    pool = await asynch.create_pool(dsn=CONNECTION_DSN)
+    pool = await create_pool(dsn=CONNECTION_DSN)
     yield pool
     pool.close()
     await pool.wait_closed()
 
 
 @pytest.fixture(scope="function")
-async def conn():
-    conn = await asynch.connect(dsn=CONNECTION_DSN)
-    yield conn
-    await conn.close()
+async def conn() -> AsyncIterator[Connection]:
+    async with Connection(dsn=CONNECTION_DSN) as cn:
+        yield cn
 
 
 @pytest.fixture(scope="function")
-async def conn_lz4():
-    conn = await asynch.connect(dsn=CONNECTION_DSN, compression=True)
-    yield conn
-    await conn.close()
+async def conn_lz4() -> AsyncIterator[Connection]:
+    async with Connection(dsn=CONNECTION_DSN, compression=True) as cn:
+        yield cn
 
 
 @pytest.fixture(scope="function")
-async def conn_lz4hc():
-    conn = await asynch.connect(dsn=CONNECTION_DSN, compression="lz4hc")
-    yield conn
-    await conn.close()
+async def conn_lz4hc() -> AsyncIterator[Connection]:
+    async with Connection(dsn=CONNECTION_DSN, compression="lz4hc") as cn:
+        yield cn
 
 
 @pytest.fixture(scope="function")
-async def conn_zstd():
-    conn = await asynch.connect(dsn=CONNECTION_DSN, compression="zstd")
-    yield conn
-    await conn.close()
+async def conn_zstd() -> AsyncIterator[Connection]:
+    async with Connection(dsn=CONNECTION_DSN, compression="zstd") as cn:
+        yield cn
