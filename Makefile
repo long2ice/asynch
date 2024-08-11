@@ -5,7 +5,7 @@
 export
 
 checkfiles = asynch/ tests/ benchmark/
-py_warn = PYTHONDEVMODE=1
+py_debug_envvars = PYTHONDEVMODE=1 PYTHONTRACEMALLOC=1
 
 up:
 	@poetry update
@@ -23,7 +23,7 @@ check: deps
 	@ruff check $(checkfiles)
 
 test: deps
-	$(py_warn) pytest
+	$(py_debug_envvars) pytest -s -vvv tests
 
 build: deps clean
 	@poetry build
