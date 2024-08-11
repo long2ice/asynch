@@ -23,7 +23,7 @@ check: deps
 	@ruff check $(checkfiles)
 
 test: deps
-	$(py_debug_envvars) pytest -s -vvv tests
+	$(py_debug_envvars) pytest
 
 build: deps clean
 	@poetry build
