@@ -4,7 +4,7 @@
 
 ### 0.2.5
 
-- Refactor the `asynch.Connection` class: 1) add asynchronouse context manager support; 2) when created, the `connected` and `closed` attributes of a connection instance take `None` "values". By @stankudrow in #107
+- Add the asynchronous context manager support to the `asynch.Connection` class. By @stankudrow in #107.
 - Make Python3.9 the minimum supported version. Update the project dependencies, metadata, tests. By @stankudrow in #106.
 
 ### 0.2.4
