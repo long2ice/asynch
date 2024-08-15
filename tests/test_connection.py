@@ -175,3 +175,21 @@ async def test_async_context_manager_interface():
     async with conn:
         _test_connectivity_invariant(conn=conn, is_connected=True, is_closed=False)
         await conn.ping()
+
+
+@pytest.mark.asyncio
+async def test_connection_ping():
+    conn = Connection()  # default
+
+    with pytest.raises(ConnectionError):
+        await conn.ping()
+
+    async with conn:
+        await conn.ping()
+
+    with pytest.raises(ConnectionError):
+        await conn.ping()
+
+    conn = Connection(dsn="clickhouse://inval:9000/non-existent")
+    with pytest.raises(ConnectionError):
+        await conn.ping()

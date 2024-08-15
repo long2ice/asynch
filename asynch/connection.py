@@ -147,8 +147,17 @@ class Connection:
         cursor_cls = cursor or self._cursor_cls
         return cursor_cls(self, self._echo or echo)
 
-    async def ping(self):
-        await self._connection.ping()
+    async def ping(self) -> None:
+        """Check the connection liveliness.
+
+        :raises ConnectionError: if ping() has failed
+
+        :return: None
+        """
+
+        if not await self._connection.ping():
+            msg = f"Ping has failed for {self}"
+            raise ConnectionError(msg)
 
 
 async def connect(
