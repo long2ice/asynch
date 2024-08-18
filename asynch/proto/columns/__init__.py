@@ -89,7 +89,7 @@ aliases = [
     ("Point", "Tuple(Float64, Float64)"),
     ("Ring", "Array(Point)"),
     ("Polygon", "Array(Ring)"),
-    ("MultiPolygon", "Array(Polygon)")
+    ("MultiPolygon", "Array(Polygon)"),
     # End Geo types
 ]
 

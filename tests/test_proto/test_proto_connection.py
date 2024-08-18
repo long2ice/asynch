@@ -1,5 +1,6 @@
 import re
 from contextlib import asynccontextmanager
+from typing import AsyncIterator
 from unittest.mock import patch
 
 import pytest
@@ -15,7 +16,7 @@ from conftest import (
 
 
 @pytest.fixture()
-async def conn() -> Connection:
+async def conn() -> AsyncIterator[Connection]:
     _conn = Connection(
         host=CONNECTION_HOST,
         port=CONNECTION_PORT,

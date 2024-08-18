@@ -4,7 +4,8 @@
 
 ### 0.2.5
 
-- Make Python3.9 the minimum supported version. Update project dependencies, metadata, tests. By @stankudrow in #106.
+- Add the asynchronous context manager support to the `asynch.Connection` class. By @stankudrow in #107.
+- Make Python3.9 the minimum supported version. Update the project dependencies, metadata, tests. By @stankudrow in #106.
 
 ### 0.2.4
 

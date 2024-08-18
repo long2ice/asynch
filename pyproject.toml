@@ -36,7 +36,7 @@ ruff = "*"
 uvloop = "*"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^8.3.2"
+pytest = "^7.4.4"
 pytest-asyncio = "^0.23.8"
 pytest-mock = "^3.14.0"
 pytest-random-order = "^1.1.1"
@@ -57,7 +57,7 @@ profile = "black"
 [tool.pytest.ini_options]
 addopts = "--maxfail=1 -s -vvv --random-order"
 asyncio_mode = "auto"
-minversion = "8.0"
+minversion = "7.4"
 testpaths = ["tests"]
 xfail_strict = true
 

@@ -14,6 +14,7 @@ from asynch.errors import (
 )
 from asynch.proto import constants
 from asynch.proto.block import (
+    BaseBlock,
     BlockStreamProfileInfo,
     ColumnOrientedBlock,
     RowOrientedBlock,
@@ -21,6 +22,7 @@ from asynch.proto.block import (
 from asynch.proto.compression import get_compressor_cls
 from asynch.proto.context import Context, ExecuteContext
 from asynch.proto.cs import ClientInfo, QueryKind, ServerInfo
+from asynch.proto.models.enums import CompressionAlgorithms, Schemes
 from asynch.proto.progress import Progress
 from asynch.proto.protocol import ClientPacket, Compression, ServerPacket
 from asynch.proto.result import (
@@ -39,9 +41,7 @@ logger = logging.getLogger(__name__)
 
 
 class QueryProcessingStage:
-    """
-    Determines till which state SELECT query should be executed.
-    """
+    """Determines till which state SELECT query should be executed."""
 
     FETCH_COLUMNS = 0
     WITH_MERGEABLE_STATE = 1
@@ -73,11 +73,11 @@ class Connection:
 
     def __init__(  # nosec:B107
         self,
-        host: str = "127.0.0.1",
-        port: int = 9000,
-        database: str = "default",
-        user: str = "default",
-        password: str = "",
+        user: str = constants.DEFAULT_USER,
+        password: str = constants.DEFAULT_PASSWORD,
+        host: str = constants.DEFAULT_HOST,
+        port: int = constants.DEFAULT_PORT,
+        database: str = constants.DEFAULT_DATABASE,
         client_name: str = constants.CLIENT_NAME,
         connect_timeout: int = constants.DBMS_DEFAULT_CONNECT_TIMEOUT_SEC,
         send_receive_timeout: int = constants.DBMS_DEFAULT_TIMEOUT_SEC,
@@ -103,7 +103,7 @@ class Connection:
         self.hosts = [(host, port or default_port)]
         if alt_hosts:
             for host in alt_hosts.split(","):
-                url = urlparse("clickhouse://" + host)
+                url = urlparse(f"{Schemes.clickhouse}://" + host)
                 self.hosts.append((url.hostname, url.port or default_port))
         self.database = database
         self.host = None
@@ -129,7 +129,7 @@ class Connection:
         self.ssl_options = ssl_options
         # Use LZ4 compression by default.
         if compression is True:
-            compression = "lz4"
+            compression = CompressionAlgorithms.lz4
 
         if compression is False:
             self.compression = Compression.DISABLED
@@ -139,7 +139,7 @@ class Connection:
             self.compression = Compression.ENABLED
             self.compressor_cls = get_compressor_cls(compression)
             self.compress_block_size = compress_block_size
-        self.connected = False
+        self.connected: Optional[bool] = None
         self.reader: Optional[BufferedReader] = None
         self.writer: Optional[BufferedWriter] = None
         self.server_info: Optional[ServerInfo] = None
@@ -302,7 +302,7 @@ class Connection:
             ssl_ctx.verify_mode = ssl.VerifyMode.CERT_NONE
         return ssl_ctx
 
-    async def ping(self):
+    async def ping(self) -> bool:
         try:
             await self.writer.write_varint(ClientPacket.PING)
             await self.writer.flush()
@@ -313,6 +313,10 @@ class Connection:
             if packet_type != ServerPacket.PONG:
                 msg = self.unexpected_packet_message("Pong", packet_type)
                 raise UnexpectedPacketFromServerError(msg)
+            return True
+        except AttributeError:
+            logger.debug(f"The connection {self} is not open")
+            return False
         except IndexError as e:
             logger.debug(
                 "Ping package smaller than expected or empty. "
@@ -329,14 +333,10 @@ class Connection:
             logger.debug("Socket closed", exc_info=e)
             return False
 
-        return True
-
     async def receive_data(self, raw=False):
         revision = self.server_info.revision
-
         if revision >= constants.DBMS_MIN_REVISION_WITH_TEMPORARY_TABLES:
             await self.reader.read_str()
-
         return await (self.block_reader_raw if raw else self.block_reader).read()
 
     async def receive_exception(self):
@@ -375,7 +375,7 @@ class Connection:
         num = ServerPacket.strings_in_message(packet_type)
         return [await self.reader.read_str() for _i in range(num)]
 
-    def log_block(self, block):
+    def log_block(self, block: BaseBlock):
         column_names = [x[0] for x in block.columns_with_types]
 
         for row in block.get_rows():
@@ -555,7 +555,7 @@ class Connection:
         self.block_reader = None
         self.block_reader_raw = None
         self.block_writer = None
-        self.connected = False
+        self.connected = None
 
         self.client_trace_context = None
         self.server_info = None
@@ -566,7 +566,6 @@ class Connection:
         if self.connected:
             self.connected = False
             await self.writer.close()
-
         self.reset_state()
 
     async def connect(self):

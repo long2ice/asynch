@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import List
+from typing import Any, Callable, Optional
 
 import pytest
 
+from asynch.connection import Connection
 from asynch.cursors import DictCursor
 from asynch.errors import ErrorCode, ServerException, TypeMismatchError
 
@@ -20,7 +21,7 @@ class Context:
 
 @dataclass
 class ExternalTable:
-    columns: List
+    columns: list
     dialect_options: dict
 
 
@@ -114,17 +115,25 @@ stream_results_test_params = dict(
 )
 
 
-async def _stream_results(cursor, execute, method, insert_sql, data):
+async def _stream_results(
+    cursor: DictCursor, execute: Callable, method: str, insert_sql: Optional[str], data: Any
+):
     if not insert_sql:
         await execute("SELECT 1")
         return await getattr(cursor, method)()
-
     return await execute(insert_sql, data)
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(**stream_results_test_params)
-async def test_set_stream_results(conn, method, data, expected, insert_sql, cursor_type):
+async def test_set_stream_results(
+    conn: Connection,
+    method: Optional[str],
+    data: Any,
+    expected: Any,
+    insert_sql: Optional[str],
+    cursor_type: Optional[DictCursor],
+):
     async with conn.cursor(cursor=cursor_type) as cursor:
         cursor.set_stream_results(True, 1000)
         result = await _stream_results(cursor, cursor.execute, method, insert_sql, data)
