@@ -528,9 +528,7 @@ class Connection:
         await self.writer.write_varint(QueryProcessingStage.COMPLETE)
         await self.writer.write_varint(self.compression)
 
-        await self.writer.write_str(
-            query,
-        )
+        await self.writer.write_str(query)
 
         logger.debug("Query: %s", query)
 
@@ -566,14 +564,14 @@ class Connection:
         if self.connected:
             self.connected = False
             await self.writer.close()
-        self.reset_state()
+        self.reset_state()  # indent???
 
     async def connect(self):
         if self.connected:
             await self.disconnect()
-        logger.debug("Connecting. Database: %s. User: %s", self.database, self.user)
+        logger.debug(f"Connecting. Database: {self.database}. User: {self.user}")
         for host, port in self.hosts:
-            logger.debug("Connecting to %s:%s", host, port)
+            logger.debug(f"Connecting to {host}:{port}")
             return await self._init_connection(host, port)
 
     async def execute(

@@ -151,16 +151,11 @@ class Cursor:
 
         return rv
 
-    async def fetchall(
-        self,
-    ):
+    async def fetchall(self):
         self._check_query_started()
 
         if self._stream_results:
-            rv = []
-            async for i in self._rows:
-                rv.append(i)
-            return rv
+            return [row async for row in self._rows]
 
         rv = self._rows
         self._rows = []

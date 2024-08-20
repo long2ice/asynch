@@ -57,7 +57,7 @@ class BufferedWriter:
                 packet = item
             await self.write_bytes(packet.ljust(length, b"\x00"))
 
-    async def close(self):
+    async def close(self) -> None:
         if not self.writer:
             return
         self.writer.close()
@@ -67,10 +67,7 @@ class BufferedWriter:
         fmt = "<" + fmt
         await self.write_bytes(struct.pack(fmt, data))
 
-    async def write_int8(
-        self,
-        data: int,
-    ):
+    async def write_int8(self, data: int):
         await self.write_int(data, "b")
 
     async def write_int16(self, data):
@@ -88,10 +85,7 @@ class BufferedWriter:
     async def write_uint16(self, data):
         await self.write_int(data, "H")
 
-    async def write_uint32(
-        self,
-        data: int,
-    ):
+    async def write_uint32(self, data: int):
         await self.write_int(data, "I")
 
     async def write_uint64(self, data: int):
