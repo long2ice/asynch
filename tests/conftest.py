@@ -7,7 +7,6 @@ import pytest
 
 from asynch.connection import Connection, connect
 from asynch.cursors import DictCursor
-from asynch.pool import Pool
 from asynch.proto import constants
 from asynch.proto.context import Context
 from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
@@ -28,7 +27,7 @@ CONNECTION_DSN = environ.get(
 
 
 @dataclass
-class DSN:
+class Config:
     dsn: str
     user: str
     password: str
@@ -38,8 +37,8 @@ class DSN:
 
 
 @pytest.fixture(scope="session")
-def dsn() -> DSN:
-    return DSN(
+def config() -> Config:
+    return Config(
         dsn=CONNECTION_DSN,
         user=CONNECTION_USER,
         password=CONNECTION_PASSWORD,
@@ -105,12 +104,6 @@ async def truncate_table():
 async def conn() -> AsyncIterator[Connection]:
     async with Connection(dsn=CONNECTION_DSN) as cn:
         yield cn
-
-
-@pytest.fixture(scope="function")
-async def pool() -> AsyncIterator[Pool]:
-    async with Pool(dsn=CONNECTION_DSN) as pool:
-        yield pool
 
 
 @pytest.fixture(scope="function")
