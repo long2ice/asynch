@@ -562,9 +562,9 @@ class Connection:
 
     async def disconnect(self):
         if self.connected:
-            self.connected = False
             await self.writer.close()
-        self.reset_state()  # indent???
+            self.reset_state()
+            self.connected = False
 
     async def connect(self):
         if self.connected:
