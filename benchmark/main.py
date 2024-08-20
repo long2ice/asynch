@@ -11,7 +11,6 @@ from clickhouse_driver import Client
 from asynch import connect
 from asynch.proto import constants
 
-
 CONNECTION_USER = environ.get("CLICKHOUSE_USER", default=constants.DEFAULT_USER)
 CONNECTION_PASSWORD = environ.get("CLICKHOUSE_PASSWORD", default=constants.DEFAULT_PASSWORD)
 CONNECTION_HOST = environ.get("CLICKHOUSE_HOST", default=constants.DEFAULT_HOST)
@@ -23,7 +22,7 @@ CONNECTION_DSN = environ.get(
         f"clickhouse://{CONNECTION_USER}:{CONNECTION_PASSWORD}"
         f"@{CONNECTION_HOST}:{CONNECTION_PORT}"
         f"/{CONNECTION_DB}"
-    )
+    ),
 )
 
 insert_data = (  # nosec:B104
