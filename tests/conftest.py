@@ -1,11 +1,13 @@
 import asyncio
 from dataclasses import dataclass
 from os import environ
+from typing import AsyncIterator
 
 import pytest
 
 from asynch.connection import Connection, connect
 from asynch.cursors import DictCursor
+from asynch.pool import Pool
 from asynch.proto import constants
 from asynch.proto.context import Context
 from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
@@ -99,10 +101,16 @@ async def truncate_table():
     await conn.close()
 
 
-# @pytest.fixture(scope="function")
-# async def pool() -> AsyncIterator[Pool]:
-#     async with Pool(dsn=CONNECTION_DSN) as pool:
-#         yield pool
+@pytest.fixture(scope="function")
+async def conn() -> AsyncIterator[Connection]:
+    async with Connection(dsn=CONNECTION_DSN) as cn:
+        yield cn
+
+
+@pytest.fixture(scope="function")
+async def pool() -> AsyncIterator[Pool]:
+    async with Pool(dsn=CONNECTION_DSN) as pool:
+        yield pool
 
 
 @pytest.fixture(scope="function")
