@@ -5,6 +5,7 @@ DEFAULT_PASSWORD = ""  # nosec: B105
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 9000
 DEFAULT_SECURE_PORT = 9440
+
 DEFAULT_DATABASE = "default"
 
 # Pool default values
