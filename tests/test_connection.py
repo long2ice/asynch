@@ -193,3 +193,38 @@ async def test_connection_ping():
     conn = Connection(dsn="clickhouse://inval:9000/non-existent")
     with pytest.raises(ConnectionError):
         await conn.ping()
+
+
+@pytest.mark.asyncio
+async def test_connection_cleanup(get_tcp_connections):
+    """Test a connection to be properly closed.
+
+    A connection is properly closed if it releases resources,
+    especially breaking the TCP channel, leaving no dangling
+    connections on a ClickHouse server.
+
+    Plan:
+    1. get the number of TCP connections before the test
+    2. open N connections, each should execute a query, then closing
+    3. assert that the number of TCP connections equals to the initial value
+    """
+
+    # get the number of total TCP connections to the ClickHouse
+    init_tcps = 0
+    conn = Connection()
+    async with conn as cn:
+        init_tcps = await get_tcp_connections(cn)
+
+    # open-execute-close connections
+    for _ in range(100):
+        async with Connection() as cn:
+            async with cn.cursor() as cur:
+                await cur.execute("SELECT 1")
+                ret = await cur.fetchone()
+                assert ret == (1,)
+
+    final_tcps = 0
+    async with conn as cn:
+        final_tcps = await get_tcp_connections(cn)
+
+    assert final_tcps == init_tcps

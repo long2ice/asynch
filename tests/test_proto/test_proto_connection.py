@@ -6,23 +6,16 @@ from unittest.mock import patch
 import pytest
 
 from asynch.proto.connection import Connection
-from conftest import (
-    CONNECTION_DB,
-    CONNECTION_HOST,
-    CONNECTION_PASSWORD,
-    CONNECTION_PORT,
-    CONNECTION_USER,
-)
 
 
 @pytest.fixture()
-async def conn() -> AsyncIterator[Connection]:
+async def conn(dsn) -> AsyncIterator[Connection]:
     _conn = Connection(
-        host=CONNECTION_HOST,
-        port=CONNECTION_PORT,
-        user=CONNECTION_USER,
-        password=CONNECTION_PASSWORD,
-        database=CONNECTION_DB,
+        user=dsn.user,
+        password=dsn.password,
+        host=dsn.host,
+        port=dsn.port,
+        database=dsn.database,
     )
     await _conn.connect()
     yield _conn
