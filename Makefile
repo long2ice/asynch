@@ -13,14 +13,17 @@ up:
 deps:
 	@poetry install --extras compression --no-root
 
-style: deps
-	@isort -src $(checkfiles)
-	@black $(checkfiles)
-	@ruff check --fix $(checkfiles)
+bench: deps
+	@python3 benchmark/main.py
 
 check: deps
 	@black --check $(checkfiles)
 	@ruff check $(checkfiles)
+
+style: deps
+	@isort -src $(checkfiles)
+	@black $(checkfiles)
+	@ruff check --fix $(checkfiles)
 
 test: deps
 	$(py_debug_envvars) pytest
