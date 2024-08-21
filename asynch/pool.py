@@ -259,7 +259,6 @@ class Pool(asyncio.AbstractServer):
         conn: Connection = ...
         async with self._lock:
             if not self._free_connections:
-                print("EBAT")
                 to_create = min(self.minsize, self.maxsize - self.connections)
                 await self._fill_with_connections(to_create)
             conn = await self._acquire_connection()
