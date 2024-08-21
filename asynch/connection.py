@@ -177,6 +177,16 @@ async def connect(
     1. conn = Connection(...)  # init a Connection instance
     2. conn.connect()  # connect to a ClickHouse instance
 
+    :param dsn: DSN/connection string (if None -> constructed from default dsn parts)
+    :param user: user string ("default" by default)
+    :param password: password string ("" by default)
+    :param host: host string ("127.0.0.1" by default)
+    :param port: port integer (9000 by default)
+    :param database: database string ("default" by default)
+    :param cursor_cls: Cursor class (asynch.Cursor by default)
+    :param echo: connection echo mode (False by default)
+    :param kwargs: connection settings
+
     :return: the open connection
     :rtype: Connection
     """
