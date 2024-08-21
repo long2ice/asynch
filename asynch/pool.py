@@ -2,7 +2,9 @@ import asyncio
 import logging
 from collections import deque
 from collections.abc import Coroutine
-from typing import Optional
+from contextlib import asynccontextmanager
+from typing import AsyncIterator, Optional
+from warnings import warn
 
 from asynch.connection import Connection, connect
 from asynch.proto import constants
@@ -131,12 +133,59 @@ class Pool(asyncio.AbstractServer):
 
     def __repr__(self):
         cls_name = self.__class__.__name__
-        prefix = (
-            f"<{cls_name} object at 0x{id(self):x}: "
-            f"minsize={self._minsize}, "
-            f"maxsize={self._maxsize}"
+        return (
+            f"<{cls_name}(minsize={self._minsize}, maxsize={self._maxsize})"
+            f" object at 0x{id(self):x}>"
         )
-        return f"{prefix}>"
+
+    @property
+    def closed(self) -> Optional[bool]:
+        """Returns the pool close status.
+
+        If the return value is None,
+        the pool was only created,
+        but neither activated or closed.
+
+        :returns: the connection close status
+        :rtype: None | bool
+        """
+
+        return self._closed
+
+    @property
+    def connections(self) -> int:
+        """Returns the number of connections in the pool.
+
+        This number represents the current size of the pool
+        which is the sum of the acquired and free connections.
+
+        :return: the number of connections in the pool
+        :rtype: int
+        """
+
+        return self.acquired_connections + self.free_connections
+
+    @property
+    def acquired_connections(self) -> int:
+        """Returns the number of connections acquired from the pool.
+
+        A connection is acquired when `pool.connection()` is invoked.
+
+        :return: the number of connections requested the pool
+        :rtype: int
+        """
+
+        return len(self._acquired_connections)
+
+    @property
+    def free_connections(self) -> int:
+        """Returns the number of free connections in the pool.
+
+        :return: the number of connections in the pool
+        :rtype: int
+        """
+
+        return len(self._free_connections)
 
     @property
     def maxsize(self) -> int:
@@ -148,6 +197,10 @@ class Pool(asyncio.AbstractServer):
 
     @property
     def freesize(self) -> int:
+        warn(
+            "consider using `pool.free_connections` attribute instead of `freesize`",
+            DeprecationWarning,
+        )
         return len(self._free_connections)
 
     @property
@@ -158,118 +211,74 @@ class Pool(asyncio.AbstractServer):
     def cond(self) -> asyncio.Condition:
         return self._cond
 
-    @property
-    def closed(self) -> Optional[bool]:
-        """Returns the connection close status.
-
-        If the return value is None,
-        the connection was only created,
-        but neither opened or closed.
-
-        :returns: the connection close status
-        :rtype: None | bool
-        """
-
-        return self._closed
-
-    def get_connections(self) -> int:
-        """Returns the current number of connections in the pool.
-
-        The current size of the pool is the sum of
-        the acquired and free connections.
-
-        :return: the number of connections in the pool
-        :rtype: int
-        """
-
-        return self.get_acquired_connections() + self.get_free_connections()
-
-    def get_acquired_connections(self) -> int:
-        """Returns the number of connections acquired from the pool.
-
-        A connection is acquired when `pool.connection()` is invoked.
-
-        :return: the number of connections in the pool
-        :rtype: int
-        """
-
-        return len(self._acquired_connections)
-
-    def get_free_connections(self) -> int:
-        """Returns the number of free connections in the pool.
-
-        A free connection is immediately available for acquisition.
-
-        :return: the number of connections in the pool
-        :rtype: int
-        """
-
-        return len(self._free_connections)
-
     async def _create_connection(self) -> None:
-        """Creates a connection to a ClickHouse server.
-
-        The connection can be created while the number of connections
-        (pool size) does not exceed the the maximum value.
-        Otherwise, the `PoolError` exception is raised.
-
-        :raises PoolError: pool.get_connections() >= pool.maxsize
-        :return: None
-        """
-
-        pool_size, maxsize = self.get_connections(), self._maxsize
-        if pool_size >= maxsize:
-            raise PoolError(f"cannot exceed the maximum size of the {self}")
+        pool_size, maxsize = self.connections, self.maxsize
+        if pool_size == maxsize:
+            raise PoolError(f"{self}: the number of connections is equal to the maxsize")
+        if pool_size > maxsize:
+            raise RuntimeError(f"{self}: the number of connections is greater than the maxsize")
 
         conn = await connect(**self._connection_kwargs)
         self._free_connections.append(conn)
 
     async def _acquire_connection(self) -> Connection:
-        """Returns a free connection from the pool.
+        if not self._free_connections:
+            raise PoolError(f"no free connection in the {self}")
 
-        This method does not create a connection
-        when free connections are None or exhausted
+        conn = self._free_connections.popleft()
+        self._acquired_connections.append(conn)
+        return conn
 
-        :raises PoolError: no free connection in the pool
-        :return: a free connection from the pool
-        :rtype: Connection
-        """
+    async def _release_connection(self, conn: Connection) -> None:
+        if conn not in self._acquired_connections:
+            raise PoolError(f"the connection {conn} does not belong to the {self}")
 
-        async with self._lock:
-            if not self._free_connections:
-                raise PoolError(f"no free connection in the {self}")
-            conn = self._free_connections.popleft()
-            self._acquired_connections.append(conn)
-            return conn
+        self._acquired_connections.remove(conn)
+        self._free_connections.append(conn)
 
-    async def connection(self) -> Connection:
+    async def _fill_with_connections(self, n: Optional[int] = None) -> None:
+        if n < 0:
+            raise ValueError(f"{self}: {n} < 0")
+        to_create = n if n else self.minsize
+        tasks: list[asyncio.Task] = [
+            asyncio.create_task(self._create_connection()) for _ in range(to_create)
+        ]
+        await asyncio.wait(fs=tasks)
+
+    @asynccontextmanager
+    async def connection(self) -> AsyncIterator[Connection]:
         """Get a connection from the pool.
 
         :raises PoolError: if a connection cannot be acquired
+        :raises PoolError: if a connection cannot be released
+
         :return: a free connection from the pool
         :rtype: Connection
         """
 
-        if not self._free_connections:
-            to_create = min(self.minsize, self.maxsize - self.get_connections())
-            tasks: list[asyncio.Task] = [
-                asyncio.create_task(self._create_connection()) for _ in range(to_create)
-            ]
-            if tasks:
-                await asyncio.gather(*tasks)
-        return await self._acquire_connection()
+        conn: Connection = ...
+        async with self._lock:
+            if not self._free_connections:
+                print("EBAT")
+                to_create = min(self.minsize, self.maxsize - self.connections)
+                await self._fill_with_connections(to_create)
+            conn = await self._acquire_connection()
+        try:
+            yield conn
+        finally:
+            async with self._lock:
+                await self._release_connection(conn)
 
     async def startup(self) -> "Pool":
         """Initialise the pool.
 
-        The pool is filled with the `minsize` number of connections.
+        When entering the context, the pool get filled with connections
+        up to the pool `minsize` value.
         """
 
         async with self._lock:
-            ctasks: list[asyncio.Task] = [
-                asyncio.create_task(self._create_connection()) for _ in range(self.minsize)
-            ]
-            await asyncio.gather(*ctasks)
+            await self._fill_with_connections(n=self.minsize)
+            self._closed = False
         return self
 
     async def shutdown(self) -> None:
@@ -277,6 +286,7 @@ class Pool(asyncio.AbstractServer):
 
         This method closes consequently free connections first.
         Then it does the same for the acquired/active connections.
+        Then the pool is marked closed.
         """
 
         async with self._lock:
@@ -408,6 +418,37 @@ class Pool(asyncio.AbstractServer):
             self._terminated.add(conn)
 
         self._used.clear()
+
+
+async def create_async_pool(
+    minsize: int = constants.POOL_MIN_SIZE,
+    maxsize: int = constants.POOL_MAX_SIZE,
+    loop: Optional[asyncio.AbstractEventLoop] = None,
+    **kwargs,
+) -> Pool:
+    """Returns a connection pool.
+
+    :param minsize: the minimum number of connections in the pool
+    :param maxsize: the maximum number of connections in the pool
+    :param loop: an event loop (if None -> asyncio.get_running_loop() by default)
+    :param kwargs: connection settings
+
+    :return: connection pool
+    :rtype: Pool
+    """
+
+    if loop:
+        warn(
+            "the loop parameter is removed from Python3.10 asyncio utilities",
+            DeprecationWarning,
+        )
+
+    return Pool(
+        minsize=minsize,
+        maxsize=maxsize,
+        loop=loop,
+        **kwargs,
+    )
 
 
 def create_pool(
