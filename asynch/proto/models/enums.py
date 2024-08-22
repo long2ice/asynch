@@ -13,6 +13,12 @@ class ConnectionStatuses(str, Enum):
     closed = "closed"
 
 
+class PoolStatuses(str, Enum):
+    created = "created"
+    opened = "opened"
+    closed = "closed"
+
+
 class Schemes(str, Enum):
     clickhouse = "clickhouse"
     clickhouses = "clickhouses"
