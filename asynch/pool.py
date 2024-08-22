@@ -256,7 +256,6 @@ class Pool(asyncio.AbstractServer):
         :rtype: Connection
         """
 
-        conn: Connection = ...
         async with self._lock:
             if not self._free_connections:
                 to_create = min(self.minsize, self.maxsize - self.connections)
