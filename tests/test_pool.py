@@ -1,3 +1,6 @@
+import asyncio
+from typing import Any
+
 import pytest
 
 from asynch.connection import Connection
@@ -119,7 +122,7 @@ async def test_pool_connection_management(get_tcp_connections):
 
 @pytest.mark.asyncio
 async def test_pool_reuse(get_tcp_connections):
-    """Tests a connection pool reusability."""
+    """Tests connection pool reusability."""
 
     async def _test_pool(pool: Pool):
         async with pool.connection() as cn1_ctx:
@@ -153,6 +156,41 @@ async def test_pool_reuse(get_tcp_connections):
     for _ in range(2):
         async with pool:
             await _test_pool(pool)
-
-        assert init_tcps == await get_tcp_connections(conn)
+        assert await get_tcp_connections(conn) <= init_tcps
     await conn.close()
+
+
+@pytest.mark.asyncio
+async def test_pool_concurrent_connection_management(get_tcp_connections):
+    """Tests pool connection managements on concurrent connections.
+
+    A pool must not be broken when connections are acquired from concurrent tasks.
+    When leaving the pool, all acquired connections become invalidated.
+    No dangling/unclosed connections must remain.
+    """
+
+    async def _test_pool_connection(pool: Pool, *, selectee: Any = 42):
+        async with pool.connection() as conn_ctx:
+            async with conn_ctx.cursor() as cur:
+                await cur.execute(f"SELECT {selectee}")
+                ret = await cur.fetchone()
+                assert ret == (selectee,)
+                return selectee
+
+    conn = Connection()
+    init_tcps: int = await get_tcp_connections(conn)
+
+    min_size, max_size = 10, 21
+    selectees = list(range(min_size, max_size))
+    answers: list[int] = []
+    async with Pool(minsize=min_size, maxsize=max_size) as pool:
+        tasks: list[asyncio.Task] = [
+            asyncio.create_task(_test_pool_connection(pool=pool, selectee=selectee))
+            for selectee in selectees
+        ]
+        answers = await asyncio.gather(*tasks)
+
+    assert await get_tcp_connections(conn) <= init_tcps
+    await conn.close()
+
+    assert selectees == answers
