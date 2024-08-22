@@ -4,8 +4,8 @@
 
 ### 0.2.5
 
-- Add the asynchronous context manager support to the `asynch.Pool` class. Fix pool connection management (Discussion #108 by @DFilyushin). Add status attribute and minor refactoring details in the `asynch.Connection` class and definition. By @stankudrow in #109.
-- Add the asynchronous context manager support to the `asynch.Connection` class. By @stankudrow in #107.
+- Add the asynchronous context manager support to the `Pool` class. Fix pool connection management (the discussion #108 by @DFilyushin) and reconsider the `Connection` and `Pool` classes. By @stankudrow in #109.
+- Add the asynchronous context manager support to the `Connection` class. By @stankudrow in #107.
 - Make Python3.9 the minimum supported version. Update the project dependencies, metadata, tests. By @stankudrow in #106.
 
 ### 0.2.4
@@ -15,7 +15,7 @@
 - Correct check life connection (#71). By @gnomeby in #98.
 - Use maxsize for pool connections (#68). By @gnomeby in #97.
 - Add Date32 column (#95). By @cortelf in #96.
-- Eliminate `IndexError` cases from `BufferedReader` class methods when reading from an empty buffer. By @stankudrow in #94.
+- Eliminate `IndexError` cases from the `BufferedReader` class methods when reading from an empty buffer. By @stankudrow in #94.
 - Fix a bytearray index out of range error while reading a string. By @pufit in #90.
 - Make a connection be closed for `ExecuteContext` manager class. By @KPull in #82.
 - Add connection validity check in `acquire` method. By @lxneng in #81.
