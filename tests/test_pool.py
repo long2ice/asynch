@@ -66,11 +66,10 @@ async def test_pool_connection_attributes(config):
 
 
 @pytest.mark.asyncio
-async def test_connection_release(get_tcp_connections):
-    """Tests connection cleanup when leaving pool context.
+async def test_pool_connection_management(get_tcp_connections):
+    """Tests connection cleanup when leaving a pool context.
 
-    Asserting that leaving pool context there are
-    no dangling/unclosed connections left.
+    No dangling/unclosed connections must leave behind.
     """
 
     conn = Connection()
@@ -115,4 +114,45 @@ async def test_connection_release(get_tcp_connections):
         assert pool.acquired_connections == 0
 
     assert init_tcps == await get_tcp_connections(conn)
+    await conn.close()
+
+
+@pytest.mark.asyncio
+async def test_pool_reuse(get_tcp_connections):
+    """Tests a connection pool reusability."""
+
+    async def _test_pool(pool: Pool):
+        async with pool.connection() as cn1_ctx:
+            assert pool.acquired_connections == pool.minsize
+            assert pool.free_connections == 0
+            assert pool.connections == pool.minsize
+
+            async with pool.connection() as cn2_ctx:
+                async with cn1_ctx.cursor() as cur:
+                    await cur.execute("SELECT 21")
+                    ret = await cur.fetchone()
+                    assert ret == (21,)
+                async with cn2_ctx.cursor() as cur:
+                    await cur.execute("SELECT 42")
+                    ret = await cur.fetchone()
+                    assert ret == (42,)
+                assert pool.acquired_connections == pool.maxsize
+                assert pool.free_connections == 0
+                assert pool.connections == pool.maxsize
+
+            assert pool.acquired_connections == pool.minsize
+            assert pool.free_connections == pool.minsize
+            assert pool.connections == pool.maxsize
+
+    conn = Connection()
+    init_tcps: int = await get_tcp_connections(conn)
+
+    min_size, max_size = 1, 2
+    pool = Pool(minsize=min_size, maxsize=max_size)
+
+    for _ in range(2):
+        async with pool:
+            await _test_pool(pool)
+
+        assert init_tcps == await get_tcp_connections(conn)
     await conn.close()
