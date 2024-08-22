@@ -327,6 +327,7 @@ class Pool(asyncio.AbstractServer):
             while self._acquired_connections:
                 conn = self._acquired_connections.popleft()
                 await conn.close()
+            self._opened = False
             self._closed = True
 
     async def release(self, connection: Connection):
