@@ -45,9 +45,9 @@ async def test_pool_repr():
         assert repr(pool) == repstr
 
     repstr = (
-            f"<Pool(minsize={min_size}, maxsize={max_size}) "
-            f"object at 0x{id(pool):x}; status: {PoolStatuses.closed}>"
-        )
+        f"<Pool(minsize={min_size}, maxsize={max_size}) "
+        f"object at 0x{id(pool):x}; status: {PoolStatuses.closed}>"
+    )
     assert repr(pool) == repstr
 
 
