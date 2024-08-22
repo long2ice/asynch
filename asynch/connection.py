@@ -1,4 +1,5 @@
 from typing import Optional
+from warnings import warn
 
 from asynch import errors
 from asynch.cursors import Cursor
@@ -74,10 +75,17 @@ class Connection:
         the connection was only created,
         but neither opened or closed.
 
+        The attribute is deprecated in favour of `opened` one.
+        The reason is about tautology on `connection.connected` case.
+
         :returns: the connection open status
         :rtype: None | bool
         """
 
+        warn(
+            "consider using `connection.opened` attribute",
+            DeprecationWarning,
+        )
         return self._opened
 
     @property
