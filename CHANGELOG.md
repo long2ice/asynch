@@ -4,7 +4,7 @@
 
 ### 0.2.5
 
-- Add the asynchronous context manager support to the `asynch.Pool` class. Fix pool connection management (Discussion #108 by @DFilyushin). By @stankudrow in #109.
+- Add the asynchronous context manager support to the `asynch.Pool` class. Fix pool connection management (Discussion #108 by @DFilyushin). Add status attribute and minor refactoring details in the `Connection` class and definition. By @stankudrow in #109.
 - Add the asynchronous context manager support to the `asynch.Connection` class. By @stankudrow in #107.
 - Make Python3.9 the minimum supported version. Update the project dependencies, metadata, tests. By @stankudrow in #106.
 
