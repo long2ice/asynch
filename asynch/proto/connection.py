@@ -315,7 +315,7 @@ class Connection:
                 raise UnexpectedPacketFromServerError(msg)
             return True
         except AttributeError:
-            logger.debug(f"The connection {self} is not open")
+            logger.debug("The connection %s is not open", self)
             return False
         except IndexError as e:
             logger.debug(
@@ -569,9 +569,9 @@ class Connection:
     async def connect(self):
         if self.connected:
             await self.disconnect()
-        logger.debug(f"Connecting. Database: {self.database}. User: {self.user}")
+        logger.debug("Connecting. Database: %s. User: %s", self.database, self.user)
         for host, port in self.hosts:
-            logger.debug(f"Connecting to {host}:{port}")
+            logger.debug("Connecting to %s:%s", host, port)
             return await self._init_connection(host, port)
 
     async def execute(
