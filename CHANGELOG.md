@@ -4,7 +4,11 @@
 
 ### 0.2.5
 
-- Add the asynchronous context manager support to the `Pool` class. Fix pool connection management (the discussion #108 by @DFilyushin) and reconsider the `Connection` and `Pool` classes. By @stankudrow in #109.
+- Fix pool connection management (the discussion #108 by @DFilyushin) by @stankudrow in #109:
+
+  - add the asynchronous context manager support to the `Pool` class with the pool "startup()" as `__aenter__` and "shutdown()" as `__aexit__` methods.
+  - enrich the `Pool` class with the "connection()" method returning an asynchronous context manager responsible for acquiring connections from a pool object and releasing them back into the pool.
+  - refactor the `Connection` and `Pool` classes.
 - Add the asynchronous context manager support to the `Connection` class. By @stankudrow in #107.
 - Make Python3.9 the minimum supported version. Update the project dependencies, metadata, tests. By @stankudrow in #106.
 
