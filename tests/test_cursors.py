@@ -1,11 +1,38 @@
+from typing import Any
+
 import pytest
 
+from asynch.connection import Connection
 from asynch.cursors import DictCursor
 from asynch.proto import constants
 
 
 @pytest.mark.asyncio
-async def test_fetchone(conn):
+@pytest.mark.parametrize(
+    ("stmt", "answer"),
+    [
+        ("SELECT 42", [{"42": 42}]),
+        ("SELECT -21 WHERE 1 != 1", []),
+    ],
+)
+async def test_cursor_async_for(
+    stmt: str,
+    answer: list[dict[str, Any]],
+    conn: Connection,
+):
+    result: list[dict[str, Any]] = []
+
+    async with conn:
+        async with conn.cursor(cursor=DictCursor) as cursor:
+            cursor.set_stream_results(stream_results=True, max_row_buffer=1000)
+            await cursor.execute(stmt)
+            result = [row async for row in cursor]
+
+    assert result == answer
+
+
+@pytest.mark.asyncio
+async def test_fetchone(conn: Connection):
     async with conn.cursor() as cursor:
         await cursor.execute("SELECT 1")
         ret = await cursor.fetchone()
@@ -17,7 +44,7 @@ async def test_fetchone(conn):
 
 
 @pytest.mark.asyncio
-async def test_fetchall(conn):
+async def test_fetchall(conn: Connection):
     async with conn.cursor() as cursor:
         await cursor.execute("SELECT 1")
         ret = await cursor.fetchall()
@@ -25,7 +52,7 @@ async def test_fetchall(conn):
 
 
 @pytest.mark.asyncio
-async def test_dict_cursor(conn):
+async def test_dict_cursor(conn: Connection):
     async with conn.cursor(cursor=DictCursor) as cursor:
         await cursor.execute("SELECT 1")
         ret = await cursor.fetchall()
@@ -33,7 +60,7 @@ async def test_dict_cursor(conn):
 
 
 @pytest.mark.asyncio
-async def test_insert_dict(conn):
+async def test_insert_dict(conn: Connection):
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.execute(
             """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
@@ -56,7 +83,7 @@ async def test_insert_dict(conn):
 
 
 @pytest.mark.asyncio
-async def test_insert_tuple(conn):
+async def test_insert_tuple(conn: Connection):
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.execute(
             """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
@@ -79,7 +106,7 @@ async def test_insert_tuple(conn):
 
 
 @pytest.mark.asyncio
-async def test_executemany(conn):
+async def test_executemany(conn: Connection):
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.executemany(
             """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
@@ -114,7 +141,7 @@ async def test_executemany(conn):
 
 
 @pytest.mark.asyncio
-async def test_table_ddl(conn):
+async def test_table_ddl(conn: Connection):
     async with conn.cursor() as cursor:
         await cursor.execute("drop table if exists test.alter_table")
         create_table_sql = """
@@ -137,7 +164,7 @@ ENGINE = MergeTree
 
 
 @pytest.mark.asyncio
-async def test_insert_buffer_overflow(conn):
+async def test_insert_buffer_overflow(conn: Connection):
     old_buffer_size = constants.BUFFER_SIZE
     constants.BUFFER_SIZE = 2**6 + 1
 

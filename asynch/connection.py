@@ -83,7 +83,10 @@ class Connection:
         """
 
         warn(
-            "consider using `connection.opened` attribute",
+            (
+                "Please consider using the `connection.opened` property. "
+                "This property may be removed in the version 0.2.6 or a later release."
+            ),
             DeprecationWarning,
         )
         return self._opened
@@ -130,7 +133,7 @@ class Connection:
         and the `conn.opened` is False.
 
         :raise ConnectionError: unknown connection state
-        :return: connection status
+        :return: the connection status
         :rtype: str (ConnectionStatuses StrEnum)
         """
 
@@ -167,6 +170,8 @@ class Connection:
         return self._echo
 
     async def close(self) -> None:
+        """Close the connection."""
+
         if self._opened:
             await self._connection.disconnect()
             self._opened = False
@@ -186,14 +191,27 @@ class Connection:
                 self._closed = False
 
     def cursor(self, cursor: Optional[Cursor] = None, *, echo: bool = False) -> Cursor:
+        """Return the cursor object for the connection.
+
+        When a parameter is interpreted as True,
+        it takes precedence over the corresponding default value.
+        If cursor is None, but echo is True, then an instance
+        of a default `Cursor` class will be created with echoing
+        set to True even if the `self.echo` property returns False.
+
+        :param cursor None | Cursor: a Cursor factory class
+        :param echo bool:
+        :return: the cursor from a connection
+        :rtype: Cursor
+        """
+
         cursor_cls = cursor or self._cursor_cls
-        return cursor_cls(self, self._echo or echo)
+        return cursor_cls(self, echo or self._echo)
 
     async def ping(self) -> None:
         """Check the connection liveliness.
 
         :raises ConnectionError: if ping() has failed
-
         :return: None
         """
 
@@ -219,17 +237,17 @@ async def connect(
     1. conn = Connection(...)  # init a Connection instance
     2. conn.connect()  # connect to a ClickHouse instance
 
-    :param dsn: DSN/connection string (if None -> constructed from default dsn parts)
-    :param user: user string ("default" by default)
-    :param password: password string ("" by default)
-    :param host: host string ("127.0.0.1" by default)
-    :param port: port integer (9000 by default)
-    :param database: database string ("default" by default)
-    :param cursor_cls: Cursor class (asynch.Cursor by default)
-    :param echo: connection echo mode (False by default)
-    :param kwargs: connection settings
+    :param dsn str: DSN/connection string (if None -> constructed from default dsn parts)
+    :param user str: user string ("default" by default)
+    :param password str: password string ("" by default)
+    :param host str: host string ("127.0.0.1" by default)
+    :param port int: port integer (9000 by default)
+    :param database str: database string ("default" by default)
+    :param cursor_cls Cursor: Cursor class (asynch.Cursor by default)
+    :param echo bool: echo mode flag (False by default)
+    :param kwargs dict: connection settings
 
-    :return: the open connection
+    :return: an opened connection
     :rtype: Connection
     """
 
