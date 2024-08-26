@@ -315,7 +315,7 @@ class Connection:
                 raise UnexpectedPacketFromServerError(msg)
             return True
         except AttributeError:
-            logger.debug(f"The connection {self} is not open")
+            logger.debug("The connection %s is not open", self)
             return False
         except IndexError as e:
             logger.debug(
@@ -528,9 +528,7 @@ class Connection:
         await self.writer.write_varint(QueryProcessingStage.COMPLETE)
         await self.writer.write_varint(self.compression)
 
-        await self.writer.write_str(
-            query,
-        )
+        await self.writer.write_str(query)
 
         logger.debug("Query: %s", query)
 
@@ -564,9 +562,9 @@ class Connection:
 
     async def disconnect(self):
         if self.connected:
-            self.connected = False
             await self.writer.close()
-        self.reset_state()
+            self.reset_state()
+            self.connected = False
 
     async def connect(self):
         if self.connected:

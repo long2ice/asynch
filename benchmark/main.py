@@ -1,6 +1,7 @@
 import asyncio
 from datetime import date, datetime
 from ipaddress import ip_address
+from os import environ
 from time import time
 from uuid import UUID
 
@@ -8,7 +9,21 @@ import uvloop
 from clickhouse_driver import Client
 
 from asynch import connect
-from conftest import CONNECTION_DSN
+from asynch.proto import constants
+
+CONNECTION_USER = environ.get("CLICKHOUSE_USER", default=constants.DEFAULT_USER)
+CONNECTION_PASSWORD = environ.get("CLICKHOUSE_PASSWORD", default=constants.DEFAULT_PASSWORD)
+CONNECTION_HOST = environ.get("CLICKHOUSE_HOST", default=constants.DEFAULT_HOST)
+CONNECTION_PORT = environ.get("CLICKHOUSE_PORT", default=constants.DEFAULT_PORT)
+CONNECTION_DB = environ.get("CLICKHOUSE_DB", default=constants.DEFAULT_DATABASE)
+CONNECTION_DSN = environ.get(
+    "CLICKHOUSE_DSN",
+    default=(
+        f"clickhouse://{CONNECTION_USER}:{CONNECTION_PASSWORD}"
+        f"@{CONNECTION_HOST}:{CONNECTION_PORT}"
+        f"/{CONNECTION_DB}"
+    ),
+)
 
 insert_data = (  # nosec:B104
     1,

@@ -1,12 +1,20 @@
 import asyncio
-import collections
 import logging
+from collections import deque
 from collections.abc import Coroutine
-from typing import Deque, Optional, Set
+from contextlib import asynccontextmanager
+from typing import AsyncIterator, Optional
+from warnings import warn
 
 from asynch.connection import Connection, connect
+from asynch.proto import constants
+from asynch.proto.models.enums import PoolStatuses
 
 logger = logging.getLogger(__name__)
+
+
+class PoolError(Exception):
+    pass
 
 
 class _ContextManager(Coroutine):
@@ -91,28 +99,122 @@ class _PoolAcquireContextManager(_ContextManager):
 class Pool(asyncio.AbstractServer):
     def __init__(
         self,
-        minsize: int = 1,
-        maxsize: int = 10,
+        minsize: int = constants.POOL_MIN_SIZE,
+        maxsize: int = constants.POOL_MAX_SIZE,
         loop: Optional[asyncio.AbstractEventLoop] = None,
         **kwargs,
     ):
-        self._maxsize = maxsize
-        self._minsize = minsize
-        self._connection_kwargs = kwargs
-        self._terminated: Set[Connection] = set()
-        self._used: Set[Connection] = set()
-        self._cond = asyncio.Condition()
-        self._closing = False
-        self._closed = False
-        self._free: Deque[Connection] = collections.deque(maxlen=maxsize)
-        self._loop = loop
-
         if maxsize < 1:
             raise ValueError("maxsize is expected to be greater than zero")
         if minsize < 0:
             raise ValueError("minsize is expected to be greater or equal to zero")
         if minsize > maxsize:
-            raise ValueError("minsize is greater than max_size")
+            raise ValueError("minsize is greater than maxsize")
+        self._maxsize = maxsize
+        self._minsize = minsize
+        self._connection_kwargs = kwargs
+        self._terminated: set[Connection] = set()
+        self._used: set[Connection] = set()
+        self._cond = asyncio.Condition()
+        self._closing = False
+        self._loop = (
+            loop if isinstance(loop, asyncio.AbstractEventLoop) else asyncio.get_running_loop()
+        )
+        self._lock = asyncio.Lock()
+        self._acquired_connections: deque[Connection] = deque(maxlen=maxsize)
+        self._free_connections: deque[Connection] = deque(maxlen=maxsize)
+        self._opened: Optional[bool] = None
+        self._closed: Optional[bool] = None
+
+    async def __aenter__(self) -> "Pool":
+        await self.startup()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        await self.shutdown()
+
+    def __repr__(self):
+        cls_name = self.__class__.__name__
+        status = self.status
+        return (
+            f"<{cls_name}(minsize={self._minsize}, maxsize={self._maxsize})"
+            f" object at 0x{id(self):x}; status: {status}>"
+        )
+
+    @property
+    def status(self) -> str:
+        """Return the status of the pool.
+
+        If pool.opened is None and pool.closed is None,
+        then the pool is in the "created" state.
+        It was neither opened nor closed.
+
+        When executing `async with pool: ...`,
+        the `pool.opened` is True and `pool.closed` is None.
+        When leaving the context, the `pool.closed` is True
+        and the `pool.opened` is False.
+
+        :raise PoolError: unresolved pool state.
+        :return: pool status
+        :rtype: str (PoolStatuses StrEnum)
+        """
+
+        if self._opened is None and self._closed is None:
+            return PoolStatuses.created
+        if self._opened:
+            return PoolStatuses.opened
+        if self._closed:
+            return PoolStatuses.closed
+        raise PoolError(f"{self} is in an unknown state")
+
+    @property
+    def closed(self) -> Optional[bool]:
+        """Returns the pool close status.
+
+        If the return value is None,
+        the pool was only created,
+        but neither activated or closed.
+
+        :returns: the connection close status
+        :rtype: None | bool
+        """
+
+        return self._closed
+
+    @property
+    def connections(self) -> int:
+        """Returns the number of connections in the pool.
+
+        This number represents the current size of the pool
+        which is the sum of the acquired and free connections.
+
+        :return: the number of connections in the pool
+        :rtype: int
+        """
+
+        return self.acquired_connections + self.free_connections
+
+    @property
+    def acquired_connections(self) -> int:
+        """Returns the number of connections acquired from the pool.
+
+        A connection is acquired when `pool.connection()` is invoked.
+
+        :return: the number of connections requested the pool
+        :rtype: int
+        """
+
+        return len(self._acquired_connections)
+
+    @property
+    def free_connections(self) -> int:
+        """Returns the number of free connections in the pool.
+
+        :return: the number of connections in the pool
+        :rtype: int
+        """
+
+        return len(self._free_connections)
 
     @property
     def maxsize(self) -> int:
@@ -124,7 +226,11 @@ class Pool(asyncio.AbstractServer):
 
     @property
     def freesize(self) -> int:
-        return len(self._free)
+        warn(
+            "consider using `pool.free_connections` attribute instead of `freesize`",
+            DeprecationWarning,
+        )
+        return len(self._free_connections)
 
     @property
     def size(self) -> int:
@@ -133,6 +239,96 @@ class Pool(asyncio.AbstractServer):
     @property
     def cond(self) -> asyncio.Condition:
         return self._cond
+
+    async def _create_connection(self) -> None:
+        pool_size, maxsize = self.connections, self.maxsize
+        if pool_size == maxsize:
+            raise PoolError(f"{self} is already full")
+        if pool_size > maxsize:
+            raise RuntimeError(f"{self} is overburden")
+
+        conn = await connect(**self._connection_kwargs)
+        self._free_connections.append(conn)
+
+    async def _acquire_connection(self) -> Connection:
+        if not self._free_connections:
+            raise PoolError(f"no free connection in the {self}")
+
+        conn = self._free_connections.popleft()
+        self._acquired_connections.append(conn)
+        return conn
+
+    async def _release_connection(self, conn: Connection) -> None:
+        if conn not in self._acquired_connections:
+            raise PoolError(f"the connection {conn} does not belong to the {self}")
+
+        self._acquired_connections.remove(conn)
+        self._free_connections.append(conn)
+
+    async def _fill_with_connections(self, n: Optional[int] = None) -> None:
+        to_create = n if n else self.minsize
+        if to_create < 0:
+            raise ValueError(f"cannot create negative connections ({to_create}) for {self}")
+        tasks: list[asyncio.Task] = [
+            asyncio.create_task(self._create_connection()) for _ in range(to_create)
+        ]
+        await asyncio.wait(fs=tasks)
+
+    @asynccontextmanager
+    async def connection(self) -> AsyncIterator[Connection]:
+        """Get a connection from the pool.
+
+        :raises PoolError: if a connection cannot be acquired
+        :raises PoolError: if a connection cannot be released
+
+        :return: a free connection from the pool
+        :rtype: Connection
+        """
+
+        async with self._lock:
+            if not self._free_connections:
+                to_create = min(self.minsize, self.maxsize - self.connections)
+                await self._fill_with_connections(to_create)
+            conn = await self._acquire_connection()
+        try:
+            yield conn
+        finally:
+            async with self._lock:
+                await self._release_connection(conn)
+
+    async def startup(self) -> "Pool":
+        """Initialise the pool.
+
+        When entering the context, the pool get filled with connections
+        up to the pool `minsize` value.
+        """
+
+        if self._opened:
+            return self
+        async with self._lock:
+            await self._fill_with_connections(n=self.minsize)
+            self._opened = True
+            if self._closed:
+                self._closed = False
+        return self
+
+    async def shutdown(self) -> None:
+        """Close the pool.
+
+        This method closes consequently free connections first.
+        Then it does the same for the acquired/active connections.
+        Then the pool is marked closed.
+        """
+
+        async with self._lock:
+            while self._free_connections:
+                conn = self._free_connections.popleft()
+                await conn.close()
+            while self._acquired_connections:
+                conn = self._acquired_connections.popleft()
+                await conn.close()
+            self._opened = False
+            self._closed = True
 
     async def release(self, connection: Connection):
         """Release free connection back to the connection pool.
@@ -152,7 +348,7 @@ class Pool(asyncio.AbstractServer):
                 await connection.close()
             else:
                 connection._connection.reset_state()
-                self._free.append(connection)
+                self._free_connections.append(connection)
         fut = self._loop.create_task(self._wakeup())
         return fut
 
@@ -182,11 +378,11 @@ class Pool(asyncio.AbstractServer):
             while True:
                 await self.initialize()  # Restore minsize
 
-                if not self._free and self.size < self.maxsize:
+                if not self._free_connections and self.size < self.maxsize:
                     await self.init_one_connection()
 
-                if self._free:
-                    conn = self._free.popleft()
+                if self._free_connections:
+                    conn = self._free_connections.popleft()
                     if await self._check_conn(conn):
                         self._used.add(conn)
                         return conn
@@ -201,34 +397,33 @@ class Pool(asyncio.AbstractServer):
 
     async def init_one_connection(self):
         conn = await connect(**self._connection_kwargs)
-        self._free.append(conn)
+        self._free_connections.append(conn)
         self._cond.notify()
 
-    async def clear(self):
-        """Close all free connections in pool."""
+    async def clear(self) -> None:
+        """Closes all free connections in the pool."""
 
         async with self._cond:
-            while self._free:
-                conn = self._free.popleft()
+            while self._free_connections:
+                conn = self._free_connections.popleft()
                 await conn.close()
             self._cond.notify()
 
     async def wait_closed(self):
-        """Wait for closing all pool's connections."""
+        """Waits for closing all connections in the pool."""
 
         if self._closed:
             return
         if not self._closing:
             raise RuntimeError(".wait_closed() should be called " "after .close()")
 
-        while self._free:
-            conn = self._free.popleft()
+        while self._free_connections:
+            conn = self._free_connections.popleft()
             await conn.close()
 
         async with self._cond:
             while self.size > self.freesize:
                 await self._cond.wait()
-
         self._closed = True
 
     def close(self):
@@ -257,15 +452,62 @@ class Pool(asyncio.AbstractServer):
         self._used.clear()
 
 
+async def create_async_pool(
+    minsize: int = constants.POOL_MIN_SIZE,
+    maxsize: int = constants.POOL_MAX_SIZE,
+    loop: Optional[asyncio.AbstractEventLoop] = None,
+    **kwargs,
+) -> Pool:
+    """Returns an initiated connection pool.
+
+    Equivalent to:
+    1. pool = Pool(...)
+    2. await pool.startup()
+    3. return pool
+
+    The behaviour above is analogous to the `asynch.connection.connect(...)` function.
+    Do not forget to call `await pool.shutdown()` to cleanup pool resources.
+
+    :param minsize: the minimum number of connections in the pool
+    :param maxsize: the maximum number of connections in the pool
+    :param loop: an event loop (if None -> asyncio.get_running_loop() by default)
+    :param kwargs: connection settings
+
+    :return: connection pool
+    :rtype: Pool
+    """
+
+    if loop:
+        warn(
+            "the loop parameter is removed from Python3.10 asyncio utilities",
+            DeprecationWarning,
+        )
+
+    pool = Pool(
+        minsize=minsize,
+        maxsize=maxsize,
+        loop=loop,
+        **kwargs,
+    )
+    await pool.startup()
+    return pool
+
+
 def create_pool(
-    minsize: int = 1, maxsize: int = 10, loop: Optional[asyncio.AbstractEventLoop] = None, **kwargs
+    minsize: int = constants.POOL_MIN_SIZE,
+    maxsize: int = constants.POOL_MAX_SIZE,
+    loop: Optional[asyncio.AbstractEventLoop] = None,
+    **kwargs,
 ):
     coro = _create_pool(minsize=minsize, maxsize=maxsize, loop=loop, **kwargs)
     return _PoolContextManager(coro)
 
 
 async def _create_pool(
-    minsize: int = 1, maxsize: int = 10, loop: Optional[asyncio.AbstractEventLoop] = None, **kwargs
+    minsize: int = constants.POOL_MIN_SIZE,
+    maxsize: int = constants.POOL_MAX_SIZE,
+    loop: Optional[asyncio.AbstractEventLoop] = None,
+    **kwargs,
 ):
     if loop is None:
         loop = asyncio.get_event_loop()

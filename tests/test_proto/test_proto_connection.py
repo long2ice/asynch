@@ -5,24 +5,17 @@ from unittest.mock import patch
 
 import pytest
 
-from asynch.proto.connection import Connection
-from conftest import (
-    CONNECTION_DB,
-    CONNECTION_HOST,
-    CONNECTION_PASSWORD,
-    CONNECTION_PORT,
-    CONNECTION_USER,
-)
+from asynch.proto.connection import Connection as ProtoConnection
 
 
 @pytest.fixture()
-async def conn() -> AsyncIterator[Connection]:
-    _conn = Connection(
-        host=CONNECTION_HOST,
-        port=CONNECTION_PORT,
-        user=CONNECTION_USER,
-        password=CONNECTION_PASSWORD,
-        database=CONNECTION_DB,
+async def proto_conn(config) -> AsyncIterator[ProtoConnection]:
+    _conn = ProtoConnection(
+        user=config.user,
+        password=config.password,
+        host=config.host,
+        port=config.port,
+        database=config.database,
     )
     await _conn.connect()
     yield _conn
@@ -30,26 +23,26 @@ async def conn() -> AsyncIterator[Connection]:
 
 
 @pytest.mark.asyncio
-async def test_connect(conn: Connection):
-    assert conn.connected
-    assert conn.server_info.name == "ClickHouse"
-    assert conn.server_info.timezone == "UTC"
-    assert re.match(r"\w+", conn.server_info.display_name)
-    assert isinstance(conn.server_info.version_patch, int)
+async def test_connect(proto_conn: ProtoConnection):
+    assert proto_conn.connected
+    assert proto_conn.server_info.name == "ClickHouse"
+    assert proto_conn.server_info.timezone == "UTC"
+    assert re.match(r"\w+", proto_conn.server_info.display_name)
+    assert isinstance(proto_conn.server_info.version_patch, int)
 
 
 @pytest.mark.asyncio
-async def test_ping(conn: Connection):
-    await conn.connect()
-    assert await conn.ping() is True
+async def test_ping(proto_conn: ProtoConnection):
+    await proto_conn.connect()
+    assert await proto_conn.ping() is True
 
 
 @pytest.mark.asyncio
-async def test_ping_processing_with_invalid_package_size(conn: Connection):
+async def test_ping_processing_with_invalid_package_size(proto_conn: ProtoConnection):
     with patch.object(
-        conn.reader, "_read_one", side_effect=IndexError("Empty bytes array")
+        proto_conn.reader, "_read_one", side_effect=IndexError("Empty bytes array")
     ) as mock:
-        result = await conn.ping()
+        result = await proto_conn.ping()
         mock.assert_called_once()
         assert result is False
 
@@ -68,27 +61,27 @@ async def test_ping_processing_with_invalid_package_size(conn: Connection):
         ),
     ],
 )
-async def test_ping_catch_connection_error(conn: Connection, exception: Exception):
-    with patch.object(conn.reader, "read_varint", side_effect=exception) as mock:
-        result = await conn.ping()
+async def test_ping_catch_connection_error(proto_conn: ProtoConnection, exception: Exception):
+    with patch.object(proto_conn.reader, "read_varint", side_effect=exception) as mock:
+        result = await proto_conn.ping()
         mock.assert_called_once()
         assert result is False
 
 
 @pytest.mark.asyncio
-async def test_ping_raise_other_runtime_errors(conn: Connection):
+async def test_ping_raise_other_runtime_errors(proto_conn: ProtoConnection):
     with patch.object(
-        conn.reader, "read_varint", side_effect=RuntimeError("Any exception")
+        proto_conn.reader, "read_varint", side_effect=RuntimeError("Any exception")
     ) as mock:
         with pytest.raises(RuntimeError, match="Any exception"):
-            await conn.ping()
+            await proto_conn.ping()
         mock.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_execute(conn: Connection):
+async def test_execute(proto_conn: ProtoConnection):
     query = "SELECT 1"
-    ret = await conn.execute(query)
+    ret = await proto_conn.execute(query)
     assert ret == [(1,)]
 
 
@@ -123,28 +116,28 @@ async def create_table(connection, spec):
         "nested",
     ],
 )
-async def test_input_format_null_as_default(conn, spec, data, expected):
+async def test_input_format_null_as_default(proto_conn, spec, data, expected):
     for enabled in (True, False):
-        conn.client_settings["input_format_null_as_default"] = enabled
+        proto_conn.client_settings["input_format_null_as_default"] = enabled
 
-        async with create_table(conn, spec):
+        async with create_table(proto_conn, spec):
             try:
-                await conn.execute("INSERT INTO test.test VALUES", data)
+                await proto_conn.execute("INSERT INTO test.test VALUES", data)
             except:  # noqa
                 assert not enabled
                 return
 
-            assert await conn.execute("SELECT * FROM test.test") == expected
+            assert await proto_conn.execute("SELECT * FROM test.test") == expected
 
 
 @pytest.mark.asyncio
-async def test_watch_zero_limit(conn: Connection) -> None:
-    await conn.execute("DROP TABLE IF EXISTS test.test")
-    await conn.execute("CREATE TABLE test.test (x Int8) ENGINE=Memory;")
-    await conn.execute("SET allow_experimental_live_view = 1")
-    await conn.execute("DROP VIEW IF EXISTS lv")
-    await conn.execute("CREATE LIVE VIEW lv AS SELECT sum(x) FROM test.test")
-    await conn.execute("INSERT INTO test.test VALUES (10)")
-    iter = await conn.execute_iter("WATCH lv LIMIT 0")
+async def test_watch_zero_limit(proto_conn: ProtoConnection) -> None:
+    await proto_conn.execute("DROP TABLE IF EXISTS test.test")
+    await proto_conn.execute("CREATE TABLE test.test (x Int8) ENGINE=Memory;")
+    await proto_conn.execute("SET allow_experimental_live_view = 1")
+    await proto_conn.execute("DROP VIEW IF EXISTS lv")
+    await proto_conn.execute("CREATE LIVE VIEW lv AS SELECT sum(x) FROM test.test")
+    await proto_conn.execute("INSERT INTO test.test VALUES (10)")
+    iter = await proto_conn.execute_iter("WATCH lv LIMIT 0")
     async for data in iter:
         assert data == (10, 1)

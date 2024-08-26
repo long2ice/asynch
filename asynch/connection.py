@@ -1,4 +1,5 @@
 from typing import Optional
+from warnings import warn
 
 from asynch import errors
 from asynch.cursors import Cursor
@@ -48,8 +49,8 @@ class Connection:
         self._port = port
         self._database = database
         # connection additional settings
-        self._is_connected: Optional[bool] = None
-        self._is_closed: Optional[bool] = None
+        self._opened: Optional[bool] = None
+        self._closed: Optional[bool] = None
         self._echo = echo
         self._cursor_cls = cursor_cls
         self._connection_kwargs = kwargs
@@ -63,17 +64,32 @@ class Connection:
 
     def __repr__(self):
         cls_name = self.__class__.__name__
-        prefix = f"<{cls_name} object at 0x{id(self):x}; status: "
-        if self.connected:
-            prefix += ConnectionStatuses.opened
-        elif self.closed:
-            prefix += ConnectionStatuses.closed
-        else:
-            prefix += ConnectionStatuses.created
-        return f"{prefix}>"
+        status = self.status
+        return f"<{cls_name} object at 0x{id(self):x}; status: {status}>"
 
     @property
     def connected(self) -> Optional[bool]:
+        """Returns the connection open status.
+
+        If the return value is None,
+        the connection was only created,
+        but neither opened or closed.
+
+        The attribute is deprecated in favour of `opened` one.
+        The reason is about tautology on `connection.connected` case.
+
+        :returns: the connection open status
+        :rtype: None | bool
+        """
+
+        warn(
+            "consider using `connection.opened` attribute",
+            DeprecationWarning,
+        )
+        return self._opened
+
+    @property
+    def opened(self) -> Optional[bool]:
         """Returns the connection open status.
 
         If the return value is None,
@@ -84,7 +100,7 @@ class Connection:
         :rtype: None | bool
         """
 
-        return self._is_connected
+        return self._opened
 
     @property
     def closed(self) -> Optional[bool]:
@@ -98,7 +114,33 @@ class Connection:
         :rtype: None | bool
         """
 
-        return self._is_closed
+        return self._closed
+
+    @property
+    def status(self) -> str:
+        """Return the status of the connection.
+
+        If conn.connected is None and conn.closed is None,
+        then the connection is in the "created" state.
+        It was neither opened nor closed.
+
+        When executing `async with conn: ...`,
+        the `conn.opened` is True and `conn.closed` is None.
+        When leaving the context, the `conn.closed` is True
+        and the `conn.opened` is False.
+
+        :raise ConnectionError: unknown connection state
+        :return: connection status
+        :rtype: str (ConnectionStatuses StrEnum)
+        """
+
+        if self._opened is None and self._closed is None:
+            return ConnectionStatuses.created
+        if self._opened:
+            return ConnectionStatuses.opened
+        if self._closed:
+            return ConnectionStatuses.closed
+        raise ConnectionError(f"{self} is in an unknown state")
 
     @property
     def host(self) -> str:
@@ -125,10 +167,10 @@ class Connection:
         return self._echo
 
     async def close(self) -> None:
-        if self._is_connected:
+        if self._opened:
             await self._connection.disconnect()
-            self._is_connected = False
-            self._is_closed = True
+            self._opened = False
+            self._closed = True
 
     async def commit(self):
         raise errors.NotSupportedError
@@ -137,11 +179,11 @@ class Connection:
         raise errors.NotSupportedError
 
     async def connect(self) -> None:
-        if not self._is_connected:
+        if not self._opened:
             await self._connection.connect()
-            self._is_connected = True
-            if self._is_closed is True:
-                self._is_closed = False
+            self._opened = True
+            if self._closed is True:
+                self._closed = False
 
     def cursor(self, cursor: Optional[Cursor] = None, *, echo: bool = False) -> Cursor:
         cursor_cls = cursor or self._cursor_cls
@@ -176,6 +218,16 @@ async def connect(
     Equivalent to the following steps:
     1. conn = Connection(...)  # init a Connection instance
     2. conn.connect()  # connect to a ClickHouse instance
+
+    :param dsn: DSN/connection string (if None -> constructed from default dsn parts)
+    :param user: user string ("default" by default)
+    :param password: password string ("" by default)
+    :param host: host string ("127.0.0.1" by default)
+    :param port: port integer (9000 by default)
+    :param database: database string ("default" by default)
+    :param cursor_cls: Cursor class (asynch.Cursor by default)
+    :param echo: connection echo mode (False by default)
+    :param kwargs: connection settings
 
     :return: the open connection
     :rtype: Connection
