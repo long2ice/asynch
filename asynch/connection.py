@@ -177,11 +177,13 @@ class Connection:
             self._opened = False
             self._closed = True
 
+    """What is it, why does an exception get thrown when commit or rollback is invoked?"""
     async def commit(self):
         raise errors.NotSupportedError
 
     async def rollback(self):
         raise errors.NotSupportedError
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
     async def connect(self) -> None:
         if not self._opened:
