@@ -4,6 +4,7 @@
 
 ### 0.2.5
 
+- Fix infinite iteration case when a cursor object is put in the `async for` loop. By @stankudrow in #112.
 - Fix pool connection management (the discussion #108 by @DFilyushin) by @stankudrow in #109:
 
   - add the asynchronous context manager support to the `Pool` class with the pool "startup()" as `__aenter__` and "shutdown()" as `__aexit__` methods;

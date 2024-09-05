@@ -133,7 +133,7 @@ class Pool(asyncio.AbstractServer):
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         await self.shutdown()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         cls_name = self.__class__.__name__
         status = self.status
         return (
@@ -155,7 +155,7 @@ class Pool(asyncio.AbstractServer):
         and the `pool.opened` is False.
 
         :raise PoolError: unresolved pool state.
-        :return: pool status
+        :return: the pool status
         :rtype: str (PoolStatuses StrEnum)
         """
 

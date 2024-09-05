@@ -246,7 +246,7 @@ class Cursor:
     async def __anext__(self):
         while True:
             one = await self.fetchone()
-            if one is None:
+            if not one:
                 raise StopAsyncIteration
             return one
 
@@ -349,23 +349,44 @@ class Cursor:
 
 
 class DictCursor(Cursor):
-    async def fetchone(self):
-        row = await super(DictCursor, self).fetchone()
+    async def fetchone(self) -> dict:
+        """Fetch exactly one row from the last executed query.
+
+        :raises AttributeError: columns mismatch
+
+        :return: one row from the query
+        :rtype: dict
+        """
+
+        row = await super().fetchone()
         if self._columns:
             return dict(zip(self._columns, row)) if row else {}
-        else:
-            raise AttributeError("Invalid columns.")
+        raise AttributeError("Invalid columns.")
 
-    async def fetchmany(self, size: int):
-        rows = await super(DictCursor, self).fetchmany(size)
+    async def fetchmany(self, size: int) -> list[dict]:
+        """Fetch no more than `size` rows from the last executed query.
+
+        :raises AttributeError: columns mismatch
+
+        :return: the list of rows from the query
+        :rtype: list[dict]
+        """
+
+        rows = await super().fetchmany(size)
         if self._columns:
             return [dict(zip(self._columns, item)) for item in rows] if rows else []
-        else:
-            raise AttributeError("Invalid columns.")
+        raise AttributeError("Invalid columns.")
 
-    async def fetchall(self):
-        rows = await super(DictCursor, self).fetchall()
+    async def fetchall(self) -> list[dict]:
+        """Fetch all resulting rows from the last executed query.
+
+        :raises AttributeError: columns mismatch
+
+        :return: the list of all possible rows from the query
+        :rtype: list[dict]
+        """
+
+        rows = await super().fetchall()
         if self._columns:
             return [dict(zip(self._columns, item)) for item in rows] if rows else []
-        else:
-            raise AttributeError("Invalid columns.")
+        raise AttributeError("Invalid columns.")
