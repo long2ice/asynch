@@ -51,9 +51,17 @@ class Connection:
         # connection additional settings
         self._opened: Optional[bool] = None
         self._closed: Optional[bool] = None
-        self._echo = echo
         self._cursor_cls = cursor_cls
         self._connection_kwargs = kwargs
+        warn(
+            (
+                "The echo parameter is deprecated since the version 0.2.5. "
+                "Please refer to the `connection.cursor(...)` method. "
+                "The paramter may be removed in the version 0.2.6 or later."
+            ),
+            DeprecationWarning,
+        )
+        self._echo = echo
 
     async def __aenter__(self) -> "Connection":
         await self.connect()
@@ -62,7 +70,7 @@ class Connection:
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         await self.close()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         cls_name = self.__class__.__name__
         status = self.status
         return f"<{cls_name} object at 0x{id(self):x}; status: {status}>"
@@ -85,7 +93,7 @@ class Connection:
         warn(
             (
                 "Please consider using the `connection.opened` property. "
-                "This property may be removed in the version 0.2.6 or a later release."
+                "The property may be removed in the version 0.2.6 or later."
             ),
             DeprecationWarning,
         )
@@ -132,8 +140,8 @@ class Connection:
         When leaving the context, the `conn.closed` is True
         and the `conn.opened` is False.
 
-        :raise ConnectionError: unknown connection state
-        :return: the connection status
+        :raise ConnectionError: an unresolved connection state
+        :return: the Connection object status
         :rtype: str (ConnectionStatuses StrEnum)
         """
 
@@ -167,6 +175,13 @@ class Connection:
 
     @property
     def echo(self) -> bool:
+        warn(
+            (
+                "The `echo` parameter should be specified in the `connection.cursor(...)` method."
+                "The property may be removed in the version 0.2.6 or later."
+            ),
+            DeprecationWarning,
+        )
         return self._echo
 
     async def close(self) -> None:
@@ -199,14 +214,22 @@ class Connection:
         of a default `Cursor` class will be created with echoing
         set to True even if the `self.echo` property returns False.
 
-        :param cursor None | Cursor: a Cursor factory class
+        :param cursor Optional[Cursor]: Cursor factory class
         :param echo bool:
-        :return: the cursor from a connection
+
+        :return: the cursor object of a connection
         :rtype: Cursor
         """
 
         cursor_cls = cursor or self._cursor_cls
-        return cursor_cls(self, echo or self._echo)
+        warn(
+            (
+                "When `echo` parameter is set to False (by default), "
+                "the deprecated `self.echo` property is in effect"
+            ),
+            UserWarning,
+        )
+        return cursor_cls(self, echo or self.echo)
 
     async def ping(self) -> None:
         """Check the connection liveliness.
@@ -237,6 +260,9 @@ async def connect(
     1. conn = Connection(...)  # init a Connection instance
     2. conn.connect()  # connect to a ClickHouse instance
 
+    The `echo` parameter is deprecated since the version 0.2.5.
+    It may be removed in the version 0.2.6 or later.
+
     :param dsn str: DSN/connection string (if None -> constructed from default dsn parts)
     :param user str: user string ("default" by default)
     :param password str: password string ("" by default)
@@ -244,10 +270,10 @@ async def connect(
     :param port int: port integer (9000 by default)
     :param database str: database string ("default" by default)
     :param cursor_cls Cursor: Cursor class (asynch.Cursor by default)
-    :param echo bool: echo mode flag (False by default)
+    :param echo bool: connection echo mode (False by default)
     :param kwargs dict: connection settings
 
-    :return: an opened connection
+    :return: an opened connection object
     :rtype: Connection
     """
 

@@ -13,6 +13,13 @@ class ConnectionStatuses(str, Enum):
     closed = "closed"
 
 
+class CursorStatuses(str, Enum):
+    ready = "ready"
+    running = "running"
+    finished = "finished"
+    closed = "closed"
+
+
 class PoolStatuses(str, Enum):
     created = "created"
     opened = "opened"

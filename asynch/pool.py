@@ -117,14 +117,21 @@ class Pool(asyncio.AbstractServer):
         self._used: set[Connection] = set()
         self._cond = asyncio.Condition()
         self._closing = False
-        self._loop = (
-            loop if isinstance(loop, asyncio.AbstractEventLoop) else asyncio.get_running_loop()
-        )
         self._lock = asyncio.Lock()
         self._acquired_connections: deque[Connection] = deque(maxlen=maxsize)
         self._free_connections: deque[Connection] = deque(maxlen=maxsize)
         self._opened: Optional[bool] = None
         self._closed: Optional[bool] = None
+        warn(
+            (
+                "The loop parameter must be removed when Python3.10 "
+                "will be the minimum version (in a year) or earlier."
+            ),
+            DeprecationWarning,
+        )
+        self._loop = (
+            loop if isinstance(loop, asyncio.AbstractEventLoop) else asyncio.get_running_loop()
+        )
 
     async def __aenter__(self) -> "Pool":
         await self.startup()
@@ -154,8 +161,8 @@ class Pool(asyncio.AbstractServer):
         When leaving the context, the `pool.closed` is True
         and the `pool.opened` is False.
 
-        :raise PoolError: unresolved pool state.
-        :return: the pool status
+        :raise PoolError: an unresolved pool state.
+        :return: the Pool object status
         :rtype: str (PoolStatuses StrEnum)
         """
 
@@ -227,17 +234,25 @@ class Pool(asyncio.AbstractServer):
     @property
     def freesize(self) -> int:
         warn(
-            "consider using `pool.free_connections` attribute instead of `freesize`",
+            "Consider using `pool.free_connections` property instead of this `freesize`",
             DeprecationWarning,
         )
         return len(self._free_connections)
 
     @property
     def size(self) -> int:
+        warn(
+            "Consider using `pool.connections` property instead of this `size`",
+            DeprecationWarning,
+        )
         return self.freesize + len(self._used)
 
     @property
     def cond(self) -> asyncio.Condition:
+        warn(
+            "Scheduled for removal in the version 0.2.6 or later",
+            DeprecationWarning,
+        )
         return self._cond
 
     async def _create_connection(self) -> None:
@@ -336,6 +351,14 @@ class Pool(asyncio.AbstractServer):
         This is **NOT** a coroutine.
         """
 
+        warn(
+            (
+                "Consider using the `async with` approach for resource cleanup. "
+                "Should be removed in the version 0.2.6 or later."
+            ),
+            DeprecationWarning,
+        )
+
         fut = self._loop.create_future()
         fut.set_result(None)
 
@@ -369,6 +392,14 @@ class Pool(asyncio.AbstractServer):
             return False
 
     def acquire(self):
+        warn(
+            (
+                "Consider using the `async with` approach for resource management. "
+                "Should be removed in the version 0.2.6 or later."
+            ),
+            DeprecationWarning,
+        )
+
         return _PoolAcquireContextManager(self._acquire(), self)
 
     async def _acquire(self) -> Connection:
@@ -392,16 +423,39 @@ class Pool(asyncio.AbstractServer):
                     await self._cond.wait()
 
     async def initialize(self):
+        warn(
+            (
+                "Consider using the `async with` approach for resource management. "
+                "Should be removed in the version 0.2.6 or later."
+            ),
+            DeprecationWarning,
+        )
+
         while self.freesize < self.minsize and self.size <= self.maxsize:
             await self.init_one_connection()
 
     async def init_one_connection(self):
+        warn(
+            (
+                "Consider using the `async with` approach for resource management. "
+                "Should be removed in the version 0.2.6 or later."
+            ),
+            DeprecationWarning,
+        )
         conn = await connect(**self._connection_kwargs)
         self._free_connections.append(conn)
         self._cond.notify()
 
     async def clear(self) -> None:
         """Closes all free connections in the pool."""
+
+        warn(
+            (
+                "Consider using the `async with` approach for resource cleanup. "
+                "Should be removed in the version 0.2.6 or later."
+            ),
+            DeprecationWarning,
+        )
 
         async with self._cond:
             while self._free_connections:
@@ -411,6 +465,14 @@ class Pool(asyncio.AbstractServer):
 
     async def wait_closed(self):
         """Waits for closing all connections in the pool."""
+
+        warn(
+            (
+                "Consider using the `async with` approach for resource cleanup. "
+                "Should be removed in the version 0.2.6 or later."
+            ),
+            DeprecationWarning,
+        )
 
         if self._closed:
             return
@@ -427,11 +489,19 @@ class Pool(asyncio.AbstractServer):
         self._closed = True
 
     def close(self):
-        """Close pool.
+        """Close the pool.
 
         Mark all pool connections to be closed on getting back to pool.
         Closed pool doesn't allow to acquire new connections.
         """
+
+        warn(
+            (
+                "Consider using the `async with` approach for resource cleanup. "
+                "Should be removed in the version 0.2.6 or later."
+            ),
+            DeprecationWarning,
+        )
 
         if self._closed:
             return
@@ -443,12 +513,18 @@ class Pool(asyncio.AbstractServer):
         Close pool with instantly closing all acquired connections also.
         """
 
-        self.close()
+        warn(
+            (
+                "Consider using the `async with` approach for resource cleanup. "
+                "Should be removed in the version 0.2.6 or later."
+            ),
+            DeprecationWarning,
+        )
 
+        self.close()
         for conn in self._used:
             await conn.close()
             self._terminated.add(conn)
-
         self._used.clear()
 
 
@@ -468,20 +544,22 @@ async def create_async_pool(
     The behaviour above is analogous to the `asynch.connection.connect(...)` function.
     Do not forget to call `await pool.shutdown()` to cleanup pool resources.
 
-    :param minsize: the minimum number of connections in the pool
-    :param maxsize: the maximum number of connections in the pool
-    :param loop: an event loop (if None -> asyncio.get_running_loop() by default)
-    :param kwargs: connection settings
+    :param minsize int: the minimum number of connections in the pool
+    :param maxsize int: the maximum number of connections in the pool
+    :param loop Optional[asyncio.AbstractEventLoop]: an event loop (asyncio.get_running_loop() by default)
+    :param kwargs dict: connection settings
 
-    :return: connection pool
+    :return: a connection pool object
     :rtype: Pool
     """
 
-    if loop:
-        warn(
-            "the loop parameter is removed from Python3.10 asyncio utilities",
-            DeprecationWarning,
-        )
+    warn(
+        (
+            "This function is the future prototype of the `create_pool` function. "
+            "Should be removed in the version 0.2.6 or later."
+        ),
+        DeprecationWarning,
+    )
 
     pool = Pool(
         minsize=minsize,
@@ -499,6 +577,13 @@ def create_pool(
     loop: Optional[asyncio.AbstractEventLoop] = None,
     **kwargs,
 ):
+    warn(
+        (
+            "This function should become asynchronous and behave like `create_async_pool`. "
+            "The changes should take place in the version 0.2.6 or later."
+        ),
+        UserWarning,
+    )
     coro = _create_pool(minsize=minsize, maxsize=maxsize, loop=loop, **kwargs)
     return _PoolContextManager(coro)
 
