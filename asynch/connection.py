@@ -55,9 +55,9 @@ class Connection:
         self._connection_kwargs = kwargs
         warn(
             (
-                "The echo parameter is deprecated since the version 0.2.5. "
-                "Please refer to the `connection.cursor(...)` method. "
-                "The paramter may be removed in the version 0.2.6 or later."
+                "The `echo` flag in the constructor is deprecated since the v0.2.5. "
+                "This flag is specifiable in the `cursor` method of the Connection class. "
+                "The `echo` parameter may be removed in the version 0.2.6 or later."
             ),
             DeprecationWarning,
         )
@@ -92,8 +92,8 @@ class Connection:
 
         warn(
             (
-                "Please consider using the `connection.opened` property. "
-                "The property may be removed in the version 0.2.6 or later."
+                "Please consider using the `opened` property. "
+                "The `connected` property may be removed in the version 0.2.6 or later."
             ),
             DeprecationWarning,
         )
@@ -177,7 +177,7 @@ class Connection:
     def echo(self) -> bool:
         warn(
             (
-                "The `echo` parameter should be specified in the `connection.cursor(...)` method."
+                "The `echo` parameter should be specified in the `cursor` method."
                 "The property may be removed in the version 0.2.6 or later."
             ),
             DeprecationWarning,
@@ -225,7 +225,8 @@ class Connection:
         warn(
             (
                 "When `echo` parameter is set to False (by default), "
-                "the deprecated `self.echo` property is in effect"
+                "the deprecated `self.echo` property is in effect ."
+                "This behaviour may be removed in the version 0.2.6 or later."
             ),
             UserWarning,
         )
