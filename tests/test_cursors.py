@@ -7,6 +7,7 @@ from asynch.cursors import DictCursor
 from asynch.proto import constants
 
 
+@pytest.mark.asyncio
 async def test_dict_cursor_repr(conn):
     repstr = "<DictCursor(connection={conn}, echo={echo}) object at 0x{cid:x};"
 
