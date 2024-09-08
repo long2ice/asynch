@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from asynch.connection import Connection
-from asynch.pool import Pool, PoolError
+from asynch.pool import Pool, AsynchPoolError
 from asynch.proto import constants
 from asynch.proto.models.enums import PoolStatuses
 
@@ -103,7 +103,7 @@ async def test_pool_connection_management(get_tcp_connections):
                 assert pool.acquired_connections == max_size
 
                 # cannot acquire more than pool.maxsize
-                with pytest.raises(PoolError):
+                with pytest.raises(AsynchPoolError):
                     async with pool.connection():
                         pass
 

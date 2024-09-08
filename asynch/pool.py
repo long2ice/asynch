@@ -7,13 +7,14 @@ from typing import AsyncIterator, Optional
 from warnings import warn
 
 from asynch.connection import Connection, connect
+from asynch.errors import ClickHouseException
 from asynch.proto import constants
 from asynch.proto.models.enums import PoolStatuses
 
 logger = logging.getLogger(__name__)
 
 
-class PoolError(Exception):
+class AsynchPoolError(ClickHouseException):
     pass
 
 
@@ -161,7 +162,7 @@ class Pool(asyncio.AbstractServer):
         When leaving the context, the `pool.closed` is True
         and the `pool.opened` is False.
 
-        :raise PoolError: an unresolved pool state.
+        :raise AsynchPoolError: an unresolved pool state.
         :return: the Pool object status
         :rtype: str (PoolStatuses StrEnum)
         """
@@ -172,7 +173,7 @@ class Pool(asyncio.AbstractServer):
             return PoolStatuses.opened
         if self._closed:
             return PoolStatuses.closed
-        raise PoolError(f"{self} is in an unknown state")
+        raise AsynchPoolError(f"{self} is in an unknown state")
 
     @property
     def closed(self) -> Optional[bool]:
@@ -258,7 +259,7 @@ class Pool(asyncio.AbstractServer):
     async def _create_connection(self) -> None:
         pool_size, maxsize = self.connections, self.maxsize
         if pool_size == maxsize:
-            raise PoolError(f"{self} is already full")
+            raise AsynchPoolError(f"{self} is already full")
         if pool_size > maxsize:
             raise RuntimeError(f"{self} is overburden")
 
@@ -267,7 +268,7 @@ class Pool(asyncio.AbstractServer):
 
     async def _acquire_connection(self) -> Connection:
         if not self._free_connections:
-            raise PoolError(f"no free connection in the {self}")
+            raise AsynchPoolError(f"no free connection in the {self}")
 
         conn = self._free_connections.popleft()
         self._acquired_connections.append(conn)
@@ -275,7 +276,7 @@ class Pool(asyncio.AbstractServer):
 
     async def _release_connection(self, conn: Connection) -> None:
         if conn not in self._acquired_connections:
-            raise PoolError(f"the connection {conn} does not belong to the {self}")
+            raise AsynchPoolError(f"the connection {conn} does not belong to the {self}")
 
         self._acquired_connections.remove(conn)
         self._free_connections.append(conn)
@@ -293,8 +294,8 @@ class Pool(asyncio.AbstractServer):
     async def connection(self) -> AsyncIterator[Connection]:
         """Get a connection from the pool.
 
-        :raises PoolError: if a connection cannot be acquired
-        :raises PoolError: if a connection cannot be released
+        :raises AsynchPoolError: if a connection cannot be acquired
+        :raises AsynchPoolError: if a connection cannot be released
 
         :return: a free connection from the pool
         :rtype: Connection
