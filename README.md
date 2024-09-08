@@ -7,16 +7,15 @@
 
 ## Introduction
 
-`asynch` is an asynchronous ClickHouse Python driver with native (TCP) interface support, which reuses most of [clickhouse-driver](https://github.com/mymarilyn/clickhouse-driver) features and complies with [PEP249](https://www.python.org/dev/peps/pep-0249/) standard.
+`asynch` is an asynchronous ClickHouse Python driver with native TCP interface support, which reuses most of [clickhouse-driver](https://github.com/mymarilyn/clickhouse-driver) features and complies with [PEP249](https://www.python.org/dev/peps/pep-0249/).
 
-## Install
+## Installation
 
 ```shell
 > pip install asynch
 ```
 
-or if you want to install [`clickhouse-cityhash`](https://pypi.org/project/clickhouse-cityhash/) to enable
-transport compression
+If you want to install [`clickhouse-cityhash`](https://pypi.org/project/clickhouse-cityhash/) to enable transport compression
 
 ```shell
 > pip install asynch[compression]
@@ -24,7 +23,7 @@ transport compression
 
 ## Usage
 
-Basically a connection to a ClickHouse server is established in two ways:
+Basically, a connection to a ClickHouse server can be established in two ways:
 
 1. with a DSN string, e.g., `clickhouse://[user:password]@host:port/database`;
 
@@ -34,11 +33,11 @@ Basically a connection to a ClickHouse server is established in two ways:
     # connecting with a DSN string
     async def connect_database():
         conn = await connect(
-            dsn = "clickhouse://default:@127.0.0.1:9000/default",
+            dsn = "clickhouse://ch_user:P@55w0rD:@127.0.0.1:9000/chdb",
         )
     ```
 
-2. with connection/DSN parameters given separately: `user` (optional), `password` (optional), `host`, `port`, `database`.
+2. with separately given connection/DSN parameters: `user` (optional), `password` (optional), `host`, `port`, `database`.
 
     ```python
     from asynch import connect
@@ -46,17 +45,17 @@ Basically a connection to a ClickHouse server is established in two ways:
     # connecting with DSN parameters
     async def connect_database():
         conn = await connect(
-            user = "default",
-            password = "",
+            user = "ch_user",
+            password = "P@55w0rD",
             host = "127.0.0.1",
             port = 9000,
-            database = "default",
+            database = "chdb",
         )
     ```
 
 If a DSN string is given, it takes priority over any specified connection parameter.
 
-Create a database and a table by executing SQL statements via a cursor instance of the Connection class.
+Create a database and a table by executing SQL statements via an instance of the `Cursor` class (here its child `DictCursor` class) acquired from an instance of the `Connection` class.
 
 ```python
 async def create_table(conn: Connection):
@@ -81,18 +80,18 @@ async def create_table(conn: Connection):
         )
 ```
 
-Using `fetchone`:
+Fetching one row from an executed SQL statement:
 
 ```python
-async def fetchone():
-    # by default, an instance of the Cursor class
+async def fetchone(conn: Connection):
+    # by default, an instance of the `Cursor` class
     async with conn.cursor() as cursor:
         await cursor.execute("SELECT 1")
         ret = await cursor.fetchone()
         assert ret == (1,)
 ```
 
-Using `fetchmany`:
+Fetching all the rows from an executed SQL statement:
 
 ```python
 async def fetchall():
@@ -102,7 +101,7 @@ async def fetchall():
         assert ret == [(1,)]
 ```
 
-Using an instance of the `DictCursor` class to get results as a sequence of `dict`ionaries representing the rows of an executed query:
+Using an instance of the `DictCursor` class to get results as a sequence of `dict`ionaries representing the rows of an executed SQL query:
 
 ```python
 async def dict_cursor():
@@ -182,7 +181,9 @@ Since the v0.2.5:
 
 ```python
 async def use_pool():
-    async with Pool(...) as pool:
+    # init a Pool and fill it with `minsize` opened connections
+    async with Pool(minsize=1, maxsize=2) as pool:
+        # acquire a connection from the pool
         async with pool.connection() as conn:
             async with conn.cursor() as cursor:
                 await cursor.execute("SELECT 1")
