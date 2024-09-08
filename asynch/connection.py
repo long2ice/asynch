@@ -2,15 +2,11 @@ from typing import Optional
 from warnings import warn
 
 from asynch.cursors import Cursor
-from asynch.errors import InterfaceError, NotSupportedError
+from asynch.errors import NotSupportedError
 from asynch.proto import constants
 from asynch.proto.connection import Connection as ProtoConnection
 from asynch.proto.models.enums import ConnectionStatuses
 from asynch.proto.utils.dsn import parse_dsn
-
-
-class AsynchConnectionError(InterfaceError):
-    pass
 
 
 class Connection:
@@ -144,7 +140,7 @@ class Connection:
         When leaving the context, the `conn.closed` is True
         and the `conn.opened` is False.
 
-        :raise AsynchConnectionError: an unresolved connection state
+        :raise ConnectionError: an unresolved connection state
         :return: the Connection object status
         :rtype: str (ConnectionStatuses StrEnum)
         """
@@ -155,7 +151,7 @@ class Connection:
             return ConnectionStatuses.opened
         if self._closed:
             return ConnectionStatuses.closed
-        raise AsynchConnectionError(f"{self} is in an unknown state")
+        raise ConnectionError(f"{self} is in an unknown state")
 
     @property
     def host(self) -> str:
@@ -239,13 +235,13 @@ class Connection:
     async def ping(self) -> None:
         """Check the connection liveliness.
 
-        :raises AsynchConnectionError: if ping() has failed
+        :raises ConnectionError: if ping() has failed
         :return: None
         """
 
         if not await self._connection.ping():
             msg = f"Ping has failed for {self}"
-            raise AsynchConnectionError(msg)
+            raise ConnectionError(msg)
 
 
 async def connect(
