@@ -11,10 +11,6 @@ Column = namedtuple("Column", "name type_code display_size internal_size precisi
 logger = logging.getLogger(__name__)
 
 
-class CursorError(Exception):
-    pass
-
-
 class States:
     warn(
         (
