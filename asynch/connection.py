@@ -1,9 +1,8 @@
 from typing import Optional
 from warnings import warn
 
-from asynch import errors
 from asynch.cursors import Cursor
-from asynch.errors import InterfaceError
+from asynch.errors import InterfaceError, NotSupportedError
 from asynch.proto import constants
 from asynch.proto.connection import Connection as ProtoConnection
 from asynch.proto.models.enums import ConnectionStatuses
@@ -198,10 +197,10 @@ class Connection:
             self._closed = True
 
     async def commit(self):
-        raise errors.NotSupportedError
+        raise NotSupportedError
 
     async def rollback(self):
-        raise errors.NotSupportedError
+        raise NotSupportedError
 
     async def connect(self) -> None:
         if not self._opened:
