@@ -1,8 +1,8 @@
 from typing import Optional
 from warnings import warn
 
-from asynch import errors
 from asynch.cursors import Cursor
+from asynch.errors import NotSupportedError
 from asynch.proto import constants
 from asynch.proto.connection import Connection as ProtoConnection
 from asynch.proto.models.enums import ConnectionStatuses
@@ -51,9 +51,17 @@ class Connection:
         # connection additional settings
         self._opened: Optional[bool] = None
         self._closed: Optional[bool] = None
-        self._echo = echo
         self._cursor_cls = cursor_cls
         self._connection_kwargs = kwargs
+        warn(
+            (
+                "The `echo` flag in the constructor is deprecated since the v0.2.5. "
+                "This flag is specifiable in the `cursor` method of the Connection class. "
+                "The `echo` parameter may be removed in the version 0.2.6 or later."
+            ),
+            DeprecationWarning,
+        )
+        self._echo = echo
 
     async def __aenter__(self) -> "Connection":
         await self.connect()
@@ -62,7 +70,7 @@ class Connection:
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         await self.close()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         cls_name = self.__class__.__name__
         status = self.status
         return f"<{cls_name} object at 0x{id(self):x}; status: {status}>"
@@ -84,8 +92,8 @@ class Connection:
 
         warn(
             (
-                "Please consider using the `connection.opened` property. "
-                "This property may be removed in the version 0.2.6 or a later release."
+                "Please consider using the `opened` property. "
+                "The `connected` property may be removed in the version 0.2.6 or later."
             ),
             DeprecationWarning,
         )
@@ -132,8 +140,8 @@ class Connection:
         When leaving the context, the `conn.closed` is True
         and the `conn.opened` is False.
 
-        :raise ConnectionError: unknown connection state
-        :return: the connection status
+        :raise ConnectionError: an unresolved connection state
+        :return: the Connection object status
         :rtype: str (ConnectionStatuses StrEnum)
         """
 
@@ -167,6 +175,13 @@ class Connection:
 
     @property
     def echo(self) -> bool:
+        warn(
+            (
+                "The `echo` parameter should be specified in the `cursor` method."
+                "The property may be removed in the version 0.2.6 or later."
+            ),
+            DeprecationWarning,
+        )
         return self._echo
 
     async def close(self) -> None:
@@ -178,10 +193,10 @@ class Connection:
             self._closed = True
 
     async def commit(self):
-        raise errors.NotSupportedError
+        raise NotSupportedError
 
     async def rollback(self):
-        raise errors.NotSupportedError
+        raise NotSupportedError
 
     async def connect(self) -> None:
         if not self._opened:
@@ -199,14 +214,23 @@ class Connection:
         of a default `Cursor` class will be created with echoing
         set to True even if the `self.echo` property returns False.
 
-        :param cursor None | Cursor: a Cursor factory class
+        :param cursor Optional[Cursor]: Cursor factory class
         :param echo bool:
-        :return: the cursor from a connection
+
+        :return: the cursor object of a connection
         :rtype: Cursor
         """
 
         cursor_cls = cursor or self._cursor_cls
-        return cursor_cls(self, echo or self._echo)
+        warn(
+            (
+                "When `echo` parameter is set to False (by default), "
+                "the deprecated `self.echo` property is in effect ."
+                "This behaviour may be removed in the version 0.2.6 or later."
+            ),
+            UserWarning,
+        )
+        return cursor_cls(self, echo or self.echo)
 
     async def ping(self) -> None:
         """Check the connection liveliness.
@@ -231,11 +255,18 @@ async def connect(
     echo: bool = False,
     **kwargs,
 ) -> Connection:
-    """Open the connection to a ClickHouse server.
+    """Return an opened connection to a ClickHouse server.
 
     Equivalent to the following steps:
     1. conn = Connection(...)  # init a Connection instance
-    2. conn.connect()  # connect to a ClickHouse instance
+    2. conn.connect()  # connect to a ClickHouse server
+    3. return conn
+
+    When the connection is no longer needed,
+    consider `await`ing the `conn.close()` method.
+
+    The `echo` parameter is deprecated since the version 0.2.5.
+    It may be removed in the version 0.2.6 or later.
 
     :param dsn str: DSN/connection string (if None -> constructed from default dsn parts)
     :param user str: user string ("default" by default)
@@ -244,10 +275,10 @@ async def connect(
     :param port int: port integer (9000 by default)
     :param database str: database string ("default" by default)
     :param cursor_cls Cursor: Cursor class (asynch.Cursor by default)
-    :param echo bool: echo mode flag (False by default)
+    :param echo bool: connection echo mode (False by default)
     :param kwargs dict: connection settings
 
-    :return: an opened connection
+    :return: an opened Connection object
     :rtype: Connection
     """
 

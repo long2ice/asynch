@@ -8,6 +8,26 @@ from asynch.proto import constants
 
 
 @pytest.mark.asyncio
+async def test_dict_cursor_repr(conn):
+    repstr = "<DictCursor(connection={conn}, echo={echo}) object at 0x{cid:x};"
+
+    echo = True
+    async with conn.cursor(cursor=DictCursor, echo=echo) as cursor:
+        repstr = repstr.format(conn=conn, echo=echo, cid=id(cursor))
+        repstr = repstr + " status: {status}>"
+
+        assert repr(cursor) == repstr.format(status="ready")
+
+        await cursor.execute("SELECT 1")
+        assert repr(cursor) == repstr.format(status="finished")
+
+        ret = await cursor.fetchone()
+        assert ret == {"1": 1}
+
+    assert repr(cursor) == repstr.format(status="closed")
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("stmt", "answer"),
     [

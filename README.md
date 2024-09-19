@@ -7,16 +7,15 @@
 
 ## Introduction
 
-`asynch` is an asyncio ClickHouse Python Driver with native (TCP) interface support, which reuse most of [clickhouse-driver](https://github.com/mymarilyn/clickhouse-driver) and comply with [PEP249](https://www.python.org/dev/peps/pep-0249/).
+`asynch` is an asynchronous ClickHouse Python driver with native TCP interface support, which reuses most of [clickhouse-driver](https://github.com/mymarilyn/clickhouse-driver) features and complies with [PEP249](https://www.python.org/dev/peps/pep-0249/).
 
-## Install
+## Installation
 
 ```shell
 > pip install asynch
 ```
 
-or if you want to install [`clickhouse-cityhash`](https://pypi.org/project/clickhouse-cityhash/) to enable
-transport compression
+If you want to install [`clickhouse-cityhash`](https://pypi.org/project/clickhouse-cityhash/) to enable transport compression
 
 ```shell
 > pip install asynch[compression]
@@ -24,57 +23,75 @@ transport compression
 
 ## Usage
 
-Connect to ClickHouse
+Basically, a connection to a ClickHouse server can be established in two ways:
+
+1. with a DSN string, e.g., `clickhouse://[user:password]@host:port/database`;
+
+    ```python
+    from asynch import connect
+
+    # connecting with a DSN string
+    async def connect_database():
+        conn = await connect(
+            dsn = "clickhouse://ch_user:P@55w0rD:@127.0.0.1:9000/chdb",
+        )
+    ```
+
+2. with separately given connection/DSN parameters: `user` (optional), `password` (optional), `host`, `port`, `database`.
+
+    ```python
+    from asynch import connect
+
+    # connecting with DSN parameters
+    async def connect_database():
+        conn = await connect(
+            user = "ch_user",
+            password = "P@55w0rD",
+            host = "127.0.0.1",
+            port = 9000,
+            database = "chdb",
+        )
+    ```
+
+If a DSN string is given, it takes priority over any specified connection parameter.
+
+Create a database and a table by executing SQL statements via an instance of the `Cursor` class (here its child `DictCursor` class) acquired from an instance of the `Connection` class.
 
 ```python
-from asynch import connect
-
-async def connect_database():
-    conn = await connect(
-        host = "127.0.0.1",
-        port = 9000,
-        database = "default",
-        user = "default",
-        password = "",
-    )
-```
-
-Create table by sql
-
-```python
-async def create_table():
+async def create_table(conn: Connection):
     async with conn.cursor(cursor=DictCursor) as cursor:
-        await cursor.execute('create database if not exists test')
+        await cursor.execute("CREATE DATABASE IF NOT EXISTS test")
         await cursor.execute("""
         CREATE TABLE if not exists test.asynch
-            (
-                `id`       Int32,
-                `decimal`  Decimal(10, 2),
-                `date`     Date,
-                `datetime` DateTime,
-                `float`    Float32,
-                `uuid`     UUID,
-                `string`   String,
-                `ipv4`     IPv4,
-                `ipv6`     IPv6
-
-            )
-            ENGINE = MergeTree
-                ORDER BY id"""
+        (
+            `id`       Int32,
+            `decimal`  Decimal(10, 2),
+            `date`     Date,
+            `datetime` DateTime,
+            `float`    Float32,
+            `uuid`     UUID,
+            `string`   String,
+            `ipv4`     IPv4,
+            `ipv6`     IPv6
+        )
+        ENGINE = MergeTree
+        ORDER BY id
+        """
         )
 ```
 
-Use `fetchone`
+Fetching one row from an executed SQL statement:
 
 ```python
-async def fetchone():
+async def fetchone(conn: Connection):
+    # by default, an instance of the `Cursor` class
     async with conn.cursor() as cursor:
         await cursor.execute("SELECT 1")
         ret = await cursor.fetchone()
         assert ret == (1,)
 ```
 
-Use `fetchmany`
+Fetching all the rows from an executed SQL statement:
 
 ```python
 async def fetchall():
@@ -84,7 +101,7 @@ async def fetchall():
         assert ret == [(1,)]
 ```
 
-Use `DictCursor` to get result with dict
+Using an instance of the `DictCursor` class to get results as a sequence of `dict`ionaries representing the rows of an executed SQL query:
 
 ```python
 async def dict_cursor():
@@ -94,7 +111,7 @@ async def dict_cursor():
         assert ret == [{"1": 1}]
 ```
 
-Insert data with dict
+Inserting data with `dict`s via a `DictCursor` instance:
 
 ```python
 from asynch.cursors import DictCursor
@@ -120,7 +137,7 @@ async def insert_dict():
         assert ret == 1
 ```
 
-Insert data with tuple
+Inserting data with `tuple`s:
 
 ```python
 async def insert_tuple():
@@ -144,7 +161,9 @@ async def insert_tuple():
         assert ret == 1
 ```
 
-Use connection pool
+### Connection Pool
+
+Before the v0.2.4:
 
 ```python
 async def use_pool():
@@ -156,6 +175,20 @@ async def use_pool():
             assert ret == (1,)
     pool.close()
     await pool.wait_closed()
+```
+
+Since the v0.2.5:
+
+```python
+async def use_pool():
+    # init a Pool and fill it with `minsize` opened connections
+    async with Pool(minsize=1, maxsize=2) as pool:
+        # acquire a connection from the pool
+        async with pool.connection() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute("SELECT 1")
+                ret = await cursor.fetchone()
+                assert ret == (1,)
 ```
 
 ## ThanksTo
