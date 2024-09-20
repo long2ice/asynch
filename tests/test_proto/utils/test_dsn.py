@@ -9,16 +9,14 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
 
 
 @pytest.mark.parametrize(
-    ("dsn", "strict", "ctx", "answer"),
+    ("dsn", "ctx", "answer"),
     [
-        ("", False, does_not_raise(), {}),
-        ("some_scheme://", False, does_not_raise(), {"database": "some_scheme:/"}),
-        ("some_scheme://", True, pytest.raises(DSNError), None),
-        (f"{Schemes.clickhouse}://", True, does_not_raise(), {}),
-        (f"{Schemes.clickhouses}://", True, does_not_raise(), {"secure": True}),
+        ("", pytest.raises(DSNError), None),
+        ("some_scheme://", pytest.raises(DSNError), None),
+        (f"{Schemes.clickhouse}://", pytest.raises(DSNError), None),
+        (f"{Schemes.clickhouses}://", pytest.raises(DSNError), None),
         (
             f"{Schemes.clickhouse}://ch@lochost/",
-            False,
             does_not_raise(),
             {
                 "user": "ch",
@@ -27,7 +25,6 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
         ),
         (
             f"{Schemes.clickhouse}://ch:pwd@lochost/",
-            False,
             does_not_raise(),
             {
                 "user": "ch",
@@ -37,7 +34,6 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
         ),
         (
             f"{Schemes.clickhouse}://ch@lochost:4321/",
-            False,
             does_not_raise(),
             {
                 "user": "ch",
@@ -47,7 +43,6 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
         ),
         (
             f"{Schemes.clickhouse}://ch:pwd@lochost:1234/db",
-            False,
             does_not_raise(),
             {
                 "user": "ch",
@@ -57,13 +52,28 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
                 "database": "db",
             },
         ),
+        (
+            "lochost:1234/test",
+            pytest.raises(DSNError),
+            None,
+        ),
+        (
+            f"{Schemes.clickhouse}://lochost:1234/test",
+            does_not_raise(),
+            {"host": "lochost", "port": 1234, "database": "test"},
+        ),
+        (
+            f"{Schemes.clickhouse} :// lochost : 1234 / test",
+            pytest.raises(DSNError),
+            None,
+        ),
     ],
 )
 def test_dsn_basic_credentials(
-    dsn: str, strict: bool, ctx: Optional[ContextManager], answer: Optional[dict[str, Any]]
+    dsn: str, ctx: Optional[ContextManager], answer: Optional[dict[str, Any]]
 ) -> None:
     with ctx:
-        result = parse_dsn(dsn, strict=strict)
+        result = parse_dsn(dsn=dsn)
 
         assert result == answer
 
@@ -82,7 +92,7 @@ def test_dsn_basic_credentials(
             },
         ),
         (
-            "clickhouse://ch:pwd@loc:2938/ault",
+            f"{Schemes.clickhouse}://ch:pwd@loc:2938/ault",
             (
                 "verify=true"
                 "&secure=yes"
@@ -115,7 +125,7 @@ def test_dsn_with_query_fragments(
     answer: dict[str, Any],
 ) -> None:
     url = f"{dsn}?{query}"
-    config = parse_dsn(url, strict=True)
+    config = parse_dsn(dsn=url)
 
     for key, value in answer.items():
         if value is None:

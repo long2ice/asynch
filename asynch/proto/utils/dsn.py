@@ -5,6 +5,8 @@ from urllib.parse import ParseResult, parse_qs, unquote, urlparse
 from asynch.proto.models.enums import CompressionAlgorithms, Schemes
 from asynch.proto.utils.compat import asbool
 
+_SCHEME_SEPARATOR = "://"
+
 _COMPRESSION_ALGORITHMS: set[str] = {
     CompressionAlgorithms.lz4,
     CompressionAlgorithms.lz4hc,
@@ -18,7 +20,7 @@ class DSNError(Exception):
     pass
 
 
-def parse_dsn(dsn: str, *, strict: bool = False) -> dict[str, Any]:
+def parse_dsn(dsn: str) -> dict[str, Any]:
     """Return the client configuration from the given URL.
 
     The following URL schemes are supported:
@@ -30,7 +32,6 @@ def parse_dsn(dsn: str, *, strict: bool = False) -> dict[str, Any]:
     - clickhouses://[user:password]@localhost:9440/default
 
     :param dsn str: the DSN string
-    :param strict bool: enable the strict parsing mode
 
     :raises DSNError: when parsing fails under the strict mode
 
@@ -38,9 +39,16 @@ def parse_dsn(dsn: str, *, strict: bool = False) -> dict[str, Any]:
     :rtype: dict[str, Any]
     """
 
-    scheme, _, _ = dsn.partition("://")
-    if strict and (scheme not in _SUPPORTED_SCHEMES):
+    scheme, sep, rest = dsn.partition(_SCHEME_SEPARATOR)
+
+    if not sep:
+        msg = f"no valid scheme separator in the {dsn}"
+        raise DSNError(msg)
+    if scheme not in _SUPPORTED_SCHEMES:
         msg = f"the scheme {scheme!r} is not in {_SUPPORTED_SCHEMES}"
+        raise DSNError(msg)
+    if not rest:
+        msg = f"nothing to parse after the scheme in the {dsn}"
         raise DSNError(msg)
 
     settings = {}

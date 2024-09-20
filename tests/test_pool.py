@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from asynch.connection import Connection
-from asynch.pool import Pool, AsynchPoolError
+from asynch.pool import AsynchPoolError, Pool
 from asynch.proto import constants
 from asynch.proto.models.enums import PoolStatuses
 
