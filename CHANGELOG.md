@@ -4,7 +4,7 @@
 
 ### 0.2.5
 
-- Remove the `strict` keyword from the `utils/parse_dsn` function. Add more validation rules in the `parse_dsn` function. By @stankudrow in #XXX
+- Remove the `strict` keyword from the `utils/parse_dsn` function. Add more validation rules in the `parse_dsn` function. By @stankudrow in #113
 - Reconsider the API of the `Connection`, `Cursor` and `Pool` classes and deprecate outdated methods or properties. Define the DB-API v2.0 compliant exception hierarchy. Update project dependencies and metadata. By @stankudrow in #111.
 - Fix infinite iteration case when a cursor object is put in the `async for` loop. By @stankudrow in #112.
 - Fix pool connection management (the discussion #108 by @DFilyushin) by @stankudrow in #109:
