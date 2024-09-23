@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 from warnings import warn
 
 from asynch.cursors import Cursor
@@ -56,7 +56,8 @@ class Connection:
         warn(
             (
                 "The `echo` flag in the constructor is deprecated since the v0.2.5. "
-                "This flag is specifiable in the `cursor` method of the Connection class. "
+                "The flag can be specified within the connection keyword arguments (`kwargs`). "
+                "The `echo` flag can be overriden in the `cursor` method of the Connection. "
                 "The `echo` parameter may be removed in the version 0.2.6 or later."
             ),
             DeprecationWarning,
@@ -177,12 +178,22 @@ class Connection:
     def echo(self) -> bool:
         warn(
             (
-                "The `echo` parameter should be specified in the `cursor` method."
-                "The property may be removed in the version 0.2.6 or later."
+                "The `echo` property may be removed in the version 0.2.6 or later. "
+                "The `echo` parametre can be specified in the Connection `kwargs` settings."
             ),
             DeprecationWarning,
         )
         return self._echo
+
+    @property
+    def settings(self) -> dict[str, Any]:
+        """Return the settings for a Connection object.
+
+        :return: Connection initial settings
+        :rtype: dict[str, Any]
+        """
+
+        return self._connection_kwargs
 
     async def close(self) -> None:
         """Close the connection."""
@@ -215,21 +226,13 @@ class Connection:
         set to True even if the `self.echo` property returns False.
 
         :param cursor Optional[Cursor]: Cursor factory class
-        :param echo bool:
+        :param echo bool: to override the `Connection.echo` parametre for a cursor
 
         :return: the cursor object of a connection
         :rtype: Cursor
         """
 
         cursor_cls = cursor or self._cursor_cls
-        warn(
-            (
-                "When `echo` parameter is set to False (by default), "
-                "the deprecated `self.echo` property is in effect ."
-                "This behaviour may be removed in the version 0.2.6 or later."
-            ),
-            UserWarning,
-        )
         return cursor_cls(self, echo or self.echo)
 
     async def ping(self) -> None:
@@ -267,6 +270,7 @@ async def connect(
 
     The `echo` parameter is deprecated since the version 0.2.5.
     It may be removed in the version 0.2.6 or later.
+    You can specify this parametre in the `kwargs`.
 
     :param dsn str: DSN/connection string (if None -> constructed from default dsn parts)
     :param user str: user string ("default" by default)
