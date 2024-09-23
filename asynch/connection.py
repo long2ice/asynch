@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Optional
 from warnings import warn
 
 from asynch.cursors import Cursor
@@ -53,15 +53,6 @@ class Connection:
         self._closed: Optional[bool] = None
         self._cursor_cls = cursor_cls
         self._connection_kwargs = kwargs
-        warn(
-            (
-                "The `echo` flag in the constructor is deprecated since the v0.2.5. "
-                "The flag can be specified within the connection keyword arguments (`kwargs`). "
-                "The `echo` flag can be overriden in the `cursor` method of the Connection. "
-                "The `echo` parameter may be removed in the version 0.2.6 or later."
-            ),
-            DeprecationWarning,
-        )
         self._echo = echo
 
     async def __aenter__(self) -> "Connection":
@@ -176,24 +167,7 @@ class Connection:
 
     @property
     def echo(self) -> bool:
-        warn(
-            (
-                "The `echo` property may be removed in the version 0.2.6 or later. "
-                "The `echo` parametre can be specified in the Connection `kwargs` settings."
-            ),
-            DeprecationWarning,
-        )
         return self._echo
-
-    @property
-    def settings(self) -> dict[str, Any]:
-        """Return the settings for a Connection object.
-
-        :return: Connection initial settings
-        :rtype: dict[str, Any]
-        """
-
-        return self._connection_kwargs
 
     async def close(self) -> None:
         """Close the connection."""
@@ -267,10 +241,6 @@ async def connect(
 
     When the connection is no longer needed,
     consider `await`ing the `conn.close()` method.
-
-    The `echo` parameter is deprecated since the version 0.2.5.
-    It may be removed in the version 0.2.6 or later.
-    You can specify this parametre in the `kwargs`.
 
     :param dsn str: DSN/connection string (if None -> constructed from default dsn parts)
     :param user str: user string ("default" by default)
