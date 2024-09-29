@@ -53,14 +53,6 @@ class Connection:
         self._closed: Optional[bool] = None
         self._cursor_cls = cursor_cls
         self._connection_kwargs = kwargs
-        warn(
-            (
-                "The `echo` flag in the constructor is deprecated since the v0.2.5. "
-                "This flag is specifiable in the `cursor` method of the Connection class. "
-                "The `echo` parameter may be removed in the version 0.2.6 or later."
-            ),
-            DeprecationWarning,
-        )
         self._echo = echo
 
     async def __aenter__(self) -> "Connection":
@@ -175,13 +167,6 @@ class Connection:
 
     @property
     def echo(self) -> bool:
-        warn(
-            (
-                "The `echo` parameter should be specified in the `cursor` method."
-                "The property may be removed in the version 0.2.6 or later."
-            ),
-            DeprecationWarning,
-        )
         return self._echo
 
     async def close(self) -> None:
@@ -215,21 +200,13 @@ class Connection:
         set to True even if the `self.echo` property returns False.
 
         :param cursor Optional[Cursor]: Cursor factory class
-        :param echo bool:
+        :param echo bool: to override the `Connection.echo` parametre for a cursor
 
         :return: the cursor object of a connection
         :rtype: Cursor
         """
 
         cursor_cls = cursor or self._cursor_cls
-        warn(
-            (
-                "When `echo` parameter is set to False (by default), "
-                "the deprecated `self.echo` property is in effect ."
-                "This behaviour may be removed in the version 0.2.6 or later."
-            ),
-            UserWarning,
-        )
         return cursor_cls(self, echo or self.echo)
 
     async def ping(self) -> None:
@@ -264,9 +241,6 @@ async def connect(
 
     When the connection is no longer needed,
     consider `await`ing the `conn.close()` method.
-
-    The `echo` parameter is deprecated since the version 0.2.5.
-    It may be removed in the version 0.2.6 or later.
 
     :param dsn str: DSN/connection string (if None -> constructed from default dsn parts)
     :param user str: user string ("default" by default)
