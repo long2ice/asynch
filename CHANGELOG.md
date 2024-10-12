@@ -4,6 +4,7 @@
 
 ### 0.2.5
 
+- Remove the bare except statement from the Cursor's fetchone method (the issue #117 by @llchan). By @stankudrow in #118
 - Add more validation rules in the `parse_dsn` function. By @stankudrow in #113
 - Reconsider the API of the `Connection`, `Cursor` and `Pool` classes and deprecate outdated methods or properties. Define the DB-API v2.0 compliant exception hierarchy. Update project dependencies and metadata. By @stankudrow in #111.
 - Fix infinite iteration case when a cursor object is put in the `async for` loop (the discussion #100 by @KuzenkovAG). By @stankudrow in #112.
