@@ -141,7 +141,7 @@ class Cursor:
         if self._stream_results:
             try:
                 return await self._rows.next()
-            except:  # noqa: E722
+            except Exception:
                 return None
 
         if not self._rows:
