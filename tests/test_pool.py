@@ -6,7 +6,7 @@ import pytest
 from asynch.connection import Connection
 from asynch.pool import AsynchPoolError, Pool
 from asynch.proto import constants
-from asynch.proto.models.enums import PoolStatuses
+from asynch.proto.models.enums import PoolStatus
 
 
 @pytest.mark.asyncio
@@ -31,7 +31,7 @@ async def test_pool_repr():
     pool = Pool()
     repstr = (
         f"<Pool(minsize={constants.POOL_MIN_SIZE}, maxsize={constants.POOL_MAX_SIZE})"
-        f" object at 0x{id(pool):x}; status: {PoolStatuses.created}>"
+        f" object at 0x{id(pool):x}; status: {PoolStatus.created}>"
     )
     assert repr(pool) == repstr
 
@@ -40,13 +40,13 @@ async def test_pool_repr():
     async with pool:
         repstr = (
             f"<Pool(minsize={min_size}, maxsize={max_size}) "
-            f"object at 0x{id(pool):x}; status: {PoolStatuses.opened}>"
+            f"object at 0x{id(pool):x}; status: {PoolStatus.opened}>"
         )
         assert repr(pool) == repstr
 
     repstr = (
         f"<Pool(minsize={min_size}, maxsize={max_size}) "
-        f"object at 0x{id(pool):x}; status: {PoolStatuses.closed}>"
+        f"object at 0x{id(pool):x}; status: {PoolStatus.closed}>"
     )
     assert repr(pool) == repstr
 

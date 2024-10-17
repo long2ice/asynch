@@ -22,7 +22,7 @@ from asynch.proto.block import (
 from asynch.proto.compression import get_compressor_cls
 from asynch.proto.context import Context, ExecuteContext
 from asynch.proto.cs import ClientInfo, QueryKind, ServerInfo
-from asynch.proto.models.enums import CompressionAlgorithms, Schemes
+from asynch.proto.models.enums import ClickhouseScheme, CompressionAlgorithm
 from asynch.proto.progress import Progress
 from asynch.proto.protocol import ClientPacket, Compression, ServerPacket
 from asynch.proto.result import (
@@ -103,7 +103,7 @@ class Connection:
         self.hosts = [(host, port or default_port)]
         if alt_hosts:
             for host in alt_hosts.split(","):
-                url = urlparse(f"{Schemes.clickhouse}://" + host)
+                url = urlparse(f"{ClickhouseScheme.clickhouse}://" + host)
                 self.hosts.append((url.hostname, url.port or default_port))
         self.database = database
         self.host = None
@@ -129,7 +129,7 @@ class Connection:
         self.ssl_options = ssl_options
         # Use LZ4 compression by default.
         if compression is True:
-            compression = CompressionAlgorithms.lz4
+            compression = CompressionAlgorithm.lz4
 
         if compression is False:
             self.compression = Compression.DISABLED
