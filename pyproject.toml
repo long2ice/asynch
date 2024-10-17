@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "asynch"
-version = "0.2.4"
+version = "0.2.5"
 description = "An asyncio driver for ClickHouse with native TCP support"
 authors = ["long2ice <long2ice@gmail.com>"]
 license = "Apache-2.0"
