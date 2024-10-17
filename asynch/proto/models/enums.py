@@ -1,31 +1,31 @@
 from enum import Enum
 
 
-class CompressionAlgorithms(str, Enum):
+class CompressionAlgorithm(str, Enum):
     lz4 = "lz4"
     lz4hc = "lz4hc"
     zstd = "zstd"
 
 
-class ConnectionStatuses(str, Enum):
+class ConnectionStatus(str, Enum):
     created = "created"
     opened = "opened"
     closed = "closed"
 
 
-class CursorStatuses(str, Enum):
+class CursorStatus(str, Enum):
     ready = "ready"
     running = "running"
     finished = "finished"
     closed = "closed"
 
 
-class PoolStatuses(str, Enum):
+class PoolStatus(str, Enum):
     created = "created"
     opened = "opened"
     closed = "closed"
 
 
-class Schemes(str, Enum):
+class ClickhouseScheme(str, Enum):
     clickhouse = "clickhouse"
     clickhouses = "clickhouses"

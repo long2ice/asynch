@@ -9,7 +9,7 @@ from warnings import warn
 from asynch.connection import Connection, connect
 from asynch.errors import ClickHouseException
 from asynch.proto import constants
-from asynch.proto.models.enums import PoolStatuses
+from asynch.proto.models.enums import PoolStatus
 
 logger = logging.getLogger(__name__)
 
@@ -164,15 +164,15 @@ class Pool(asyncio.AbstractServer):
 
         :raise AsynchPoolError: an unresolved pool state.
         :return: the Pool object status
-        :rtype: str (PoolStatuses StrEnum)
+        :rtype: str (PoolStatus StrEnum)
         """
 
         if self._opened is None and self._closed is None:
-            return PoolStatuses.created
+            return PoolStatus.created
         if self._opened:
-            return PoolStatuses.opened
+            return PoolStatus.opened
         if self._closed:
-            return PoolStatuses.closed
+            return PoolStatus.closed
         raise AsynchPoolError(f"{self} is in an unknown state")
 
     @property

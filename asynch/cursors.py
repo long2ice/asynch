@@ -4,7 +4,7 @@ from typing import Optional
 from warnings import warn
 
 from asynch.errors import InterfaceError, ProgrammingError
-from asynch.proto.models.enums import CursorStatuses
+from asynch.proto.models.enums import CursorStatus
 
 Column = namedtuple("Column", "name type_code display_size internal_size precision scale null_ok")
 
@@ -15,7 +15,7 @@ class States:
     warn(
         (
             "Should not be used in the version 0.2.6 or later."
-            "Should be replaced with the reconsidered `CursorStatuses` enum "
+            "Should be replaced with the reconsidered `CursorStatus` enum "
             "from the `asynch.proto.models.enums` module."
         ),
         DeprecationWarning,
@@ -59,7 +59,7 @@ class Cursor:
         """Return the status of the cursor.
 
         :return: the Cursor object status
-        :rtype: str (CursorStatuses StrEnum)
+        :rtype: str (CursorStatus StrEnum)
         """
 
         return self._state
@@ -71,7 +71,7 @@ class Cursor:
         """Does nothing, required by DB API."""
 
     async def close(self):
-        self._state = CursorStatuses.closed
+        self._state = CursorStatus.closed
 
     async def execute(
         self,
@@ -141,7 +141,7 @@ class Cursor:
         if self._stream_results:
             try:
                 return await self._rows.next()
-            except:  # noqa: E722
+            except Exception:
                 return None
 
         if not self._rows:
@@ -188,7 +188,7 @@ class Cursor:
         Prepares a cursor object to handle another query.
         """
 
-        self._state = CursorStatuses.ready
+        self._state = CursorStatus.ready
 
         self._columns = None
         self._types = None
@@ -281,7 +281,7 @@ class Cursor:
 
     @property
     def description(self):
-        if self._state == CursorStatuses.ready:
+        if self._state == CursorStatus.ready:
             return None
 
         columns = self._columns or []
@@ -293,7 +293,7 @@ class Cursor:
         ]
 
     def _check_query_started(self):
-        if self._state == CursorStatuses.ready:
+        if self._state == CursorStatus.ready:
             raise ProgrammingError(f"no results to fetch from the {self}")
 
     def _check_query_executing(self):
@@ -303,14 +303,14 @@ class Cursor:
             )
 
     def _check_cursor_closed(self):
-        if self._state == CursorStatuses.closed:
+        if self._state == CursorStatus.closed:
             raise InterfaceError(f"the {self} is already closed")
 
     def _begin_query(self):
-        self._state = CursorStatuses.running
+        self._state = CursorStatus.running
 
     def _end_query(self):
-        self._state = CursorStatuses.finished
+        self._state = CursorStatus.finished
 
     def set_stream_results(self, stream_results, max_row_buffer):
         """

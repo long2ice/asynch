@@ -5,7 +5,7 @@ from asynch.cursors import Cursor
 from asynch.errors import NotSupportedError
 from asynch.proto import constants
 from asynch.proto.connection import Connection as ProtoConnection
-from asynch.proto.models.enums import ConnectionStatuses
+from asynch.proto.models.enums import ConnectionStatus
 from asynch.proto.utils.dsn import parse_dsn
 
 
@@ -134,15 +134,15 @@ class Connection:
 
         :raise ConnectionError: an unresolved connection state
         :return: the Connection object status
-        :rtype: str (ConnectionStatuses StrEnum)
+        :rtype: str (ConnectionStatus StrEnum)
         """
 
         if self._opened is None and self._closed is None:
-            return ConnectionStatuses.created
+            return ConnectionStatus.created
         if self._opened:
-            return ConnectionStatuses.opened
+            return ConnectionStatus.opened
         if self._closed:
-            return ConnectionStatuses.closed
+            return ConnectionStatus.closed
         raise ConnectionError(f"{self} is in an unknown state")
 
     @property

@@ -2,17 +2,17 @@ import ssl
 from typing import Any
 from urllib.parse import ParseResult, parse_qs, unquote, urlparse
 
-from asynch.proto.models.enums import CompressionAlgorithms, Schemes
+from asynch.proto.models.enums import ClickhouseScheme, CompressionAlgorithm
 from asynch.proto.utils.compat import asbool
 
 _SCHEME_SEPARATOR = "://"
 
 _COMPRESSION_ALGORITHMS: set[str] = {
-    CompressionAlgorithms.lz4,
-    CompressionAlgorithms.lz4hc,
-    CompressionAlgorithms.zstd,
+    CompressionAlgorithm.lz4,
+    CompressionAlgorithm.lz4hc,
+    CompressionAlgorithm.zstd,
 }
-_SUPPORTED_SCHEMES: set[str] = {Schemes.clickhouse, Schemes.clickhouses}
+_SUPPORTED_SCHEMES: set[str] = {ClickhouseScheme.clickhouse, ClickhouseScheme.clickhouses}
 _TIMEOUTS: set[str] = {"connect_timeout", "send_receive_timeout", "sync_request_timeout"}
 
 
@@ -68,7 +68,7 @@ def parse_dsn(dsn: str) -> dict[str, Any]:
     if path:
         kwargs["database"] = path
 
-    if url.scheme == Schemes.clickhouses:
+    if url.scheme == ClickhouseScheme.clickhouses:
         kwargs["secure"] = True
 
     for name, value in parse_qs(url.query).items():
