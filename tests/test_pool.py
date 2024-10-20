@@ -59,24 +59,29 @@ async def test_pool_connection_attributes(config):
     assert pool.connections == 0
     assert pool.free_connections == 0
     assert pool.acquired_connections == 0
+    assert pool.available_connections == constants.POOL_MAX_SIZE
 
     async with pool:
         assert pool.connections == constants.POOL_MIN_SIZE
         assert pool.free_connections == constants.POOL_MIN_SIZE
         assert pool.acquired_connections == 0
+        assert pool.available_connections == (constants.POOL_MAX_SIZE - constants.POOL_MIN_SIZE)
 
         async with pool.connection():
             assert pool.connections == constants.POOL_MIN_SIZE
             assert pool.free_connections == 0
             assert pool.acquired_connections == constants.POOL_MIN_SIZE
+            assert pool.available_connections == (constants.POOL_MAX_SIZE - constants.POOL_MIN_SIZE)
 
         assert pool.connections == constants.POOL_MIN_SIZE
         assert pool.free_connections == constants.POOL_MIN_SIZE
         assert pool.acquired_connections == 0
+        assert pool.available_connections == (constants.POOL_MAX_SIZE - constants.POOL_MIN_SIZE)
 
     assert pool.connections == 0
     assert pool.free_connections == 0
     assert pool.acquired_connections == 0
+    assert pool.available_connections == constants.POOL_MAX_SIZE
 
 
 @pytest.mark.asyncio

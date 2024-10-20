@@ -215,6 +215,20 @@ class Pool(asyncio.AbstractServer):
         return len(self._acquired_connections)
 
     @property
+    def available_connections(self) -> int:
+        """Returns the number of available connections in the pool.
+
+        The number of available connections means
+        those that can be acquired from the pool.
+        Equivalent to `pool.maxsize - pool.connections`.
+
+        :return: the number of connections available to be requested from the pool
+        :rtype: int
+        """
+
+        return self.maxsize - self.connections
+
+    @property
     def free_connections(self) -> int:
         """Returns the number of free connections in the pool.
 
