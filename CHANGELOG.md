@@ -2,6 +2,10 @@
 
 ## 0.2
 
+### 0.2.6
+
+- Add the `available_connections` property to the `Pool` class. The issue #121 by @itssimon. By @stankudrow in #122
+
 ### 0.2.5
 
 - Add more validation rules in the `parse_dsn` function. By @stankudrow in #113
