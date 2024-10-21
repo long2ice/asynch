@@ -118,6 +118,7 @@ class Pool(asyncio.AbstractServer):
         self._used: set[Connection] = set()
         self._cond = asyncio.Condition()
         self._closing = False
+        self._sem = asyncio.Semaphore(maxsize)
         self._lock = asyncio.Lock()
         self._acquired_connections: deque[Connection] = deque(maxlen=maxsize)
         self._free_connections: deque[Connection] = deque(maxlen=maxsize)
@@ -261,14 +262,14 @@ class Pool(asyncio.AbstractServer):
         if pool_size == maxsize:
             raise AsynchPoolError(f"{self} is already full")
         if pool_size > maxsize:
-            raise RuntimeError(f"{self} is overburden")
+            raise AsynchPoolError(f"{self} is overburden")
 
         conn = await connect(**self._connection_kwargs)
         self._free_connections.append(conn)
 
     async def _acquire_connection(self) -> Connection:
         if not self._free_connections:
-            raise AsynchPoolError(f"no free connection in the {self}")
+            raise AsynchPoolError(f"no free connection in {self}")
 
         conn = self._free_connections.popleft()
         self._acquired_connections.append(conn)
@@ -276,15 +277,21 @@ class Pool(asyncio.AbstractServer):
 
     async def _release_connection(self, conn: Connection) -> None:
         if conn not in self._acquired_connections:
-            raise AsynchPoolError(f"the connection {conn} does not belong to the {self}")
+            raise AsynchPoolError(f"the connection {conn} does not belong to {self}")
 
         self._acquired_connections.remove(conn)
         self._free_connections.append(conn)
 
-    async def _fill_with_connections(self, n: Optional[int] = None) -> None:
-        to_create = n if n else self.minsize
+    async def _init_connections(self, n: Optional[int] = None) -> None:
+        to_create = n if n is not None else self.minsize
         if to_create < 0:
-            raise ValueError(f"cannot create negative connections ({to_create}) for {self}")
+            msg = f"cannot create ({to_create}) negative connections for {self}"
+            raise ValueError()
+        if to_create == 0:
+            return
+        if (self.connections + to_create) > self._maxsize:
+            msg = f"cannot create {to_create} connections to exceed the size of {self}"
+            raise AsynchPoolError(msg)
         tasks: list[asyncio.Task] = [
             asyncio.create_task(self._create_connection()) for _ in range(to_create)
         ]
@@ -294,35 +301,46 @@ class Pool(asyncio.AbstractServer):
     async def connection(self) -> AsyncIterator[Connection]:
         """Get a connection from the pool.
 
-        :raises AsynchPoolError: if a connection cannot be acquired
-        :raises AsynchPoolError: if a connection cannot be released
+        If requested more connections than the pool can provide,
+        the pool gets blocked until a connection comes back.
+
+        :raises AsynchPoolError: if a connection cannot be acquired or released
 
         :return: a free connection from the pool
         :rtype: Connection
         """
 
-        async with self._lock:
-            if not self._free_connections:
-                to_create = min(self.minsize, self.maxsize - self.connections)
-                await self._fill_with_connections(to_create)
-            conn = await self._acquire_connection()
-        try:
-            yield conn
-        finally:
+        async with self._sem:
             async with self._lock:
-                await self._release_connection(conn)
+                if not self._free_connections:
+                    available_connections = self._maxsize - self.connections
+                    if available_connections < 0:
+                        msg = (
+                            f"the number of available connections ({available_connections}) "
+                            f"exceeds the max_size ({self._maxsize}) for {self}"
+                        )
+                        raise AsynchPoolError(msg)
+                    to_create = min(self._minsize, available_connections)
+                    await self._init_connections(to_create)
+                conn = await self._acquire_connection()
+            try:
+                yield conn
+            finally:
+                async with self._lock:
+                    await self._release_connection(conn)
 
     async def startup(self) -> "Pool":
         """Initialise the pool.
 
-        When entering the context, the pool get filled with connections
+        When entering the context,
+        the pool get filled with connections
         up to the pool `minsize` value.
         """
 
-        if self._opened:
-            return self
         async with self._lock:
-            await self._fill_with_connections(n=self.minsize)
+            if self._opened:
+                return self
+            await self._init_connections(self.minsize)
             self._opened = True
             if self._closed:
                 self._closed = False
@@ -332,7 +350,7 @@ class Pool(asyncio.AbstractServer):
         """Close the pool.
 
         This method closes consequently free connections first.
-        Then it does the same for the acquired/active connections.
+        Then it does the same for the acquired connections.
         Then the pool is marked closed.
         """
 
