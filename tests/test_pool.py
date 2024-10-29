@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from asynch.connection import Connection
-from asynch.pool import AsynchPoolError, Pool
+from asynch.pool import Pool
 from asynch.proto import constants
 from asynch.proto.models.enums import PoolStatus
 
@@ -86,26 +86,32 @@ async def test_pool_connection_management(get_tcp_connections):
     No dangling/unclosed connections must leave behind.
     """
 
-    conn = Connection()
-    init_tcps: int = await get_tcp_connections(conn)
+    async def _get_pool_connection(pool: Pool):
+        async with pool.connection():
+            pass
 
-    min_size, max_size = 1, 2
-    async with Pool(minsize=min_size, maxsize=max_size) as pool:
+    async with Connection() as conn:
+        init_tcps: int = await get_tcp_connections(conn)
+
+    async with Pool(minsize=1, maxsize=2) as pool:
         async with pool.connection():
             assert pool.free_connections == 0
-            assert pool.acquired_connections == min_size
-        assert pool.free_connections == min_size
+            assert pool.acquired_connections == 1
+        assert pool.free_connections == 1
         assert pool.acquired_connections == 0
 
         async with pool.connection() as cn1:
+            assert pool.free_connections == 0
+            assert pool.acquired_connections == 1
+
             async with pool.connection() as cn2:
                 assert pool.free_connections == 0
-                assert pool.acquired_connections == max_size
+                assert pool.acquired_connections == 2
 
-                # cannot acquire more than pool.maxsize
-                with pytest.raises(AsynchPoolError):
-                    async with pool.connection():
-                        pass
+                # It is possible to acquire more than pool.maxsize property.
+                # But the caller gets stuck while waiting for a free connection
+                with pytest.raises(asyncio.TimeoutError):
+                    await asyncio.wait_for(_get_pool_connection(pool), timeout=1.0)
 
                 # the returned connections are functional
                 async with cn1.cursor() as cur:
@@ -119,56 +125,28 @@ async def test_pool_connection_management(get_tcp_connections):
 
                 # the status quo has remained
                 assert pool.free_connections == 0
-                assert pool.acquired_connections == max_size
+                assert pool.acquired_connections == 2
 
             assert pool.free_connections == 1
             assert pool.acquired_connections == 1
 
-        assert pool.free_connections == max_size
+            async with pool.connection() as cn3:
+                assert pool.free_connections == 0
+                assert pool.acquired_connections == 2
+
+                async with cn3.cursor() as cur:
+                    await cur.execute("SELECT 84")
+                    ret = await cur.fetchone()
+                    assert ret == (84,)
+
+            assert pool.free_connections == 1
+            assert pool.acquired_connections == 1
+
+        assert pool.free_connections == 2
         assert pool.acquired_connections == 0
 
-    assert init_tcps == await get_tcp_connections(conn)
-    await conn.close()
-
-
-@pytest.mark.asyncio
-async def test_pool_reuse(get_tcp_connections):
-    """Tests connection pool reusability."""
-
-    async def _test_pool(pool: Pool):
-        async with pool.connection() as cn1_ctx:
-            assert pool.acquired_connections == pool.minsize
-            assert pool.free_connections == 0
-            assert pool.connections == pool.minsize
-
-            async with pool.connection() as cn2_ctx:
-                async with cn1_ctx.cursor() as cur:
-                    await cur.execute("SELECT 21")
-                    ret = await cur.fetchone()
-                    assert ret == (21,)
-                async with cn2_ctx.cursor() as cur:
-                    await cur.execute("SELECT 42")
-                    ret = await cur.fetchone()
-                    assert ret == (42,)
-                assert pool.acquired_connections == pool.maxsize
-                assert pool.free_connections == 0
-                assert pool.connections == pool.maxsize
-
-            assert pool.acquired_connections == pool.minsize
-            assert pool.free_connections == pool.minsize
-            assert pool.connections == pool.maxsize
-
-    conn = Connection()
-    init_tcps: int = await get_tcp_connections(conn)
-
-    min_size, max_size = 1, 2
-    pool = Pool(minsize=min_size, maxsize=max_size)
-
-    for _ in range(2):
-        async with pool:
-            await _test_pool(pool)
-        assert await get_tcp_connections(conn) <= init_tcps
-    await conn.close()
+    async with Connection() as conn:
+        assert init_tcps == await get_tcp_connections(conn)
 
 
 @pytest.mark.asyncio
@@ -188,11 +166,11 @@ async def test_pool_concurrent_connection_management(get_tcp_connections):
                 assert ret == (selectee,)
                 return selectee
 
-    conn = Connection()
-    init_tcps: int = await get_tcp_connections(conn)
+    async with Connection() as conn:
+        init_tcps: int = await get_tcp_connections(conn)
 
     min_size, max_size = 10, 21
-    selectees = list(range(min_size, max_size))
+    selectees = list(range(min_size, max_size + 1))  # exceeding the maxsize
     answers: list[int] = []
     async with Pool(minsize=min_size, maxsize=max_size) as pool:
         tasks: list[asyncio.Task] = [
@@ -201,7 +179,8 @@ async def test_pool_concurrent_connection_management(get_tcp_connections):
         ]
         answers = await asyncio.gather(*tasks)
 
-    assert await get_tcp_connections(conn) <= init_tcps
-    await conn.close()
+    async with Connection() as conn:
+        noc = await get_tcp_connections(conn)
+        assert noc == init_tcps
 
     assert selectees == answers

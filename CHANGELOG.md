@@ -2,6 +2,10 @@
 
 ## 0.2
 
+### 0.2.6
+
+- Allow requesting more connections from a `Pool` object without raising AsynchPoolError("no free connections"). The issue #121 by @itssimon. By @stankudrow in #124
+
 ### 0.2.5
 
 - Add more validation rules in the `parse_dsn` function. By @stankudrow in #113
