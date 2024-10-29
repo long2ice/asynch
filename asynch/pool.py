@@ -258,7 +258,7 @@ class Pool(asyncio.AbstractServer):
         return self._cond
 
     async def _create_connection(self) -> None:
-        pool_size, maxsize = self.connections, self._maxsize
+        pool_size, maxsize = self.connections, self.maxsize
         if pool_size == maxsize:
             raise AsynchPoolError(f"{self} is already full")
         if pool_size > maxsize:
@@ -283,13 +283,13 @@ class Pool(asyncio.AbstractServer):
         self._free_connections.append(conn)
 
     async def _init_connections(self, n: Optional[int] = None) -> None:
-        to_create = n if n is not None else self._minsize
+        to_create = n if n is not None else self.minsize
         if to_create < 0:
             msg = f"cannot create ({to_create}) negative connections for {self}"
-            raise ValueError()
+            raise ValueError(msg)
         if to_create == 0:
             return
-        if (self.connections + to_create) > self._maxsize:
+        if (self.connections + to_create) > self.maxsize:
             msg = f"cannot create {to_create} connections to exceed the size of {self}"
             raise AsynchPoolError(msg)
         tasks: list[asyncio.Task] = [
@@ -313,7 +313,7 @@ class Pool(asyncio.AbstractServer):
         async with self._sem:
             async with self._lock:
                 if not self._free_connections:
-                    conns, maxsize = self.connections, self._maxsize
+                    conns, maxsize = self.connections, self.maxsize
                     avail = maxsize - conns
                     if (maxsize - conns) < 0:
                         msg = (
@@ -321,7 +321,7 @@ class Pool(asyncio.AbstractServer):
                             f"exceeds the pool maxsize ({maxsize}) for {self}"
                         )
                         raise AsynchPoolError(msg)
-                    to_create = min(self._minsize, avail)
+                    to_create = min(self.minsize, avail)
                     await self._init_connections(to_create)
                 conn = await self._acquire_connection()
             try:
@@ -341,7 +341,7 @@ class Pool(asyncio.AbstractServer):
         async with self._lock:
             if self._opened:
                 return self
-            await self._init_connections(self._minsize)
+            await self._init_connections(self.minsize)
             self._opened = True
             if self._closed:
                 self._closed = False
