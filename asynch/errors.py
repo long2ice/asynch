@@ -568,3 +568,7 @@ class NotSupportedError(DatabaseError):
 
     It must be a subclass of DatabaseError.
     """
+
+
+class AsynchPoolError(ClickHouseException):
+    pass
