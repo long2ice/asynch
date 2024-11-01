@@ -1,7 +1,6 @@
 import logging
 from collections import namedtuple
 from typing import Optional
-from warnings import warn
 
 from asynch.errors import InterfaceError, ProgrammingError
 from asynch.proto.models.enums import CursorStatus
@@ -9,18 +8,6 @@ from asynch.proto.models.enums import CursorStatus
 Column = namedtuple("Column", "name type_code display_size internal_size precision scale null_ok")
 
 logger = logging.getLogger(__name__)
-
-
-class States:
-    warn(
-        (
-            "Should not be used in the version 0.2.6 or later."
-            "Should be replaced with the reconsidered `CursorStatus` enum "
-            "from the `asynch.proto.models.enums` module."
-        ),
-        DeprecationWarning,
-    )
-    (NONE, RUNNING, FINISHED, CURSOR_CLOSED) = range(4)
 
 
 class Cursor:
