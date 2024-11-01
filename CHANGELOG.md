@@ -4,6 +4,7 @@
 
 ### 0.2.6
 
+- Remove obsolete API from `cursor.py` module. By @stankudrow in #125.
 - Remove obsolete `Pool` API. By @stankudrow in #120.
 - Allow requesting more connections from a `Pool` object without raising AsynchPoolError("no free connections"). The issue #121 by @itssimon. By @stankudrow in #124
 
