@@ -64,10 +64,7 @@ async def test_close_disconnected_connection(proxy):
 async def reader_to_writer(name: str, graceful: bool, reader: StreamReader, writer: StreamWriter):
     while True:
         try:
-            if not name == "DST->SRC":
-                data = await asyncio.wait_for(reader.read(2 ** 12), timeout=TIMEOUT_SECONDS)
-            else:
-                data = await reader.read(2 ** 12)
+            data = await asyncio.wait_for(reader.read(2 ** 12), timeout=TIMEOUT_SECONDS)
 
             if not data:
                 break
