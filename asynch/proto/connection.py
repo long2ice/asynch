@@ -331,6 +331,11 @@ class Connection:
             if isinstance(e, RuntimeError) and "TCPTransport closed=True" not in str(e):
                 raise e
             logger.debug("Socket closed", exc_info=e)
+            if isinstance(e, ConnectionError):
+                self.connected = False
+            return False
+        except UnexpectedPacketFromServerError as e:
+            logger.debug(e.message, exc_info=e)
             return False
 
     async def receive_data(self, raw=False):
@@ -562,7 +567,11 @@ class Connection:
 
     async def disconnect(self):
         if self.connected:
-            await self.writer.close()
+            try:
+                await self.writer.close()
+            except ConnectionError as e:
+                logger.debug("Socket closed", exc_info=e)
+
             self.reset_state()
             self.connected = False
 
@@ -751,7 +760,7 @@ class Connection:
             await self.connect()
 
         elif not await self.ping():
-            logger.warning("Connection was closed, reconnecting.")
+            logger.info("Connection was closed, reconnecting.")
             await self.connect()
 
     async def process_ordinary_query(
