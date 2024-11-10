@@ -304,6 +304,10 @@ class Connection:
 
     async def ping(self) -> bool:
         try:
+            if self.reader.reader.at_eof():
+                logger.debug("Connection closed by remote")
+                return False
+
             await self.writer.write_varint(ClientPacket.PING)
             await self.writer.flush()
             packet_type = await self.reader.read_varint()

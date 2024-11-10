@@ -1,3 +1,4 @@
+import logging
 import struct
 from asyncio import StreamReader, StreamWriter
 
