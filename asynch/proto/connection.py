@@ -310,7 +310,11 @@ class Connection:
             while packet_type == ServerPacket.PROGRESS:
                 await self.receive_progress()
                 packet_type = await self.reader.read_varint()
-            if packet_type != ServerPacket.PONG:
+            if packet_type is None:
+                logger.debug("Connection closed")
+                await self.disconnect()
+                return False
+            elif packet_type != ServerPacket.PONG:
                 msg = self.unexpected_packet_message("Pong", packet_type)
                 raise UnexpectedPacketFromServerError(msg)
             return True
@@ -333,9 +337,6 @@ class Connection:
             logger.debug("Socket closed", exc_info=e)
             if isinstance(e, ConnectionError):
                 self.connected = False
-            return False
-        except UnexpectedPacketFromServerError as e:
-            logger.debug(e.message, exc_info=e)
             return False
 
     async def receive_data(self, raw=False):

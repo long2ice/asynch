@@ -142,7 +142,11 @@ class BufferedReader:
             packets.append(packet)
             if packet < 0x80:
                 break
-        return leb128.u.decode(packets)
+
+        if packets:
+            return leb128.u.decode(packets)
+        else:
+            return None
 
     async def read_bytes(self, length: int):
         packets = bytearray()
