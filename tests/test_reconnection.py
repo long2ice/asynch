@@ -14,17 +14,21 @@ logger = logging.getLogger(__name__)
 TIMEOUT_SECONDS = 1
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=["graceful", "ungraceful"])
 async def proxy(request):
-    handler = functools.partial(handle_proxy, 9000, request.param)
+    """Start a proxy server from port 9001 to 9000 that kills the connection after it idled for TIMEOUT_SECONDS seconds.
+    It can kill the connection either gracefully (TCP FIN packet), or ungracefully (TCP RST packet)."""
+
+    handler = functools.partial(handle_proxy, 9000, request.param == "graceful")
     server = await asyncio.start_server(handler, host="localhost", port=9001)
     logger.info('Started proxy server')
-    try:
-        async with server:
+    async with server:
+        try:
             server = asyncio.create_task(server.serve_forever())
             yield
-    finally:
-        server.cancel()
+        finally:
+            server.cancel()
+    await asyncio.sleep(0.1)  # Avoids error "Task was destroyed but it is pending!"
 
 
 @pytest.mark.asyncio
