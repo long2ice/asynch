@@ -311,7 +311,7 @@ class Connection:
                 await self.receive_progress()
                 packet_type = await self.reader.read_varint()
             if packet_type is None:
-                logger.debug("Connection closed")
+                logger.debug("Connection closed by remote")
                 await self.disconnect()
                 return False
             elif packet_type != ServerPacket.PONG:
@@ -334,9 +334,9 @@ class Connection:
             # because this is a connection loss case
             if isinstance(e, RuntimeError) and "TCPTransport closed=True" not in str(e):
                 raise e
-            logger.debug("Socket closed", exc_info=e)
             if isinstance(e, ConnectionError):
                 self.connected = False
+            logger.debug("Socket closed", exc_info=e)
             return False
 
     async def receive_data(self, raw=False):

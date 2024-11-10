@@ -98,6 +98,9 @@ class ServerPacket:
 
     @classmethod
     def to_str(cls, packet):
+        if packet is None:
+            return "Connection closed by remote"
+
         return "Unknown packet" if packet > 14 else cls._types_str[packet]
 
     @classmethod
