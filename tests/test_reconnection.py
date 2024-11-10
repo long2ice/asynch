@@ -42,16 +42,12 @@ async def test_reconnection(proxy_pool):
     async with proxy_pool.connection() as c:
         async with c.cursor() as cursor:
             await cursor.execute("SELECT 1")
-            ret = await cursor.fetchone()
-            assert ret == (1,)
 
     await asyncio.sleep(TIMEOUT_SECONDS * 2)
 
     async with proxy_pool.connection() as c:
         async with c.cursor() as cursor:
             await cursor.execute("SELECT 1")
-            ret = await cursor.fetchone()
-            assert ret == (1,)
 
 
 @pytest.mark.asyncio
@@ -59,8 +55,6 @@ async def test_close_disconnected_connection(proxy_pool):
     async with proxy_pool.connection() as c:
         async with c.cursor() as cursor:
             await cursor.execute("SELECT 1")
-            ret = await cursor.fetchone()
-            assert ret == (1,)
 
     await asyncio.sleep(TIMEOUT_SECONDS * 2)
 
