@@ -306,6 +306,7 @@ class Connection:
         try:
             if self.reader.reader.at_eof():
                 logger.debug("Connection closed by remote")
+                await self.disconnect()
                 return False
 
             await self.writer.write_varint(ClientPacket.PING)

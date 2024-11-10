@@ -108,7 +108,6 @@ class Cursor:
 
     async def executemany(self, query, args=None, context=None):
         self._check_cursor_closed()
-
         self._check_query_executing()
         self._begin_query()
 
