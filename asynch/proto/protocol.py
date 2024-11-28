@@ -78,6 +78,7 @@ class ServerPacket:
 
     # Packet with profile events from server.
     PROFILE_EVENTS = 14
+
     _types_str = [
         "Hello",
         "Data",

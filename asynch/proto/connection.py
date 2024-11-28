@@ -305,7 +305,7 @@ class Connection:
     async def ping(self) -> bool:
         try:
             if self.reader.reader.at_eof():
-                logger.debug("Connection closed by remote")
+                logger.debug("%s at EOF", self.reader)
                 await self.disconnect()
                 return False
 
@@ -315,17 +315,12 @@ class Connection:
             while packet_type == ServerPacket.PROGRESS:
                 await self.receive_progress()
                 packet_type = await self.reader.read_varint()
-            if packet_type is None:
-                logger.debug("Connection closed by remote")
-                await self.disconnect()
-                return False
-            elif packet_type != ServerPacket.PONG:
+            if packet_type != ServerPacket.PONG:
                 msg = self.unexpected_packet_message("Pong", packet_type)
                 raise UnexpectedPacketFromServerError(msg)
             return True
         except AttributeError:
             logger.debug("The connection %s is not open", self)
-            return False
         except IndexError as e:
             logger.debug(
                 "Ping package smaller than expected or empty. "
@@ -333,16 +328,13 @@ class Connection:
                 "we believe that the connection is incorrect.",
                 exc_info=e,
             )
-            return False
         except (ConnectionError, OSError, RuntimeError) as e:
             # If raised RuntimeError with "TCPTransport the handler is closed" - just returning false,
             # because this is a connection loss case
             if isinstance(e, RuntimeError) and "TCPTransport closed=True" not in str(e):
                 raise e
-            if isinstance(e, ConnectionError):
-                self.connected = False
             logger.debug("Socket closed", exc_info=e)
-            return False
+        return False
 
     async def receive_data(self, raw=False):
         revision = self.server_info.revision

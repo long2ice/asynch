@@ -3,6 +3,7 @@ from asyncio import StreamReader, StreamWriter
 
 import leb128
 
+from asynch.errors import OperationalError
 from asynch.proto import constants
 from asynch.proto.compression import BaseCompressor, get_decompressor_cls
 
@@ -145,8 +146,8 @@ class BufferedReader:
 
         if packets:
             return leb128.u.decode(packets)
-        else:
-            return None
+        msg = "Failed to read data from socket. Likely the connection was closed by the remote."
+        raise OperationalError(msg)
 
     async def read_bytes(self, length: int):
         packets = bytearray()
