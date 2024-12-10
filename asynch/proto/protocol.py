@@ -78,6 +78,7 @@ class ServerPacket:
 
     # Packet with profile events from server.
     PROFILE_EVENTS = 14
+
     _types_str = [
         "Hello",
         "Data",
@@ -98,6 +99,9 @@ class ServerPacket:
 
     @classmethod
     def to_str(cls, packet):
+        if packet is None:
+            return "Connection closed by remote"
+
         return "Unknown packet" if packet > 14 else cls._types_str[packet]
 
     @classmethod

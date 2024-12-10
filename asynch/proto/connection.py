@@ -304,6 +304,11 @@ class Connection:
 
     async def ping(self) -> bool:
         try:
+            if self.reader.reader.at_eof():
+                logger.debug("%s at EOF", self.reader)
+                await self.disconnect()
+                return False
+
             await self.writer.write_varint(ClientPacket.PING)
             await self.writer.flush()
             packet_type = await self.reader.read_varint()
@@ -316,7 +321,6 @@ class Connection:
             return True
         except AttributeError:
             logger.debug("The connection %s is not open", self)
-            return False
         except IndexError as e:
             logger.debug(
                 "Ping package smaller than expected or empty. "
@@ -324,14 +328,13 @@ class Connection:
                 "we believe that the connection is incorrect.",
                 exc_info=e,
             )
-            return False
         except (ConnectionError, OSError, RuntimeError) as e:
             # If raised RuntimeError with "TCPTransport the handler is closed" - just returning false,
             # because this is a connection loss case
             if isinstance(e, RuntimeError) and "TCPTransport closed=True" not in str(e):
                 raise e
             logger.debug("Socket closed", exc_info=e)
-            return False
+        return False
 
     async def receive_data(self, raw=False):
         revision = self.server_info.revision
@@ -562,7 +565,11 @@ class Connection:
 
     async def disconnect(self):
         if self.connected:
-            await self.writer.close()
+            try:
+                await self.writer.close()
+            except ConnectionError as e:
+                logger.debug("Socket closed", exc_info=e)
+
             self.reset_state()
             self.connected = False
 
@@ -751,7 +758,7 @@ class Connection:
             await self.connect()
 
         elif not await self.ping():
-            logger.warning("Connection was closed, reconnecting.")
+            logger.info("Connection was closed, reconnecting.")
             await self.connect()
 
     async def process_ordinary_query(
