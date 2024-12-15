@@ -70,7 +70,7 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
     ],
 )
 def test_dsn_basic_credentials(
-    dsn: str, ctx: Optional[ContextManager], answer: Optional[dict[str, Any]]
+    dsn: str, ctx: ContextManager, answer: Optional[dict[str, Any]]
 ) -> None:
     with ctx:
         result = parse_dsn(dsn=dsn)

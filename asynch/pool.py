@@ -12,7 +12,7 @@ from asynch.proto.models.enums import PoolStatus
 logger = logging.getLogger(__name__)
 
 
-class Pool(asyncio.AbstractServer):
+class Pool:
     def __init__(
         self,
         minsize: int = constants.POOL_MIN_SIZE,

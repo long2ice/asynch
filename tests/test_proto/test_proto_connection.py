@@ -1,11 +1,12 @@
 import re
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import AsyncIterator, cast
 from unittest.mock import patch
 
 import pytest
 
 from asynch.proto.connection import Connection as ProtoConnection
+from asynch.proto.cs import ServerInfo
 
 
 @pytest.fixture()
@@ -25,10 +26,12 @@ async def proto_conn(config) -> AsyncIterator[ProtoConnection]:
 @pytest.mark.asyncio
 async def test_connect(proto_conn: ProtoConnection):
     assert proto_conn.connected
-    assert proto_conn.server_info.name == "ClickHouse"
-    assert proto_conn.server_info.timezone == "UTC"
-    assert re.match(r"\w+", proto_conn.server_info.display_name)
-    assert isinstance(proto_conn.server_info.version_patch, int)
+
+    server_info = cast(ServerInfo, proto_conn.server_info)
+    assert server_info.name == "ClickHouse"
+    assert server_info.timezone == "UTC"
+    assert re.match(r"\w+", server_info.display_name)
+    assert isinstance(server_info.version_patch, int)
 
 
 @pytest.mark.asyncio
