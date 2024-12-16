@@ -1,7 +1,8 @@
 import asyncio
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from os import environ
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
 
 import pytest
 
@@ -43,7 +44,7 @@ def config() -> Config:
         user=CONNECTION_USER,
         password=CONNECTION_PASSWORD,
         host=CONNECTION_HOST,
-        port=CONNECTION_PORT,
+        port=int(CONNECTION_PORT),
         database=CONNECTION_DB,
     )
 
@@ -107,7 +108,7 @@ async def conn() -> AsyncIterator[Connection]:
 
 
 @pytest.fixture(scope="function")
-async def get_tcp_connections():
+async def get_tcp_connections() -> Callable[[Connection], Coroutine[Any, Any, int]]:
     async def _get_tcp_connections(connection: Connection) -> int:
         stmt = "SELECT * FROM system.metrics WHERE metric = 'TCPConnection'"
         async with connection.cursor() as cur:

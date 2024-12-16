@@ -1,3 +1,6 @@
+from typing import Union
+
+
 class ErrorCode:
     UNSUPPORTED_METHOD = 1
     UNSUPPORTED_PARAMETER = 2
@@ -398,7 +401,7 @@ class Error(Exception):
 
 
 class ClickHouseException(Error):
-    code = None
+    code: Union[None, int] = None
 
     def __init__(self, message=None):
         self.message = message

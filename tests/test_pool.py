@@ -91,7 +91,7 @@ async def test_pool_connection_management(get_tcp_connections):
             pass
 
     async with Connection() as conn:
-        init_tcps: int = await get_tcp_connections(conn)
+        init_tcps = await get_tcp_connections(conn)
 
     async with Pool(minsize=1, maxsize=2) as pool:
         async with pool.connection():
@@ -167,13 +167,13 @@ async def test_pool_concurrent_connection_management(get_tcp_connections):
                 return selectee
 
     async with Connection() as conn:
-        init_tcps: int = await get_tcp_connections(conn)
+        init_tcps = await get_tcp_connections(conn)
 
     min_size, max_size = 10, 21
     selectees = list(range(min_size, max_size + 1))  # exceeding the maxsize
-    answers: list[int] = []
+    answers = []
     async with Pool(minsize=min_size, maxsize=max_size) as pool:
-        tasks: list[asyncio.Task] = [
+        tasks = [
             asyncio.create_task(_test_pool_connection(pool=pool, selectee=selectee))
             for selectee in selectees
         ]

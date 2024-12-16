@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "asynch"
-version = "0.2.5"
+version = "0.3.0"
 description = "An asyncio driver for ClickHouse with native TCP support"
 authors = ["long2ice <long2ice@gmail.com>"]
 license = "Apache-2.0"
@@ -9,7 +9,10 @@ homepage = "https://github.com/long2ice/asynch"
 repository = "https://github.com/long2ice/asynch.git"
 documentation = "https://github.com/long2ice/asynch"
 keywords = ["asyncio", "clickhouse", "python", "driver"]
-packages = [{ include = "asynch" }]
+packages = [
+    { include = "asynch" },
+    { include = "asynch/py.typed" }
+]
 include = ["LICENSE", "README.md", "CHANGELOG.md"]
 
 [tool.poetry.dependencies]
@@ -30,8 +33,11 @@ bandit = "*"
 black = "*"
 clickhouse-driver = "*"
 isort = "*"
-ruff = "*"
 uvloop = "*"
+
+[tool.poetry.group.lint.dependencies]
+mypy = "^1.13.0"
+ruff = "^0.7.3"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.4.4"
@@ -39,7 +45,6 @@ pytest-asyncio = "^0.23.8"
 pytest-mock = "^3.14.0"
 pytest-random-order = "^1.1.1"
 pytest-xdist = "^3.6.1"
-
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
@@ -51,6 +56,15 @@ target-version = ['py39', 'py310', 'py311']
 
 [tool.isort]
 profile = "black"
+
+[tool.mypy]
+check_untyped_defs = true
+no_implicit_optional = true
+no_implicit_reexport = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_configs = true
 
 [tool.pytest.ini_options]
 addopts = "--maxfail=1 -s -vvv --random-order"
