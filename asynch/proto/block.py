@@ -203,15 +203,11 @@ class RowOrientedBlock(BaseBlock):
 
     def _check_row_type(self, row):
         if not isinstance(row, self.supported_row_types):
-            raise TypeError(
-                f"Unsupported row type: {type(row)}. dict, list or tuple is expected."
-            )
+            raise TypeError(f"Unsupported row type: {type(row)}. dict, list or tuple is expected.")
 
     def _check_tuple_row_type(self, row):
         if not isinstance(row, self.tuple_row_types):
-            raise TypeError(
-                f"Unsupported row type: {type(row)}. list or tuple is expected."
-            )
+            raise TypeError(f"Unsupported row type: {type(row)}. list or tuple is expected.")
 
     def _check_dict_row_type(self, row):
         if not isinstance(row, self.dict_row_types):

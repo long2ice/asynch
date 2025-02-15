@@ -37,9 +37,7 @@ class EnumColumn(IntColumn):
                 )
                 enum_str = f"{enum_cls.__name__}({choices})"
 
-                raise LogicalError(
-                    f"Unknown element '{source_value}' for type {enum_str}"
-                )
+                raise LogicalError(f"Unknown element '{source_value}' for type {enum_str}")
 
     def after_read_items(self, items, nulls_map=None):
         enum_cls = self.enum_cls

@@ -1,5 +1,4 @@
 import logging
-from typing import Dict
 
 from asynch.proto.settings.available import settings as available_settings
 from asynch.proto.streams.buffered import BufferedWriter

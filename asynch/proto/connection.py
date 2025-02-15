@@ -1,10 +1,10 @@
 import asyncio
 import logging
 import ssl
+from collections.abc import AsyncGenerator
 from time import time
 from types import GeneratorType
 from typing import Optional, Union
-from collections.abc import AsyncGenerator
 from urllib.parse import urlparse
 
 from asynch.errors import (

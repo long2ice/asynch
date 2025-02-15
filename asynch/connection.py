@@ -1,4 +1,4 @@
-from typing import Optional, Type
+from typing import Optional
 from warnings import warn
 
 from asynch.cursors import Cursor

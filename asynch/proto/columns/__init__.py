@@ -183,8 +183,7 @@ async def write_column(
 
     except ColumnTypeMismatchException as e:
         raise TypeMismatchError(
-            "Type mismatch in VALUES section. "
-            'Expected {} got {}: {} for column "{}".'.format(
+            "Type mismatch in VALUES section. " 'Expected {} got {}: {} for column "{}".'.format(
                 column_spec, type(e.args[0]), e.args[0], column_name
             )
         )

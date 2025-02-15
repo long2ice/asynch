@@ -1,5 +1,5 @@
 import importlib
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 from asynch.errors import ChecksumDoesntMatchError, UnknownCompressionMethod
 from asynch.proto.protocol import CompressionMethodByte
