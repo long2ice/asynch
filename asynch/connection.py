@@ -190,7 +190,7 @@ class Connection:
             if self._closed is True:
                 self._closed = False
 
-    def cursor(self, cursor: Optional[Type[Cursor]] = None, *, echo: bool = False) -> Cursor:
+    def cursor(self, cursor: Optional[type[Cursor]] = None, *, echo: bool = False) -> Cursor:
         """Return the cursor object for the connection.
 
         When a parameter is interpreted as True,

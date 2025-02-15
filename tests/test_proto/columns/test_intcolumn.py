@@ -277,6 +277,6 @@ async def test_int_column(conn, spec, data, expected, context, select_sql, expec
 )
 async def test_int_column_write_data(column_options, spec, expected):
     column = get_column_by_spec(spec, column_options)
-    await column.write_items(([42 * (1 if spec.startswith("U") else -1)]))
+    await column.write_items([42 * (1 if spec.startswith("U") else -1)])
 
     assert len(column.writer.buffer) == expected

@@ -214,7 +214,7 @@ class CompressedBufferedWriter(BufferedWriter):
         max_buffer_size: int = constants.BUFFER_SIZE,
     ):
         self.compressor = compressor
-        super(CompressedBufferedWriter, self).__init__(writer, max_buffer_size)
+        super().__init__(writer, max_buffer_size)
 
     async def flush(self):
         await self.compressor.write(self.buffer)
@@ -229,7 +229,7 @@ class CompressedBufferedReader(BufferedReader):
         buffer_max_size: int = constants.BUFFER_SIZE,
     ):
         self.raw_reader = raw_reader
-        super(CompressedBufferedReader, self).__init__(reader, buffer_max_size)
+        super().__init__(reader, buffer_max_size)
 
     async def _read_compressed_data(self):
         compressed_hash = await self.raw_reader.read_uint128()

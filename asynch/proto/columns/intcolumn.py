@@ -9,7 +9,7 @@ class IntColumn(FormatColumn):
     int_size = None
 
     def __init__(self, types_check=False, **kwargs):
-        super(IntColumn, self).__init__(types_check=types_check, **kwargs)
+        super().__init__(types_check=types_check, **kwargs)
 
         if types_check:
             self.mask = (1 << 8 * self.int_size) - 1
@@ -38,7 +38,7 @@ class IntColumn(FormatColumn):
 
 class UIntColumn(IntColumn):
     def __init__(self, types_check=False, **kwargs):
-        super(UIntColumn, self).__init__(types_check=types_check, **kwargs)
+        super().__init__(types_check=types_check, **kwargs)
 
         if types_check:
 

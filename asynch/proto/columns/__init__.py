@@ -142,7 +142,7 @@ def get_column_by_spec(spec, column_options):
             return cls(**column_options)
 
         except KeyError as e:
-            raise UnknownTypeError("Unknown type {}".format(e.args[0]))
+            raise UnknownTypeError(f"Unknown type {e.args[0]}")
 
 
 async def read_column(

@@ -18,7 +18,7 @@ class DateTimeColumn(FormatColumn):
     def __init__(self, timezone=None, offset_naive=True, **kwargs):
         self.timezone = timezone
         self.offset_naive = offset_naive
-        super(DateTimeColumn, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def after_read_items(self, items, nulls_map=None):
         tz = self.timezone
@@ -94,7 +94,7 @@ class DateTime64Column(DateTimeColumn):
 
     def __init__(self, scale=0, **kwargs):
         self.scale = scale
-        super(DateTime64Column, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def after_read_items(self, items, nulls_map=None):
         scale = float(10**self.scale)

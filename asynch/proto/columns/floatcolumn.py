@@ -13,7 +13,7 @@ class Float32(FloatColumn):
     format = "f"
 
     def __init__(self, types_check=False, **kwargs):
-        super(Float32, self).__init__(types_check=types_check, **kwargs)
+        super().__init__(types_check=types_check, **kwargs)
 
         if types_check:
             # Chop only bytes that fit current type.

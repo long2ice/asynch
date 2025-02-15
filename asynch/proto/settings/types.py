@@ -50,4 +50,4 @@ class SettingMaxThreads(SettingUInt64):
     async def write(cls, writer, value):
         if value == "auto":
             value = 0
-        await super(SettingMaxThreads, cls).write(writer, value)
+        await super().write(writer, value)

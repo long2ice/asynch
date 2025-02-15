@@ -59,7 +59,7 @@ class IPv4Column(UInt32Column):
 
                 items[i] = int(item)
             except AddressValueError:
-                raise CannotParseDomainError("Cannot parse IPv4 '{}'".format(item))
+                raise CannotParseDomainError(f"Cannot parse IPv4 '{item}'")
 
 
 class IPv6Column(ByteFixedString):
@@ -110,4 +110,4 @@ class IPv6Column(ByteFixedString):
                     item = IPv6Address(item)
                 items[i] = item.packed
             except AddressValueError:
-                raise CannotParseDomainError("Cannot parse IPv6 '{}'".format(item))
+                raise CannotParseDomainError(f"Cannot parse IPv6 '{item}'")

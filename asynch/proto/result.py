@@ -1,4 +1,4 @@
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from asynch.proto.block import BlockStreamProfileInfo
 from asynch.proto.progress import Progress
@@ -96,7 +96,7 @@ class ProgressQueryResult(QueryResult):
         for _ in self:
             pass
 
-        return await super(ProgressQueryResult, self).get_result()
+        return await super().get_result()
 
 
 class IterQueryResult:

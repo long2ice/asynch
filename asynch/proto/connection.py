@@ -3,7 +3,8 @@ import logging
 import ssl
 from time import time
 from types import GeneratorType
-from typing import AsyncGenerator, Optional, Union
+from typing import Optional, Union
+from collections.abc import AsyncGenerator
 from urllib.parse import urlparse
 
 from asynch.errors import (
@@ -226,7 +227,7 @@ class Connection:
         await self.writer.flush()
 
     def get_server(self):
-        return "{}:{}".format(self.host, self.port)
+        return f"{self.host}:{self.port}"
 
     def unexpected_packet_message(self, expected, packet_type):
         packet_type = ServerPacket.to_str(packet_type)
@@ -470,7 +471,7 @@ class Connection:
         else:
             await self.disconnect()
             raise UnknownPacketFromServerError(
-                "Unknown packet {} from server {}".format(packet_type, self.get_server())
+                f"Unknown packet {packet_type} from server {self.get_server()}"
             )
 
         return packet

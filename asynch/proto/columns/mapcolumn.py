@@ -16,7 +16,7 @@ class MapColumn(Column):
         self.offset_column = UInt64Column(**kwargs)
         self.key_column = key_column
         self.value_column = value_column
-        super(MapColumn, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     async def read_state_prefix(self):
         await self.key_column.read_state_prefix()

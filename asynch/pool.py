@@ -2,7 +2,8 @@ import asyncio
 import logging
 from collections import deque
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, Optional
+from typing import Optional
+from collections.abc import AsyncIterator
 
 from asynch.connection import Connection, connect
 from asynch.errors import AsynchPoolError

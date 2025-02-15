@@ -13,7 +13,7 @@ def column_chunks(columns, n):
     for column in columns:
         if not isinstance(column, (list, tuple)):
             raise TypeError(
-                "Unsupported column type: {}. list or tuple is expected.".format(type(column))
+                f"Unsupported column type: {type(column)}. list or tuple is expected."
             )
 
     # create chunk generator for every column

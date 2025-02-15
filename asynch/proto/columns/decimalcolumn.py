@@ -12,7 +12,7 @@ class DecimalColumn(FormatColumn):
     def __init__(self, precision, scale, types_check=False, **kwargs):
         self.precision = precision
         self.scale = scale
-        super(DecimalColumn, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         if types_check:
 
@@ -70,12 +70,12 @@ class DecimalColumn(FormatColumn):
     ):
         with localcontext() as ctx:
             ctx.prec = self.max_precision
-            await super(DecimalColumn, self)._write_data(items)
+            await super()._write_data(items)
 
     async def _read_data(self, n_items, nulls_map=None):
         with localcontext() as ctx:
             ctx.prec = self.max_precision
-            return await super(DecimalColumn, self)._read_data(n_items, nulls_map=nulls_map)
+            return await super()._read_data(n_items, nulls_map=nulls_map)
 
 
 class Decimal32Column(DecimalColumn):
