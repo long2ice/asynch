@@ -30,14 +30,12 @@ compression = ["clickhouse-cityhash"]
 
 [tool.poetry.dev-dependencies]
 bandit = "*"
-black = "*"
 clickhouse-driver = "*"
-isort = "*"
+ruff = "*"
 uvloop = "*"
 
 [tool.poetry.group.lint.dependencies]
-mypy = "^1.13.0"
-ruff = "^0.7.3"
+mypy = "^1.13.0"  # to be moved in the "dev" group
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.4.4"
@@ -49,13 +47,6 @@ pytest-xdist = "^3.6.1"
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core"]
-
-[tool.black]
-line-length = 100
-target-version = ['py39', 'py310', 'py311']
-
-[tool.isort]
-profile = "black"
 
 [tool.mypy]
 check_untyped_defs = true
@@ -74,4 +65,25 @@ testpaths = ["tests"]
 xfail_strict = true
 
 [tool.ruff]
+indent-width = 4
 line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "I",  # isort
+]
+ignore = [
+    "E501",  # line too long  # for now
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = [
+    "I"  # isort
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
