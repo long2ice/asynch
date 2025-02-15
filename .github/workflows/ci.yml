@@ -25,5 +25,7 @@ jobs:
         run: |
           pip install -U pip poetry
           poetry config virtualenvs.create false
+      - name: Install project dependencies
+        run: make deps
       - name: CI
         run: make ci
