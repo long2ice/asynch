@@ -8,13 +8,13 @@ DIRS = asynch/ tests/ benchmark/
 PY_DEBUG_OPTS = PYTHONDEVMODE=1 PYTHONTRACEMALLOC=1
 
 up:
-	@poetry update
+	poetry update
 
 deps:
-	@poetry install --extras compression --no-root
+	poetry install --extras compression --no-root --with lint,test
 
 bench: deps
-	@python3 benchmark/main.py
+	python3 benchmark/main.py
 
 check:
 	ruff format --check $(DIRS)
@@ -28,9 +28,9 @@ test:
 	$(PY_DEBUG_OPTS) pytest
 
 build: deps clean
-	@poetry build
+	poetry build
 
 clean:
-	@rm -rf ./dist
+	rm -rf ./dist
 
 ci: check test
