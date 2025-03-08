@@ -17,25 +17,25 @@ include = ["LICENSE", "README.md", "CHANGELOG.md"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-leb128 = "*"
-pytz = "*"
-lz4 = "*"
-clickhouse-cityhash = { version = "*", optional = true }
-zstd = "*"
-tzlocal = "*"
-ciso8601 = "*"
+leb128 = "1.0.8"
+pytz = "2025.1"
+lz4 = "4.4.3"
+clickhouse-cityhash = { version = "1.0.2.4", optional = true }
+zstd = "1.5.6.6"
+tzlocal = "5.3.1"
+ciso8601 = "2.3.2"
 
 [tool.poetry.extras]
 compression = ["clickhouse-cityhash"]
 
 [tool.poetry.dev-dependencies]
-bandit = "*"
-clickhouse-driver = "*"
-ruff = "*"
-uvloop = "*"
+bandit = "1.8.3"
+clickhouse-driver = "0.2.9"
+uvloop = "0.21.0"
 
 [tool.poetry.group.lint.dependencies]
-mypy = "^1.13.0"  # to be moved in the "dev" group
+mypy = "^1.15.0"
+ruff = "^0.9.10"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.4.4"
