@@ -34,7 +34,7 @@ class ArrayColumn(Column):
         self.size_column = UInt64Column(**kwargs)
         self.nested_column = nested_column
         self._write_depth_0_size = True
-        super(ArrayColumn, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.null_value = []
 
     def size_pack(self, value):

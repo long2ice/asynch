@@ -1,8 +1,8 @@
 import asyncio
-from collections.abc import Callable, Coroutine
+from collections.abc import AsyncIterator, Callable, Coroutine
 from dataclasses import dataclass
 from os import environ
-from typing import Any, AsyncIterator
+from typing import Any
 
 import pytest
 

@@ -4,34 +4,33 @@
 -include .env
 export
 
-checkfiles = asynch/ tests/ benchmark/
-py_debug_envvars = PYTHONDEVMODE=1 PYTHONTRACEMALLOC=1
+DIRS = asynch/ tests/ benchmark/
+PY_DEBUG_OPTS = PYTHONDEVMODE=1 PYTHONTRACEMALLOC=1
 
 up:
-	@poetry update
+	poetry update
 
 deps:
-	@poetry install --extras compression --no-root
+	poetry install --extras compression --no-root --with lint,test
 
 bench: deps
-	@python3 benchmark/main.py
+	python3 benchmark/main.py
 
-check: deps
-	@black --check $(checkfiles)
-	@ruff check $(checkfiles)
+check:
+	ruff format --check $(DIRS)
+	ruff check $(DIRS)
 
-style: deps
-	@isort -src $(checkfiles)
-	@black $(checkfiles)
-	@ruff check --fix $(checkfiles)
+lint:
+	ruff format $(DIRS)
+	ruff check --fix $(DIRS)
 
-test: deps
-	$(py_debug_envvars) pytest
+test:
+	$(PY_DEBUG_OPTS) pytest
 
 build: deps clean
-	@poetry build
+	poetry build
 
 clean:
-	@rm -rf ./dist
+	rm -rf ./dist
 
 ci: check test

@@ -15,7 +15,7 @@ class OpenTelemetryTraceContext:
         if traceparent is not None:
             self.parse_traceparent(traceparent)
 
-        super(OpenTelemetryTraceContext, self).__init__()
+        super().__init__()
 
     def parse_traceparent(self, traceparent):
         traceparent = traceparent.lower()
@@ -28,12 +28,12 @@ class OpenTelemetryTraceContext:
             )
 
         if traceparent.translate(self.translation) != self.traceparent_tpl:
-            raise ValueError("Malformed traceparant header: {}".format(traceparent))
+            raise ValueError(f"Malformed traceparant header: {traceparent}")
 
         parts = traceparent.split("-")
         version = int(parts[0], 16)
         if version != 0:
-            raise ValueError("unexpected version {}, expected 00".format(parts[0]))
+            raise ValueError(f"unexpected version {parts[0]}, expected 00")
 
         self.trace_id = (int(parts[1][16:], 16) << 64) + int(parts[1][:16], 16)
         self.span_id = int(parts[2], 16)

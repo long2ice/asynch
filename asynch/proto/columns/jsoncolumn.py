@@ -13,7 +13,7 @@ class JsonColumn(Column):
     def __init__(self, column_by_spec_getter, **kwargs):
         self.column_by_spec_getter = column_by_spec_getter
         self.string_column = String(**kwargs)
-        super(JsonColumn, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     async def write_state_prefix(self):
         await self.writer.write_uint8(1)

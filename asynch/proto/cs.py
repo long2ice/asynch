@@ -86,9 +86,7 @@ class ClientInfo:
     async def write(self, server_revision: int):
         revision = server_revision
         if server_revision < constants.DBMS_MIN_REVISION_WITH_CLIENT_INFO:
-            raise LogicalError(
-                "Method ClientInfo.write is called " "for unsupported server revision"
-            )
+            raise LogicalError("Method ClientInfo.write is called for unsupported server revision")
         writer = self.writer
         await writer.write_int8(
             self.query_kind,

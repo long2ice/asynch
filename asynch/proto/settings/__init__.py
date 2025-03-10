@@ -1,5 +1,4 @@
 import logging
-from typing import Dict
 
 from asynch.proto.settings.available import settings as available_settings
 from asynch.proto.streams.buffered import BufferedWriter
@@ -8,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 async def write_settings(
-    writer: BufferedWriter, settings: Dict, settings_as_strings, settings_is_important: bool
+    writer: BufferedWriter, settings: dict, settings_as_strings, settings_is_important: bool
 ):
     for setting, value in (settings or {}).items():
         # If the server support settings as string we do not need to know

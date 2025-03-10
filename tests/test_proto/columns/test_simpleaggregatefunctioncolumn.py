@@ -2,7 +2,7 @@ import pytest
 
 from asynch.proto.columns import get_column_by_spec
 
-COLUMN_SPEC = "SimpleAggregateFunction(" "groupArrayArray, Array(Tuple(UInt8, String))" ")"
+COLUMN_SPEC = "SimpleAggregateFunction(groupArrayArray, Array(Tuple(UInt8, String)))"
 
 
 @pytest.fixture

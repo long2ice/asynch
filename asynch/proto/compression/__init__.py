@@ -1,5 +1,5 @@
 import importlib
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 from asynch.errors import ChecksumDoesntMatchError, UnknownCompressionMethod
 from asynch.proto.protocol import CompressionMethodByte
@@ -8,16 +8,16 @@ if TYPE_CHECKING:
     from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 
 
-def get_compressor_cls(alg) -> Type["BaseCompressor"]:
+def get_compressor_cls(alg) -> type["BaseCompressor"]:
     try:
         module = importlib.import_module("." + alg, __name__)
         return module.Compressor
 
     except ImportError:
-        raise UnknownCompressionMethod("Unknown compression method: '{}'".format(alg))
+        raise UnknownCompressionMethod(f"Unknown compression method: '{alg}'")
 
 
-def get_decompressor_cls(method_type) -> Type["BaseDecompressor"]:
+def get_decompressor_cls(method_type) -> type["BaseDecompressor"]:
     if method_type == CompressionMethodByte.LZ4:
         module = importlib.import_module(".lz4", __name__)
 

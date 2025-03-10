@@ -142,7 +142,7 @@ def get_column_by_spec(spec, column_options):
             return cls(**column_options)
 
         except KeyError as e:
-            raise UnknownTypeError("Unknown type {}".format(e.args[0]))
+            raise UnknownTypeError(f"Unknown type {e.args[0]}")
 
 
 async def read_column(
@@ -182,11 +182,11 @@ async def write_column(
         await column.write_data(items)
 
     except ColumnTypeMismatchException as e:
+        err_arg = e.args[0]
         raise TypeMismatchError(
             "Type mismatch in VALUES section. "
-            'Expected {} got {}: {} for column "{}".'.format(
-                column_spec, type(e.args[0]), e.args[0], column_name
-            )
+            f"Expected {column_spec} got {type(err_arg)}: "
+            f'{err_arg} for column "{column_name}".'
         )
 
     except (StructPackException, OverflowError) as e:

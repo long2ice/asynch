@@ -95,7 +95,7 @@ class ColumnOrientedBlock(BaseBlock):
 
         got = len(data)
         if expected_row_len != got:
-            msg = "Expected {} columns, got {}".format(expected_row_len, got)
+            msg = f"Expected {expected_row_len} columns, got {got}"
             raise ValueError(msg)
 
     def _check_all_columns_equal_length(self, data):
@@ -104,7 +104,7 @@ class ColumnOrientedBlock(BaseBlock):
         for column in data:
             got = len(column)
             if got != expected:
-                msg = "Expected {} rows, got {}".format(expected, got)
+                msg = f"Expected {expected} rows, got {got}"
                 raise ValueError(msg)
 
 
@@ -193,7 +193,7 @@ class RowOrientedBlock(BaseBlock):
 
         got = len(data[0])
         if expected_row_len != got:
-            msg = "Expected {} columns, got {}".format(expected_row_len, got)
+            msg = f"Expected {expected_row_len} columns, got {got}"
             raise ValueError(msg)
 
         if self.types_check:
@@ -203,19 +203,15 @@ class RowOrientedBlock(BaseBlock):
 
     def _check_row_type(self, row):
         if not isinstance(row, self.supported_row_types):
-            raise TypeError(
-                "Unsupported row type: {}. dict, list or tuple is expected.".format(type(row))
-            )
+            raise TypeError(f"Unsupported row type: {type(row)}. dict, list or tuple is expected.")
 
     def _check_tuple_row_type(self, row):
         if not isinstance(row, self.tuple_row_types):
-            raise TypeError(
-                "Unsupported row type: {}. list or tuple is expected.".format(type(row))
-            )
+            raise TypeError(f"Unsupported row type: {type(row)}. list or tuple is expected.")
 
     def _check_dict_row_type(self, row):
         if not isinstance(row, self.dict_row_types):
-            raise TypeError("Unsupported row type: {}. dict is expected.".format(type(row)))
+            raise TypeError(f"Unsupported row type: {type(row)}. dict is expected.")
 
 
 class BlockStreamProfileInfo:

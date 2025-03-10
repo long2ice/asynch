@@ -9,7 +9,7 @@ class IntColumn(FormatColumn):
     int_size = None
 
     def __init__(self, types_check=False, **kwargs):
-        super(IntColumn, self).__init__(types_check=types_check, **kwargs)
+        super().__init__(types_check=types_check, **kwargs)
 
         if types_check:
             self.mask = (1 << 8 * self.int_size) - 1
@@ -38,7 +38,7 @@ class IntColumn(FormatColumn):
 
 class UIntColumn(IntColumn):
     def __init__(self, types_check=False, **kwargs):
-        super(UIntColumn, self).__init__(types_check=types_check, **kwargs)
+        super().__init__(types_check=types_check, **kwargs)
 
         if types_check:
 
@@ -105,7 +105,8 @@ class BigIntColumn(IntColumn):
     async def read_items(self, n_items):
         data = await self.reader.read_bytes(self.int_size * n_items)
         chunks = [
-            data[i : i + self.int_size] for i in range(0, len(data), self.int_size)  # noqa:E203
+            data[i : i + self.int_size]
+            for i in range(0, len(data), self.int_size)  # noqa:E203
         ]
         return [int.from_bytes(chunk, "little", signed=True) for chunk in chunks]
 
@@ -118,7 +119,8 @@ class BigUIntColumn(UIntColumn):
     async def read_items(self, n_items):
         data = await self.reader.read_bytes(self.int_size * n_items)
         chunks = [
-            data[i : i + self.int_size] for i in range(0, len(data), self.int_size)  # noqa:E203
+            data[i : i + self.int_size]
+            for i in range(0, len(data), self.int_size)  # noqa:E203
         ]
         return [int.from_bytes(chunk, "little", signed=False) for chunk in chunks]
 

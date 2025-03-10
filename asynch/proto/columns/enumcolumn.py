@@ -11,7 +11,7 @@ class EnumColumn(IntColumn):
 
     def __init__(self, enum_cls, **kwargs):
         self.enum_cls = enum_cls
-        super(EnumColumn, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def before_write_items(self, items, nulls_map=None):
         null_value = self.null_value
@@ -35,11 +35,9 @@ class EnumColumn(IntColumn):
                 choices = ", ".join(
                     "'{}' = {}".format(x.name.replace("'", r"\'"), x.value) for x in enum_cls
                 )
-                enum_str = "{}({})".format(enum_cls.__name__, choices)
+                enum_str = f"{enum_cls.__name__}({choices})"
 
-                raise LogicalError(
-                    "Unknown element '{}' for type {}".format(source_value, enum_str)
-                )
+                raise LogicalError(f"Unknown element '{source_value}' for type {enum_str}")
 
     def after_read_items(self, items, nulls_map=None):
         enum_cls = self.enum_cls

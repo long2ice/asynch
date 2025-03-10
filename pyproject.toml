@@ -17,27 +17,25 @@ include = ["LICENSE", "README.md", "CHANGELOG.md"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-leb128 = "*"
-pytz = "*"
-lz4 = "*"
-clickhouse-cityhash = { version = "*", optional = true }
-zstd = "*"
-tzlocal = "*"
-ciso8601 = "*"
+leb128 = "1.0.8"
+pytz = "2025.1"
+lz4 = "4.4.3"
+clickhouse-cityhash = { version = "1.0.2.4", optional = true }
+zstd = "1.5.6.6"
+tzlocal = "5.3.1"
+ciso8601 = "2.3.2"
 
 [tool.poetry.extras]
 compression = ["clickhouse-cityhash"]
 
 [tool.poetry.dev-dependencies]
-bandit = "*"
-black = "*"
-clickhouse-driver = "*"
-isort = "*"
-uvloop = "*"
+bandit = "1.8.3"
+clickhouse-driver = "0.2.9"
+uvloop = "0.21.0"
 
 [tool.poetry.group.lint.dependencies]
-mypy = "^1.13.0"
-ruff = "^0.7.3"
+mypy = "^1.15.0"
+ruff = "^0.9.10"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.4.4"
@@ -49,13 +47,6 @@ pytest-xdist = "^3.6.1"
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core"]
-
-[tool.black]
-line-length = 100
-target-version = ['py39', 'py310', 'py311']
-
-[tool.isort]
-profile = "black"
 
 [tool.mypy]
 check_untyped_defs = true
@@ -74,4 +65,25 @@ testpaths = ["tests"]
 xfail_strict = true
 
 [tool.ruff]
+indent-width = 4
 line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle
+    "F",  # pyflakes
+    "I",  # isort
+]
+ignore = [
+    "E501",  # line too long  # for now
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = [
+    "I"  # isort
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

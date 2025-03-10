@@ -27,10 +27,10 @@ class Column:
             settings = kwargs["context"].client_settings
             self.input_null_as_default = settings.get("input_format_null_as_default", False)
 
-        super(Column, self).__init__()
+        super().__init__()
 
     def make_null_struct(self, n_items):
-        return Struct("<{}B".format(n_items))
+        return Struct(f"<{n_items}B")
 
     async def _read_nulls_map(self, n_items):
         s = self.make_null_struct(n_items)
@@ -140,7 +140,7 @@ class FormatColumn(Column):
     format = None
 
     def make_struct(self, n_items):
-        return Struct("<{}{}".format(n_items, self.format))
+        return Struct(f"<{n_items}{self.format}")
 
     async def write_items(
         self,

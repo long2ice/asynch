@@ -1,6 +1,7 @@
 import re
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, cast
+from typing import cast
 from unittest.mock import patch
 
 import pytest

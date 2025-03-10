@@ -31,7 +31,7 @@ class LowCardinalityColumn(Column):
     def __init__(self, nested_column, **kwargs):
         kwargs.update(dict(reader=nested_column.reader, writer=nested_column.writer))
         self.nested_column = nested_column
-        super(LowCardinalityColumn, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     async def read_state_prefix(
         self,

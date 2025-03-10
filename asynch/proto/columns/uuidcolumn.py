@@ -63,6 +63,6 @@ class UUIDColumn(FormatColumn):
                     item = UUID(item)
 
             except ValueError:
-                raise CannotParseUuidError("Cannot parse uuid '{}'".format(item))
+                raise CannotParseUuidError(f"Cannot parse uuid '{item}'")
 
             items[i] = item.int

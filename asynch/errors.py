@@ -408,7 +408,7 @@ class ClickHouseException(Error):
 
     def __str__(self):
         message = " " + self.message if self.message is not None else ""
-        return "Code: {}.{}".format(self.code, message)
+        return f"Code: {self.code}.{message}"
 
 
 class ServerException(ClickHouseException):
@@ -418,8 +418,8 @@ class ServerException(ClickHouseException):
         self.nested = nested
 
     def __str__(self):
-        nested = "\nNested: {}".format(self.nested) if self.nested else ""
-        return "Code: {}.{}\n{}".format(self.code, nested, self.message)
+        nested = f"\nNested: {self.nested}" if self.nested else ""
+        return f"Code: {self.code}.{nested}\n{self.message}"
 
 
 class UnexpectedPacketFromServerError(ClickHouseException):

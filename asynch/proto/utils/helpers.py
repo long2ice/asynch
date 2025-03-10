@@ -12,9 +12,7 @@ def chunks(seq, n):
 def column_chunks(columns, n):
     for column in columns:
         if not isinstance(column, (list, tuple)):
-            raise TypeError(
-                "Unsupported column type: {}. list or tuple is expected.".format(type(column))
-            )
+            raise TypeError(f"Unsupported column type: {type(column)}. list or tuple is expected.")
 
     # create chunk generator for every column
     g = [chunks(column, n) for column in columns]
