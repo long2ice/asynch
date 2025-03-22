@@ -1,52 +1,75 @@
-[tool.poetry]
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[project]
 name = "asynch"
 version = "0.3.0"
 description = "An asyncio driver for ClickHouse with native TCP support"
-authors = ["long2ice <long2ice@gmail.com>"]
-license = "Apache-2.0"
+authors = [
+    {name = "long2ice",email = "long2ice@gmail.com"}
+]
+license = {file = "LICENSE"}
 readme = "README.md"
+keywords = ["asyncio", "clickhouse", "python", "driver"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+requires-python = ">=3.9,<4.0"
+dependencies = [
+    "ciso8601 (>=2.3.2,<3.0.0)",
+    "leb128 (>=1.0.8,<2.0.0)",
+    "lz4 (>=4.4.3,<5.0.0)",
+    "pytz (>=2025.1,<2026.0)",
+    "tzlocal (>=5.3.1,<6.0.0)",
+    "zstd (>=1.5.6.6,<2.0.0.0)",
+]
+
+[project.optional-dependencies]
+compression = ["clickhouse-cityhash (>=1.0.2.4,<2.0.0.0)"]
+
+[project.urls]
 homepage = "https://github.com/long2ice/asynch"
 repository = "https://github.com/long2ice/asynch.git"
 documentation = "https://github.com/long2ice/asynch"
-keywords = ["asyncio", "clickhouse", "python", "driver"]
+
+[tool.poetry]
+package-mode = true
+requires-poetry = ">=2.1"
+include = ["LICENSE", "README.md"]
 packages = [
     { include = "asynch" },
     { include = "asynch/py.typed" }
 ]
-include = ["LICENSE", "README.md", "CHANGELOG.md"]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-leb128 = "1.0.8"
-pytz = "2025.1"
-lz4 = "4.4.3"
-clickhouse-cityhash = { version = "1.0.2.4", optional = true }
-zstd = "1.5.6.6"
-tzlocal = "5.3.1"
-ciso8601 = "2.3.2"
-
-[tool.poetry.extras]
-compression = ["clickhouse-cityhash"]
-
-[tool.poetry.dev-dependencies]
-bandit = "1.8.3"
-clickhouse-driver = "0.2.9"
-uvloop = "0.21.0"
+[tool.poetry.group.dev.dependencies]
+bandit = "^1.8.3"
+uvloop = "^0.21.0"
+clickhouse-driver = "^0.2.9"
 
 [tool.poetry.group.lint.dependencies]
 mypy = "^1.15.0"
 ruff = "^0.9.10"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^7.4.4"
-pytest-asyncio = "^0.23.8"
-pytest-mock = "^3.14.0"
+pytest = "^8.3.5"
+pytest-asyncio = "^0.25.3"
 pytest-random-order = "^1.1.1"
+pytest-mock = "^3.14.0"
 pytest-xdist = "^3.6.1"
-
-[build-system]
-build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core"]
 
 [tool.mypy]
 check_untyped_defs = true
@@ -58,9 +81,14 @@ warn_unreachable = true
 warn_unused_configs = true
 
 [tool.pytest.ini_options]
-addopts = "--maxfail=1 -s -vvv --random-order"
+addopts = [
+    "-s",
+    "-vvv",
+    "--maxfail=1",
+    "--random-order"
+]
 asyncio_mode = "auto"
-minversion = "7.4"
+minversion = "8.3"
 testpaths = ["tests"]
 xfail_strict = true
 
@@ -71,9 +99,13 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = [
+    "ASYNC",  # flake8-async
     "E",  # pycodestyle
     "F",  # pyflakes
     "I",  # isort
+    "ICN",  # flake8-import-conventions
+    "PIE",  # flake8-pie
+    "T10"  # flake8-debugger
 ]
 ignore = [
     "E501",  # line too long  # for now

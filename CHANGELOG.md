@@ -4,11 +4,12 @@
 
 ### 0.3.0
 
-- Add `mypy` dependency into the `lint` section. By @stankudrow in #128
+- Move to poetry>=2.1. By @stankudrow in #133.
+- Add `mypy` dependency. By @stankudrow in #128.
 - Gracefully handle connections terminated by the server. By @nils-borrmann-tacto in #129.
 - Remove the deprecated API from `cursor.py` module. By @stankudrow in #125.
 - Remove the deprecated `Pool` API. By @stankudrow in #120.
-- Allow requesting more connections from a `Pool` object without raising AsynchPoolError("no free connections"). The issue #121 by @itssimon. By @stankudrow in #124
+- Allow requesting more connections from a `Pool` object without raising AsynchPoolError("no free connections"). The issue #121 by @itssimon. By @stankudrow in #124.
 
 ## 0.2
 
