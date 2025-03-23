@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from asynch.connection import Connection, connect
+from asynch.connection import Connection
 from asynch.cursors import DictCursor
 from asynch.proto import constants
 from asynch.proto.context import Context
@@ -65,7 +65,7 @@ async def column_options():
 
 @pytest.fixture(scope="session", autouse=True)
 async def initialize_tests():
-    async with connect(dsn=CONNECTION_DSN) as conn:
+    async with Connection(dsn=CONNECTION_DSN) as conn:
         async with conn.cursor(cursor=DictCursor) as cursor:
             await cursor.execute("create database if not exists test")
             await cursor.execute("drop table if exists test.asynch")
@@ -93,7 +93,7 @@ async def initialize_tests():
 
 @pytest.fixture(scope="function", autouse=True)
 async def truncate_table():
-    async with connect(dsn=CONNECTION_DSN) as conn:
+    async with Connection(dsn=CONNECTION_DSN) as conn:
         async with conn.cursor(cursor=DictCursor) as cursor:
             await cursor.execute("truncate table test.asynch")
         yield

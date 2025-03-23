@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from asynch.connection import Connection
-from asynch.pool import Pool, create_pool
+from asynch.pool import Pool
 from asynch.proto import constants
 from asynch.proto.models.enums import PoolStatus
 
@@ -206,13 +206,3 @@ async def test_pool_broken_connection_handling():
 
         assert pool.free_connections == 1
         assert pool.acquired_connections == 0
-
-
-@pytest.mark.asyncio
-async def test_create_pool_async_context_manager():
-    async with create_pool() as pool:
-        async with pool.connection() as conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute("SELECT 42")
-                ret = await cursor.fetchone()
-                assert ret == (42,)
