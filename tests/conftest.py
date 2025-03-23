@@ -65,40 +65,38 @@ async def column_options():
 
 @pytest.fixture(scope="session", autouse=True)
 async def initialize_tests():
-    conn = await connect(dsn=CONNECTION_DSN)
-    async with conn.cursor(cursor=DictCursor) as cursor:
-        await cursor.execute("create database if not exists test")
-        await cursor.execute("drop table if exists test.asynch")
-        await cursor.execute(
-            """
-            CREATE TABLE if not exists test.asynch
-            (
-                `id`       Int32,
-                `decimal`  Decimal(10, 2),
-                `date`     Date,
-                `datetime` DateTime,
-                `float`    Float32,
-                `uuid`     UUID,
-                `string`   String,
-                `ipv4`     IPv4,
-                `ipv6`     IPv6,
-                `bool`     Bool
+    async with connect(dsn=CONNECTION_DSN) as conn:
+        async with conn.cursor(cursor=DictCursor) as cursor:
+            await cursor.execute("create database if not exists test")
+            await cursor.execute("drop table if exists test.asynch")
+            await cursor.execute(
+                """
+                CREATE TABLE if not exists test.asynch
+                (
+                    `id`       Int32,
+                    `decimal`  Decimal(10, 2),
+                    `date`     Date,
+                    `datetime` DateTime,
+                    `float`    Float32,
+                    `uuid`     UUID,
+                    `string`   String,
+                    `ipv4`     IPv4,
+                    `ipv6`     IPv6,
+                    `bool`     Bool
+                )
+                ENGINE = MergeTree
+                ORDER BY id
+                """
             )
-            ENGINE = MergeTree
-            ORDER BY id
-            """
-        )
-    yield
-    await conn.close()
+        yield
 
 
 @pytest.fixture(scope="function", autouse=True)
 async def truncate_table():
-    conn = await connect(dsn=CONNECTION_DSN)
-    async with conn.cursor(cursor=DictCursor) as cursor:
-        await cursor.execute("truncate table test.asynch")
-    yield
-    await conn.close()
+    async with connect(dsn=CONNECTION_DSN) as conn:
+        async with conn.cursor(cursor=DictCursor) as cursor:
+            await cursor.execute("truncate table test.asynch")
+        yield
 
 
 @pytest.fixture(scope="function")

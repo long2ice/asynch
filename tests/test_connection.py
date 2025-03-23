@@ -228,3 +228,19 @@ async def test_connection_cleanup(get_tcp_connections):
         final_tcps = await get_tcp_connections(cn)
 
     assert final_tcps == init_tcps
+
+
+@pytest.mark.asyncio
+async def test_connection_close():
+    conn = Connection()
+
+    await conn.close()
+
+    assert not conn.opened
+    assert conn.closed
+
+    async with Connection() as conn:
+        await conn.close()
+
+    assert not conn.opened
+    assert conn.closed

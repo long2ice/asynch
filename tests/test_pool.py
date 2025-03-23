@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from asynch.connection import Connection
-from asynch.pool import Pool
+from asynch.pool import Pool, create_pool
 from asynch.proto import constants
 from asynch.proto.models.enums import PoolStatus
 
@@ -184,3 +184,35 @@ async def test_pool_concurrent_connection_management(get_tcp_connections):
         assert noc == init_tcps
 
     assert selectees == answers
+
+
+@pytest.mark.asyncio
+async def test_pool_broken_connection_handling():
+    min_size, max_size = 1, 1
+    async with Pool(minsize=min_size, maxsize=max_size) as pool:
+        async with pool.connection() as conn:
+            await conn.ping()
+
+            assert pool.free_connections == 0
+            assert pool.acquired_connections == 1
+
+            # things go wrong here -> the connection gets broken
+            await conn.close()
+            with pytest.raises(ConnectionError):
+                await conn.ping()
+
+        # when leaving the connection context,
+        # the pool should ensure its consistency
+
+        assert pool.free_connections == 1
+        assert pool.acquired_connections == 0
+
+
+@pytest.mark.asyncio
+async def test_create_pool_async_context_manager():
+    async with create_pool() as pool:
+        async with pool.connection() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute("SELECT 42")
+                ret = await cursor.fetchone()
+                assert ret == (42,)

@@ -1,5 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Optional
-from warnings import warn
 
 from asynch.cursors import Cursor
 from asynch.errors import NotSupportedError
@@ -68,30 +69,6 @@ class Connection:
         return f"<{cls_name} object at 0x{id(self):x}; status: {status}>"
 
     @property
-    def connected(self) -> Optional[bool]:
-        """Returns the connection open status.
-
-        If the return value is None,
-        the connection was only created,
-        but neither opened or closed.
-
-        The attribute is deprecated in favour of `opened` one.
-        The reason is about tautology on `connection.connected` case.
-
-        :returns: the connection open status
-        :rtype: None | bool
-        """
-
-        warn(
-            (
-                "Please consider using the `opened` property. "
-                "The `connected` property may be removed in the version 0.2.6 or later."
-            ),
-            DeprecationWarning,
-        )
-        return self._opened
-
-    @property
     def opened(self) -> Optional[bool]:
         """Returns the connection open status.
 
@@ -137,11 +114,12 @@ class Connection:
         :rtype: str (ConnectionStatus StrEnum)
         """
 
-        if self._opened is None and self._closed is None:
+        opened, closed = self._opened, self._closed
+        if opened is None and closed is None:
             return ConnectionStatus.created
-        if self._opened:
+        if opened:
             return ConnectionStatus.opened
-        if self._closed:
+        if closed:
             return ConnectionStatus.closed
         raise ConnectionError(f"{self} is in an unknown state")
 
@@ -172,15 +150,14 @@ class Connection:
     async def close(self) -> None:
         """Close the connection."""
 
+        if self._closed:
+            return
         if self._opened:
             await self._connection.disconnect()
-            self._opened = False
-            self._closed = True
+        self._opened = False
+        self._closed = True
 
     async def commit(self):
-        raise NotSupportedError
-
-    async def rollback(self):
         raise NotSupportedError
 
     async def connect(self) -> None:
@@ -199,8 +176,8 @@ class Connection:
         of a default `Cursor` class will be created with echoing
         set to True even if the `self.echo` property returns False.
 
-        :param cursor Optional[Cursor]: Cursor factory class
-        :param echo bool: to override the `Connection.echo` parametre for a cursor
+        :param cursor Optional[Type[Cursor]]: Cursor factory class
+        :param echo bool: to override the `Connection.echo` parameter for a cursor
 
         :return: the cursor object of a connection
         :rtype: Cursor
@@ -220,7 +197,38 @@ class Connection:
             msg = f"Ping has failed for {self}"
             raise ConnectionError(msg)
 
+    async def _refresh(self) -> None:
+        """Refresh the connection.
 
+        It does ping and if it fails,
+        attempts to connect again.
+        If reconnecting fails,
+        an exception is raised and
+        the connection cannot be refreshed
+
+        :raises ConnectionError: refreshing already closed connection
+
+        :return: None
+        """
+
+        status = self.status
+        if status == ConnectionStatus.created:
+            msg = f"the {self} is not opened to be refreshed"
+            raise ConnectionError(msg)
+        if status == ConnectionStatus.closed:
+            msg = f"the {self} is already closed"
+            raise ConnectionError(msg)
+
+        try:
+            await self.ping()
+        except ConnectionError:
+            await self.connect()
+
+    async def rollback(self):
+        raise NotSupportedError
+
+
+@asynccontextmanager
 async def connect(
     dsn: Optional[str] = None,
     user: str = constants.DEFAULT_USER,
@@ -231,16 +239,16 @@ async def connect(
     cursor_cls=Cursor,
     echo: bool = False,
     **kwargs,
-) -> Connection:
+) -> AsyncIterator[Connection]:
     """Return an opened connection to a ClickHouse server.
 
-    Equivalent to the following steps:
+    Before the v0.3.0, was equivalent to:
     1. conn = Connection(...)  # init a Connection instance
     2. conn.connect()  # connect to a ClickHouse server
     3. return conn
 
-    When the connection is no longer needed,
-    consider `await`ing the `conn.close()` method.
+    Since the v0.3.0 is an asynchronous context manager
+    that handles resource clean-up.
 
     :param dsn str: DSN/connection string (if None -> constructed from default dsn parts)
     :param user str: user string ("default" by default)
@@ -252,8 +260,8 @@ async def connect(
     :param echo bool: connection echo mode (False by default)
     :param kwargs dict: connection settings
 
-    :return: an opened Connection object
-    :rtype: Connection
+    :return: an async Connection context manager
+    :rtype: AsyncIterator[Connection]
     """
 
     conn = Connection(
@@ -267,5 +275,8 @@ async def connect(
         echo=echo,
         **kwargs,
     )
-    await conn.connect()
-    return conn
+    try:
+        await conn.connect()
+        yield conn
+    finally:
+        await conn.close()

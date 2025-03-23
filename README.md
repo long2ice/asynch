@@ -21,6 +21,19 @@ If you want to install [`clickhouse-cityhash`](https://pypi.org/project/clickhou
 > pip install asynch[compression]
 ```
 
+## Release v0.3.0 announcement
+
+The version 0.2.5 should have been named v0.3.0 due to compatibility-breaking changes.
+Since the release v0.2.5 is already yanked (of sorts), a smooth upgrade seems inexpedient.
+
+Before upgrading to the v0.3.0, please pay attention to the incompatible changes:
+
+1. the `connect` function from the `async/connection.py` module is now asynchronous context manager.
+2. the same kind of changes touches the `create_pool` function from the `async/pool.py` module.
+3. all deprecated methods from `Connection`, `Cursor` and `Pool` classes are removed.
+
+For more details, please refer to the project [CHANGELOG.md](./CHANGELOG.md) file.
+
 ## Usage
 
 Basically, a connection to a ClickHouse server can be established in two ways:
@@ -32,9 +45,24 @@ Basically, a connection to a ClickHouse server can be established in two ways:
 
     # connecting with a DSN string
     async def connect_database():
-        conn = await connect(
+        async with connect(
+            dsn = "clickhouse://ch_user:P@55w0rD:@127.0.0.1:9000/chdb",
+        ) as conn:
+            pass
+    ```
+
+    or
+
+    ```python
+    from asynch import Connection
+
+    # connecting with a DSN string
+    async def connect_database():
+        conn = Connection(
             dsn = "clickhouse://ch_user:P@55w0rD:@127.0.0.1:9000/chdb",
         )
+        async with conn:
+            pass
     ```
 
 2. with separately given connection/DSN parameters: `user` (optional), `password` (optional), `host`, `port`, `database`.
@@ -44,13 +72,31 @@ Basically, a connection to a ClickHouse server can be established in two ways:
 
     # connecting with DSN parameters
     async def connect_database():
-        conn = await connect(
+        async with connect(
             user = "ch_user",
             password = "P@55w0rD",
             host = "127.0.0.1",
             port = 9000,
             database = "chdb",
-        )
+        ) as conn:
+            pass
+    ```
+
+    or
+
+    ```python
+    from asynch import Connection
+
+    # connecting with DSN parameters
+    async def connect_database():
+        async with Connection(
+            user = "ch_user",
+            password = "P@55w0rD",
+            host = "127.0.0.1",
+            port = 9000,
+            database = "chdb",
+        ) as conn:
+            pass
     ```
 
 If a DSN string is given, it takes priority over any specified connection parameter.
@@ -181,7 +227,7 @@ Since the v0.2.5:
 
 ```python
 async def use_pool():
-    # init a Pool and fill it with `minsize` opened connections
+    # init a Pool and fill it with the `minsize` opened connections
     async with Pool(minsize=1, maxsize=2) as pool:
         # acquire a connection from the pool
         async with pool.connection() as conn:
@@ -189,6 +235,28 @@ async def use_pool():
                 await cursor.execute("SELECT 1")
                 ret = await cursor.fetchone()
                 assert ret == (1,)
+```
+
+which decomposes into
+
+```python
+async def use_pool():
+    pool = Pool(minsize=1, maxsize=2)
+    await pool.startup()
+
+    # some logic
+
+    await pool.shutdown()
+```
+
+Since the v0.3.0 the `create_pool` is asynchronous context manager:
+
+```python
+from asynch.pool import create_pool
+
+async def use_pool():
+    async with create_pool(minsize=1, maxsize=2) as pool:
+        # some logic
 ```
 
 ## ThanksTo
