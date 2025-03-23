@@ -44,7 +44,7 @@ class Pool:
         await self.shutdown()
 
     def __repr__(self) -> str:
-        cls_name = self.__class__.__name__
+        cls_name = type(self).__name__
         status = self.status
         return (
             f"<{cls_name}(minsize={self._minsize}, maxsize={self._maxsize})"
@@ -160,6 +160,7 @@ class Pool:
             except ConnectionError as e:
                 msg = f"the {conn} is invalidated: {e}"
                 logger.warning(msg)
+        return None
 
     async def _acquire_connection(self) -> Connection:
         if conn := await self._get_fresh_connection():
@@ -278,42 +279,42 @@ class Pool:
             self._closed = True
 
 
-@asynccontextmanager
-async def create_pool(
-    minsize: int = constants.POOL_MIN_SIZE,
-    maxsize: int = constants.POOL_MAX_SIZE,
-    loop: Optional[asyncio.AbstractEventLoop] = None,
-    **kwargs,
-) -> AsyncIterator[Pool]:
-    """Returns an initiated connection pool.
+# @asynccontextmanager
+# async def create_pool(
+#     minsize: int = constants.POOL_MIN_SIZE,
+#     maxsize: int = constants.POOL_MAX_SIZE,
+#     loop: Optional[asyncio.AbstractEventLoop] = None,
+#     **kwargs,
+# ) -> AsyncIterator[Pool]:
+#     """Returns an initiated connection pool.
 
-    The initiated pool means it is filled with `minsize` connections.
+#     The initiated pool means it is filled with `minsize` connections.
 
-    Before the v0.3.0, was equivalent to:
-    1. pool = Pool(...)
-    2. await pool.startup()
-    3. return pool
+#     Before the v0.3.0, was equivalent to:
+#     1. pool = Pool(...)
+#     2. await pool.startup()
+#     3. return pool
 
-    Since the v0.3.0 is an asynchronous context manager
-    that handles resource clean-up.
+#     Since the v0.3.0 is an asynchronous context manager
+#     that handles resource clean-up.
 
-    :param minsize int: the minimum number of connections in the pool
-    :param maxsize int: the maximum number of connections in the pool
-    :param loop Optional[asyncio.AbstractEventLoop]: an event loop (asyncio.get_running_loop() by default)
-    :param kwargs dict: connection settings
+#     :param minsize int: the minimum number of connections in the pool
+#     :param maxsize int: the maximum number of connections in the pool
+#     :param loop Optional[asyncio.AbstractEventLoop]: an event loop (asyncio.get_running_loop() by default)
+#     :param kwargs dict: connection settings
 
-    :return: a connection pool object
-    :rtype: AsyncIterator[Pool]
-    """
+#     :return: a connection pool object
+#     :rtype: AsyncIterator[Pool]
+#     """
 
-    pool = Pool(
-        minsize=minsize,
-        maxsize=maxsize,
-        loop=loop,
-        **kwargs,
-    )
-    try:
-        await pool.startup()
-        yield pool
-    finally:
-        await pool.shutdown()
+#     pool = Pool(
+#         minsize=minsize,
+#         maxsize=maxsize,
+#         loop=loop,
+#         **kwargs,
+#     )
+#     try:
+#         await pool.startup()
+#         yield pool
+#     finally:
+#         await pool.shutdown()

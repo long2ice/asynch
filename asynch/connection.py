@@ -1,5 +1,3 @@
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from typing import Optional
 
 from asynch.cursors import Cursor
@@ -64,7 +62,7 @@ class Connection:
         await self.close()
 
     def __repr__(self) -> str:
-        cls_name = self.__class__.__name__
+        cls_name = type(self).__name__
         status = self.status
         return f"<{cls_name} object at 0x{id(self):x}; status: {status}>"
 
@@ -117,9 +115,9 @@ class Connection:
         opened, closed = self._opened, self._closed
         if opened is None and closed is None:
             return ConnectionStatus.created
-        if opened:
+        if opened and not closed:
             return ConnectionStatus.opened
-        if closed:
+        if closed and not opened:
             return ConnectionStatus.closed
         raise ConnectionError(f"{self} is in an unknown state")
 
@@ -161,25 +159,26 @@ class Connection:
         raise NotSupportedError
 
     async def connect(self) -> None:
-        if not self._opened:
-            await self._connection.connect()
-            self._opened = True
-            if self._closed is True:
-                self._closed = False
+        if self._opened:
+            return
+        await self._connection.connect()
+        self._opened = True
+        if self._closed:
+            self._closed = False
 
     def cursor(self, cursor: Optional[type[Cursor]] = None, *, echo: bool = False) -> Cursor:
         """Return the cursor object for the connection.
 
         When a parameter is interpreted as True,
         it takes precedence over the corresponding default value.
-        If cursor is None, but echo is True, then an instance
-        of a default `Cursor` class will be created with echoing
-        set to True even if the `self.echo` property returns False.
+        If the `cursor` is None, but the `echo` is True,
+        then a default Cursor instance will be created
+        with echoing even if the `self.echo` returns False.
 
-        :param cursor Optional[Type[Cursor]]: Cursor factory class
+        :param cursor Optional[type[Cursor]]: Cursor factory class
         :param echo bool: to override the `Connection.echo` parameter for a cursor
 
-        :return: the cursor object of a connection
+        :return: a cursor object of the given connection
         :rtype: Cursor
         """
 
@@ -200,13 +199,14 @@ class Connection:
     async def _refresh(self) -> None:
         """Refresh the connection.
 
-        It does ping and if it fails,
-        attempts to connect again.
-        If reconnecting fails,
-        an exception is raised and
-        the connection cannot be refreshed
+        Attempting to ping and if failed,
+        then trying to connect again.
+        If the reconnection does not work,
+        an Exception is propagated.
 
-        :raises ConnectionError: refreshing already closed connection
+        :raises ConnectionError:
+            1. refreshing created, i.e., not opened connection
+            2. refreshing already closed connection
 
         :return: None
         """
@@ -226,57 +226,3 @@ class Connection:
 
     async def rollback(self):
         raise NotSupportedError
-
-
-@asynccontextmanager
-async def connect(
-    dsn: Optional[str] = None,
-    user: str = constants.DEFAULT_USER,
-    password: str = constants.DEFAULT_PASSWORD,
-    host: str = constants.DEFAULT_HOST,
-    port: int = constants.DEFAULT_PORT,
-    database: str = constants.DEFAULT_DATABASE,
-    cursor_cls=Cursor,
-    echo: bool = False,
-    **kwargs,
-) -> AsyncIterator[Connection]:
-    """Return an opened connection to a ClickHouse server.
-
-    Before the v0.3.0, was equivalent to:
-    1. conn = Connection(...)  # init a Connection instance
-    2. conn.connect()  # connect to a ClickHouse server
-    3. return conn
-
-    Since the v0.3.0 is an asynchronous context manager
-    that handles resource clean-up.
-
-    :param dsn str: DSN/connection string (if None -> constructed from default dsn parts)
-    :param user str: user string ("default" by default)
-    :param password str: password string ("" by default)
-    :param host str: host string ("127.0.0.1" by default)
-    :param port int: port integer (9000 by default)
-    :param database str: database string ("default" by default)
-    :param cursor_cls Cursor: Cursor class (asynch.Cursor by default)
-    :param echo bool: connection echo mode (False by default)
-    :param kwargs dict: connection settings
-
-    :return: an async Connection context manager
-    :rtype: AsyncIterator[Connection]
-    """
-
-    conn = Connection(
-        dsn=dsn,
-        user=user,
-        password=password,
-        host=host,
-        port=port,
-        database=database,
-        cursor_cls=cursor_cls,
-        echo=echo,
-        **kwargs,
-    )
-    try:
-        await conn.connect()
-        yield conn
-    finally:
-        await conn.close()
