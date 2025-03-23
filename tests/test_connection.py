@@ -234,13 +234,16 @@ async def test_connection_cleanup(get_tcp_connections):
 async def test_connection_close():
     conn = Connection()
 
+    # it does not break
     await conn.close()
 
     assert not conn.opened
     assert conn.closed
 
     async with Connection() as conn:
+        assert conn.opened
+
         await conn.close()
 
-    assert not conn.opened
-    assert conn.closed
+        assert not conn.opened
+        assert conn.closed

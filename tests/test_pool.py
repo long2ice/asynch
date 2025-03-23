@@ -206,3 +206,6 @@ async def test_pool_broken_connection_handling():
 
         assert pool.free_connections == 1
         assert pool.acquired_connections == 0
+
+        async with pool.connection() as conn:
+            await conn.ping()
