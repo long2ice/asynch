@@ -101,6 +101,7 @@ target-version = "py39"
 select = [
     "ASYNC",  # flake8-async
     "E",  # pycodestyle
+    "ERA",  # eradicate
     "F",  # pyflakes
     "I",  # isort
     "ICN",  # flake8-import-conventions
@@ -115,6 +116,10 @@ ignore = [
 fixable = [
     "I"  # isort
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"benchmark/main.py" = ["ERA"]
+"tests/*.py" = ["ERA"]
 
 [tool.ruff.format]
 quote-style = "double"
