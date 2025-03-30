@@ -69,11 +69,12 @@ class Pool:
         :rtype: str (PoolStatus StrEnum)
         """
 
-        if self._opened is None and self._closed is None:
+        opened, closed = self._opened, self._closed
+        if opened is None and closed is None:
             return PoolStatus.created
-        if self._opened:
+        if opened and not closed:
             return PoolStatus.opened
-        if self._closed:
+        if closed and not opened:
             return PoolStatus.closed
         raise AsynchPoolError(f"{self} is in an unknown state")
 
@@ -95,7 +96,7 @@ class Pool:
     def acquired_connections(self) -> int:
         """Returns the number of connections acquired from the pool.
 
-        A connection is acquired when `pool.connection()` is invoked.
+        A connection is acquired when the `pool.connection()` is invoked.
 
         :return: the number of connections requested from the pool
         :rtype: int
@@ -143,7 +144,13 @@ class Pool:
 
         conn = Connection(**self._connection_kwargs)
         await conn.connect()
-        self._free_connections.append(conn)
+
+        try:
+            await conn.ping()
+            self._free_connections.append(conn)
+        except ConnectionError as e:
+            msg = f"failed to create a {conn} for {self}"
+            raise AsynchPoolError(msg) from e
 
     def _pop_connection(self) -> Connection:
         if not self._free_connections:
@@ -157,9 +164,8 @@ class Pool:
             try:
                 await conn._refresh()
                 return conn
-            except ConnectionError as e:
-                msg = f"the {conn} is invalidated: {e}"
-                logger.warning(msg)
+            except ConnectionError:
+                pass
         return None
 
     async def _acquire_connection(self) -> Connection:
@@ -167,11 +173,9 @@ class Pool:
             self._acquired_connections.append(conn)
             return conn
 
-        avail = self.maxsize - self.connections
-        if avail < 0:
-            msg = f"no fresh connection to acquire from {self}"
-            raise AsynchPoolError(msg)
-
+        # Otherwise, the `conn` is None - no fresh connections at all.
+        # So, attempting to create a connection,
+        # and the `_create_connection` method may raise AsyncPoolError
         await self._create_connection()
         conn = self._pop_connection()
         self._acquired_connections.append(conn)
@@ -181,37 +185,46 @@ class Pool:
         if conn not in self._acquired_connections:
             raise AsynchPoolError(f"the connection {conn} does not belong to {self}")
 
+        self._acquired_connections.remove(conn)
         try:
             await conn._refresh()
-            self._free_connections.append(conn)
-        except ConnectionError:
-            pass  # the invalidated connection is lost
+        except ConnectionError as e:
+            msg = f"the {conn} is invalidated"
+            raise AsynchPoolError(msg) from e
 
-        self._acquired_connections.remove(conn)
+        self._free_connections.append(conn)
 
-    async def _init_connections(self, n: Optional[int] = None) -> None:
-        to_create = n if n is not None else self.minsize
-
-        if to_create < 0:
-            msg = f"cannot create negative number ({to_create}) of connections for {self}"
+    async def _init_connections(self, n: int, *, strict: bool = False) -> None:
+        if n < 0:
+            msg = f"cannot create a negative number ({n}) of connections for {self}"
             raise ValueError(msg)
-        if (self.connections + to_create) > self.maxsize:
-            msg = f"cannot create {to_create} connections that will exceed the size of {self}"
+        pool_size, maxsize = self.connections, self.maxsize
+        if (pool_size + n) > self.maxsize:
+            msg = (
+                f"{self} has the {pool_size} connections, "
+                f"adding {n} will exceed its maxsize ({maxsize})"
+            )
+            raise AsynchPoolError(msg)
+        if not n:
+            return
+
+        # it is possible that the `_create_connection` may not create `n` connections
+        tasks: list[asyncio.Task] = [
+            asyncio.create_task(self._create_connection()) for _ in range(n)
+        ]
+        # that is why possible exceptions from the `_create_connection` are also gathered
+        # for not preventing connection initialisation process
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        if (results := [item for item in results if isinstance(item, Exception)]) and strict:
+            msg = f"failed to create the {n} connection(s) for the {self}"
             raise AsynchPoolError(msg)
 
-        if not to_create:
-            return
-        tasks: list[asyncio.Task] = [
-            asyncio.create_task(self._create_connection()) for _ in range(to_create)
-        ]
-        await asyncio.wait(fs=tasks)
-
-    async def _ensure_minsize_connections(self) -> None:
+    async def _ensure_minsize_connections(self, *, strict: bool = False) -> None:
         connections = self.connections
         minsize = self.minsize
         if connections < minsize:
             gap = minsize - connections
-            await self._init_connections(min(minsize, gap))
+            await self._init_connections(min(minsize, gap), strict=strict)
 
     @asynccontextmanager
     async def connection(self) -> AsyncIterator[Connection]:
@@ -228,17 +241,16 @@ class Pool:
 
         async with self._sem:
             async with self._lock:
-                await self._ensure_minsize_connections()
                 conn = await self._acquire_connection()
-                # due to possible connection exhaustion,
-                # ensuring minsize connection number
-                await self._ensure_minsize_connections()
             try:
                 yield conn
             finally:
                 async with self._lock:
-                    await self._release_connection(conn)
-                    await self._ensure_minsize_connections()
+                    try:
+                        await self._release_connection(conn)
+                    except AsynchPoolError as e:
+                        logger.warning(e)
+                    await self._ensure_minsize_connections(strict=True)
 
     async def startup(self) -> "Pool":
         """Initialise the pool.
@@ -254,7 +266,9 @@ class Pool:
         async with self._lock:
             if self._opened:
                 return self
-            await self._init_connections(self.minsize)
+            # If we cannot create the minsize connections here,
+            # the Pool does not meet the minsize requirement.
+            await self._init_connections(self.minsize, strict=True)
             self._opened = True
             if self._closed:
                 self._closed = False
