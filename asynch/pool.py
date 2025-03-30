@@ -223,8 +223,9 @@ class Pool:
         connections = self.connections
         minsize = self.minsize
         if connections < minsize:
+            # the `0 <= connections <= minsize` relationship is meant to be held
             gap = minsize - connections
-            await self._init_connections(min(minsize, gap), strict=strict)
+            await self._init_connections(gap, strict=strict)
 
     @asynccontextmanager
     async def connection(self) -> AsyncIterator[Connection]:
