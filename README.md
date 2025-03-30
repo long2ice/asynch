@@ -45,10 +45,9 @@ Basically, a connection to a ClickHouse server can be established in two ways:
 
     # connecting with a DSN string
     async def connect_database():
-        conn = Connection(
+        async with Connection(
             dsn = "clickhouse://ch_user:P@55w0rD:@127.0.0.1:9000/chdb",
-        )
-        async with conn:
+        ) as conn:
             pass
     ```
 
@@ -78,21 +77,21 @@ async def create_table(conn: Connection):
     async with conn.cursor(cursor=DictCursor) as cursor:
         await cursor.execute("CREATE DATABASE IF NOT EXISTS test")
         await cursor.execute("""
-        CREATE TABLE if not exists test.asynch
-        (
-            `id`       Int32,
-            `decimal`  Decimal(10, 2),
-            `date`     Date,
-            `datetime` DateTime,
-            `float`    Float32,
-            `uuid`     UUID,
-            `string`   String,
-            `ipv4`     IPv4,
-            `ipv6`     IPv6
-        )
-        ENGINE = MergeTree
-        ORDER BY id
-        """
+            CREATE TABLE if not exists test.asynch
+            (
+                `id`       Int32,
+                `decimal`  Decimal(10, 2),
+                `date`     Date,
+                `datetime` DateTime,
+                `float`    Float32,
+                `uuid`     UUID,
+                `string`   String,
+                `ipv4`     IPv4,
+                `ipv6`     IPv6
+            )
+            ENGINE = MergeTree
+            ORDER BY id
+            """
         )
 ```
 
@@ -193,7 +192,7 @@ async def use_pool():
     await pool.wait_closed()
 ```
 
-Since the v0.2.5:
+Since the v0.2.5 -> v0.3.0:
 
 ```python
 async def use_pool():
@@ -207,7 +206,7 @@ async def use_pool():
                 assert ret == (1,)
 ```
 
-which decomposes into
+which is decomposable into something like
 
 ```python
 async def use_pool():
