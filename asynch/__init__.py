@@ -1,3 +1,3 @@
-from asynch.connection import Connection  # noqa: F401
-from asynch.cursors import Cursor, DictCursor  # noqa: F401
-from asynch.pool import Pool  # noqa: F401
+from asynch.connection import Connection
+from asynch.cursors import Cursor, DictCursor
+from asynch.pool import Pool
