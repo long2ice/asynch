@@ -24,13 +24,12 @@ If you want to install [`clickhouse-cityhash`](https://pypi.org/project/clickhou
 ## Release v0.3.0 announcement
 
 The version 0.2.5 should have been the v0.3.0 due to compatibility-breaking changes.
-Since the release v0.2.5 is kinda yanked, a smooth upgrade seems inexpedient.
+Before upgrading to the v0.3.0, please pay attention to the incompatible changes like:
 
-Before upgrading to the v0.3.0, please pay attention to the incompatible changes:
-
-1. the `connect` function from the `asynch/connection.py` module is removed - you can use the `Connection` class.
-2. the `create_pool` function from the `asynch/pool.py` module is also removed - you can use the `Pool` class.
-3. all deprecated methods from `Connection`, `Cursor` and `Pool` classes are removed.
+- The `asynch/connection.py::connect` function is removed - you can use the `async with` a Connection instance.
+- The `asynch/connection.py::Connection.connected` property is renamed to `opened`.
+- The `asynch/pool.py::create_pool` function is removed - you can use the `async with` a Pool instance.
+- The deprecated methods from `Connection`, `Cursor` and `Pool` classes are removed.
 
 For more details, please refer to the project [CHANGELOG.md](./CHANGELOG.md) file.
 
@@ -73,26 +72,27 @@ If a DSN string is given, it takes priority over any specified connection parame
 Create a database and a table by executing SQL statements via an instance of the `Cursor` class (here its child `DictCursor` class) acquired from an instance of the `Connection` class.
 
 ```python
-async def create_table(conn: Connection):
-    async with conn.cursor(cursor=DictCursor) as cursor:
-        await cursor.execute("CREATE DATABASE IF NOT EXISTS test")
-        await cursor.execute("""
-            CREATE TABLE if not exists test.asynch
-            (
-                `id`       Int32,
-                `decimal`  Decimal(10, 2),
-                `date`     Date,
-                `datetime` DateTime,
-                `float`    Float32,
-                `uuid`     UUID,
-                `string`   String,
-                `ipv4`     IPv4,
-                `ipv6`     IPv6
+async def create_table(connection: Connection):
+    async with connection as conn:
+        async with conn.cursor(cursor=DictCursor) as cursor:
+            await cursor.execute("CREATE DATABASE IF NOT EXISTS test")
+            await cursor.execute("""
+                CREATE TABLE if not exists test.asynch
+                (
+                    `id`       Int32,
+                    `decimal`  Decimal(10, 2),
+                    `date`     Date,
+                    `datetime` DateTime,
+                    `float`    Float32,
+                    `uuid`     UUID,
+                    `string`   String,
+                    `ipv4`     IPv4,
+                    `ipv6`     IPv6
+                )
+                ENGINE = MergeTree
+                ORDER BY id
+                """
             )
-            ENGINE = MergeTree
-            ORDER BY id
-            """
-        )
 ```
 
 Fetching one row from an executed SQL statement:
@@ -206,7 +206,7 @@ async def use_pool():
                 assert ret == (1,)
 ```
 
-which is decomposable into something like
+Or, you may opne/close the pool manually:
 
 ```python
 async def use_pool():
