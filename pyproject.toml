@@ -97,6 +97,10 @@ indent-width = 4
 line-length = 100
 target-version = "py39"
 
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
 [tool.ruff.lint]
 select = [
     "ASYNC",  # flake8-async
@@ -121,7 +125,3 @@ fixable = [
 "__init__.py" = ["F401"]
 "benchmark/main.py" = ["ERA"]
 "tests/*.py" = ["ERA"]
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
