@@ -4,6 +4,7 @@ from typing import Any
 import pytest
 
 from asynch.connection import Connection
+from asynch.errors import AsynchPoolError
 from asynch.pool import Pool
 from asynch.proto import constants
 from asynch.proto.models.enums import PoolStatus
@@ -188,24 +189,48 @@ async def test_pool_concurrent_connection_management(get_tcp_connections):
 
 @pytest.mark.asyncio
 async def test_pool_broken_connection_handling():
-    min_size, max_size = 1, 1
-    async with Pool(minsize=min_size, maxsize=max_size) as pool:
-        async with pool.connection() as conn:
-            await conn.ping()
-
+    async def _get_answer(pool: Pool, *, raise_exc: bool = True):
+        async with pool.connection() as conn_ctx:
             assert pool.free_connections == 0
             assert pool.acquired_connections == 1
 
-            # things go wrong here -> the connection gets broken
+            async with conn_ctx.cursor() as cur:
+                if raise_exc:
+                    raise AsynchPoolError("good bye")
+                await cur.execute("SELECT 21 + 21;")
+                ret = await cur.fetchone()
+                assert ret == 42
+                return ret
+
+    min_size, max_size = 1, 1
+    pool = Pool(minsize=min_size, maxsize=max_size)
+    async with pool:
+        async with pool.connection() as conn:
+            await conn.ping()
+
+            # he connection is invalidated
             await conn.close()
             with pytest.raises(ConnectionError):
                 await conn.ping()
 
+            # but does not influence the pool state
+            assert pool.free_connections == 0
+            assert pool.acquired_connections == 1
+
         # when leaving the connection context,
         # the pool should ensure its consistency
-
         assert pool.free_connections == 1
         assert pool.acquired_connections == 0
 
         async with pool.connection() as conn:
             await conn.ping()
+            assert pool.free_connections == 0
+            assert pool.acquired_connections == 1
+
+        seq = list(range(10))
+        tasks = [asyncio.create_task(_get_answer(pool=pool, raise_exc=bool(i % 2))) for i in seq]
+        # no blockade and no inconsistency
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+        assert pool.free_connections == 1
+        assert pool.acquired_connections == 0
