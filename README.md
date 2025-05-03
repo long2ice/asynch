@@ -72,27 +72,26 @@ If a DSN string is given, it takes priority over any specified connection parame
 Create a database and a table by executing SQL statements via an instance of the `Cursor` class (here its child `DictCursor` class) acquired from an instance of the `Connection` class.
 
 ```python
-async def create_table(connection: Connection):
-    async with connection as conn:
-        async with conn.cursor(cursor=DictCursor) as cursor:
-            await cursor.execute("CREATE DATABASE IF NOT EXISTS test")
-            await cursor.execute("""
-                CREATE TABLE if not exists test.asynch
-                (
-                    `id`       Int32,
-                    `decimal`  Decimal(10, 2),
-                    `date`     Date,
-                    `datetime` DateTime,
-                    `float`    Float32,
-                    `uuid`     UUID,
-                    `string`   String,
-                    `ipv4`     IPv4,
-                    `ipv6`     IPv6
-                )
-                ENGINE = MergeTree
-                ORDER BY id
-                """
+async def create_table(conn: Connection):
+    async with conn.cursor(cursor=DictCursor) as cursor:
+        await cursor.execute("CREATE DATABASE IF NOT EXISTS test")
+        await cursor.execute("""
+            CREATE TABLE if not exists test.asynch
+            (
+                `id`       Int32,
+                `decimal`  Decimal(10, 2),
+                `date`     Date,
+                `datetime` DateTime,
+                `float`    Float32,
+                `uuid`     UUID,
+                `string`   String,
+                `ipv4`     IPv4,
+                `ipv6`     IPv6
             )
+            ENGINE = MergeTree
+            ORDER BY id
+            """
+        )
 ```
 
 Fetching one row from an executed SQL statement:
