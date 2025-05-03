@@ -33,8 +33,8 @@ class Pool:
         self._lock = asyncio.Lock()
         self._acquired_connections: deque[Connection] = deque(maxlen=maxsize)
         self._free_connections: deque[Connection] = deque(maxlen=maxsize)
-        self._opened: Optional[bool] = None
-        self._closed: Optional[bool] = None
+        self._opened: bool = False
+        self._closed: bool = False
 
     async def __aenter__(self) -> "Pool":
         await self.startup()
@@ -52,45 +52,41 @@ class Pool:
         )
 
     @property
+    def opened(self) -> bool:
+        """Returns the pool open status.
+
+        :returns: the connection open status
+        :rtype: bool
+        """
+
+        return self._opened
+
+    @property
+    def closed(self) -> bool:
+        """Returns the pool close status.
+
+        :returns: the connection close status
+        :rtype: bool
+        """
+
+        return self._closed
+
+    @property
     def status(self) -> str:
         """Return the status of the pool.
-
-        If pool.opened is None and pool.closed is None,
-        then the pool is in the "created" state.
-        It was neither opened nor closed.
-
-        When executing `async with pool: ...`,
-        the `pool.opened` is True and `pool.closed` is None.
-        When leaving the context, the `pool.closed` is True
-        and the `pool.opened` is False.
 
         :raise AsynchPoolError: an unresolved pool state.
         :return: the Pool object status
         :rtype: str (PoolStatus StrEnum)
         """
 
-        opened, closed = self._opened, self._closed
-        if opened is None and closed is None:
+        if not (self._opened or self._closed):
             return PoolStatus.created
-        if opened and not closed:
+        if self._opened and not self._closed:
             return PoolStatus.opened
-        if closed and not opened:
+        if self._closed and not self._opened:
             return PoolStatus.closed
         raise AsynchPoolError(f"{self} is in an unknown state")
-
-    @property
-    def closed(self) -> Optional[bool]:
-        """Returns the pool close status.
-
-        If the return value is None,
-        the pool was only created,
-        but neither activated or closed.
-
-        :returns: the connection close status
-        :rtype: None | bool
-        """
-
-        return self._closed
 
     @property
     def acquired_connections(self) -> int:

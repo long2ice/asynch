@@ -48,8 +48,8 @@ class Connection:
         self._port = port
         self._database = database
         # connection additional settings
-        self._opened: Optional[bool] = None
-        self._closed: Optional[bool] = None
+        self._opened: bool = False
+        self._closed: bool = False
         self._cursor_cls = cursor_cls
         self._connection_kwargs = kwargs
         self._echo = echo
@@ -70,26 +70,18 @@ class Connection:
     def opened(self) -> Optional[bool]:
         """Returns the connection open status.
 
-        If the return value is None,
-        the connection was only created,
-        but neither opened or closed.
-
         :returns: the connection open status
-        :rtype: None | bool
+        :rtype: bool
         """
 
         return self._opened
 
     @property
-    def closed(self) -> Optional[bool]:
+    def closed(self) -> bool:
         """Returns the connection close status.
 
-        If the return value is None,
-        the connection was only created,
-        but neither opened or closed.
-
         :returns: the connection close status
-        :rtype: None | bool
+        :rtype: bool
         """
 
         return self._closed
@@ -98,26 +90,16 @@ class Connection:
     def status(self) -> str:
         """Return the status of the connection.
 
-        If conn.connected is None and conn.closed is None,
-        then the connection is in the "created" state.
-        It was neither opened nor closed.
-
-        When executing `async with conn: ...`,
-        the `conn.opened` is True and `conn.closed` is None.
-        When leaving the context, the `conn.closed` is True
-        and the `conn.opened` is False.
-
         :raise ConnectionError: an unresolved connection state
         :return: the Connection object status
         :rtype: str (ConnectionStatus StrEnum)
         """
 
-        opened, closed = self._opened, self._closed
-        if opened is None and closed is None:
+        if not (self._opened or self._closed):
             return ConnectionStatus.created
-        if opened and not closed:
+        if self._opened and not self._closed:
             return ConnectionStatus.opened
-        if closed and not opened:
+        if self._closed and not self._opened:
             return ConnectionStatus.closed
         raise ConnectionError(f"{self} is in an unknown state")
 
@@ -211,11 +193,10 @@ class Connection:
         :return: None
         """
 
-        status = self.status
-        if status == ConnectionStatus.created:
+        if self.status == ConnectionStatus.created:
             msg = f"the {self} is not opened to be refreshed"
             raise ConnectionError(msg)
-        if status == ConnectionStatus.closed:
+        if self.status == ConnectionStatus.closed:
             msg = f"the {self} is already closed"
             raise ConnectionError(msg)
 
