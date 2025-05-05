@@ -142,6 +142,7 @@ async def test_watch_zero_limit(proto_conn: ProtoConnection) -> None:
     await proto_conn.execute("DROP VIEW IF EXISTS lv")
     await proto_conn.execute("CREATE LIVE VIEW lv AS SELECT sum(x) FROM test.test")
     await proto_conn.execute("INSERT INTO test.test VALUES (10)")
-    iter = await proto_conn.execute_iter("WATCH lv LIMIT 0")
-    async for data in iter:
+
+    results = await proto_conn.execute_iter("WATCH lv LIMIT 0")
+    async for data in results:
         assert data == (10, 1)

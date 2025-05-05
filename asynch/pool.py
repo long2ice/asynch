@@ -2,7 +2,7 @@ import asyncio
 import logging
 from collections import deque
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import Optional
 
 from asynch.connection import Connection
@@ -53,9 +53,9 @@ class Pool:
 
     @property
     def opened(self) -> bool:
-        """Returns the pool open status.
+        """Returns True if the pool is opened.
 
-        :returns: the connection open status
+        :returns: the pool open status
         :rtype: bool
         """
 
@@ -63,9 +63,9 @@ class Pool:
 
     @property
     def closed(self) -> bool:
-        """Returns the pool close status.
+        """Return True if the pool is closed.
 
-        :returns: the connection close status
+        :returns: the pool close status
         :rtype: bool
         """
 
@@ -90,7 +90,7 @@ class Pool:
 
     @property
     def acquired_connections(self) -> int:
-        """Returns the number of connections acquired from the pool.
+        """Return the number of connections acquired from the pool.
 
         A connection is acquired when the `pool.connection()` is invoked.
 
@@ -102,7 +102,7 @@ class Pool:
 
     @property
     def free_connections(self) -> int:
-        """Returns the number of free connections in the pool.
+        """Return the number of free connections in the pool.
 
         :return: the number of free connections in the pool
         :rtype: int
@@ -111,11 +111,12 @@ class Pool:
         return len(self._free_connections)
 
     @property
-    def connections(self) -> int:
-        """Returns the number of connections associated with the pool.
+    def pool_size(self) -> int:
+        """Return the number of connections associated with the pool.
 
-        This number represents the current size of the pool,
-        which is the sum of the acquired and free connections.
+        This number is the sum of the acquired and free connections.
+        So this sum may be interpreted as the current size of the pool
+        or the number of connections associated with the pool and so on.
 
         :return: the number of connections related to the pool
         :rtype: int
@@ -132,10 +133,9 @@ class Pool:
         return self._minsize
 
     async def _create_connection(self) -> None:
-        pool_size, maxsize = self.connections, self.maxsize
-        if pool_size == maxsize:
+        if self.pool_size == self._maxsize:
             raise AsynchPoolError(f"{self} is already full")
-        if pool_size > maxsize:
+        if self.pool_size > self._maxsize:
             raise AsynchPoolError(f"{self} is overburden")
 
         conn = Connection(**self._connection_kwargs)
@@ -151,17 +151,14 @@ class Pool:
     def _pop_connection(self) -> Connection:
         if not self._free_connections:
             raise AsynchPoolError(f"no free connection in {self}")
-
         return self._free_connections.popleft()
 
     async def _get_fresh_connection(self) -> Optional[Connection]:
         while self._free_connections:
             conn = self._pop_connection()
-            try:
+            with suppress(ConnectionError):
                 await conn._refresh()
                 return conn
-            except ConnectionError:
-                pass
         return None
 
     async def _acquire_connection(self) -> Connection:
@@ -169,9 +166,6 @@ class Pool:
             self._acquired_connections.append(conn)
             return conn
 
-        # Otherwise, the `conn` is None - no fresh connections at all.
-        # So, attempting to create a connection,
-        # and the `_create_connection` method may raise AsyncPoolError
         await self._create_connection()
         conn = self._pop_connection()
         self._acquired_connections.append(conn)
@@ -194,11 +188,10 @@ class Pool:
         if n < 0:
             msg = f"cannot create a negative number ({n}) of connections for {self}"
             raise ValueError(msg)
-        pool_size, maxsize = self.connections, self.maxsize
-        if (pool_size + n) > self.maxsize:
+        if (self.pool_size + n) > self.maxsize:
             msg = (
-                f"{self} has the {pool_size} connections, "
-                f"adding {n} will exceed its maxsize ({maxsize})"
+                f"{self} has the {self.pool_size} connections, "
+                f"adding {n} will exceed its maxsize ({self.maxsize})"
             )
             raise AsynchPoolError(msg)
         if not n:
@@ -209,18 +202,16 @@ class Pool:
             asyncio.create_task(self._create_connection()) for _ in range(n)
         ]
         # that is why possible exceptions from the `_create_connection` are also gathered
-        # for not preventing connection initialisation process
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        if (results := [item for item in results if isinstance(item, Exception)]) and strict:
+        if strict and any(
+            i
+            for i in await asyncio.gather(*tasks, return_exceptions=True)
+            if isinstance(i, Exception)
+        ):
             msg = f"failed to create the {n} connection(s) for the {self}"
             raise AsynchPoolError(msg)
 
     async def _ensure_minsize_connections(self, *, strict: bool = False) -> None:
-        connections = self.connections
-        minsize = self.minsize
-        if connections < minsize:
-            # the `0 <= connections <= minsize` relationship is meant to be held
-            gap = minsize - connections
+        if (gap := self.minsize - self.pool_size) > 0:
             await self._init_connections(gap, strict=strict)
 
     @asynccontextmanager

@@ -68,7 +68,7 @@ class Connection:
 
     @property
     def opened(self) -> Optional[bool]:
-        """Returns the connection open status.
+        """Return True if the connection is opened.
 
         :returns: the connection open status
         :rtype: bool
@@ -78,7 +78,7 @@ class Connection:
 
     @property
     def closed(self) -> bool:
-        """Returns the connection close status.
+        """Return True if the connection is closed.
 
         :returns: the connection close status
         :rtype: bool

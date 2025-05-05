@@ -57,25 +57,25 @@ async def test_pool_connection_attributes(config):
     pool = Pool(dsn=config.dsn)
     assert pool.minsize == constants.POOL_MIN_SIZE
     assert pool.maxsize == constants.POOL_MAX_SIZE
-    assert pool.connections == 0
+    assert pool.pool_size == 0
     assert pool.free_connections == 0
     assert pool.acquired_connections == 0
 
     async with pool:
-        assert pool.connections == constants.POOL_MIN_SIZE
+        assert pool.pool_size == constants.POOL_MIN_SIZE
         assert pool.free_connections == constants.POOL_MIN_SIZE
         assert pool.acquired_connections == 0
 
         async with pool.connection():
-            assert pool.connections == constants.POOL_MIN_SIZE
+            assert pool.pool_size == constants.POOL_MIN_SIZE
             assert pool.free_connections == 0
             assert pool.acquired_connections == constants.POOL_MIN_SIZE
 
-        assert pool.connections == constants.POOL_MIN_SIZE
+        assert pool.pool_size == constants.POOL_MIN_SIZE
         assert pool.free_connections == constants.POOL_MIN_SIZE
         assert pool.acquired_connections == 0
 
-    assert pool.connections == 0
+    assert pool.pool_size == 0
     assert pool.free_connections == 0
     assert pool.acquired_connections == 0
 
