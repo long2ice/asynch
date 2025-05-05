@@ -103,17 +103,23 @@ indent-style = "space"
 
 [tool.ruff.lint]
 select = [
+    "A",  # flake8-builtins
     "ASYNC",  # flake8-async
+    # "ANN",  # flake8-annotations
+    # "B",  # flake8-bugbear
     "E",  # pycodestyle
     "ERA",  # eradicate
-    "F",  # pyflakes
+    "F",  # Pyflakes
     "I",  # isort
     "ICN",  # flake8-import-conventions
+    "ISC",  # flake8-implicit-str-concat
     "PIE",  # flake8-pie
-    "T10"  # flake8-debugger
+    "S",  # flake8-bandit
+    "T10",  # flake8-debugger
+    "T20"  # flake8-print
 ]
 ignore = [
-    "E501",  # line too long  # for now
+    "E501",  # line too long  # added temporarily, must be resolved later
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -122,6 +128,6 @@ fixable = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]
-"benchmark/main.py" = ["ERA"]
-"tests/*.py" = ["ERA"]
+"asynch/proto/settings/types.py" = ["A005"]
+"benchmark/main.py" = ["ERA", "S", "T20"]
+"tests/*.py" = ["ERA", "S"]
