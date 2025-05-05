@@ -111,7 +111,7 @@ class Pool:
         return len(self._free_connections)
 
     @property
-    def pool_size(self) -> int:
+    def _pool_size(self) -> int:
         """Return the number of connections associated with the pool.
 
         This number is the sum of the acquired and free connections.
@@ -133,9 +133,9 @@ class Pool:
         return self._minsize
 
     async def _create_connection(self) -> None:
-        if self.pool_size == self._maxsize:
+        if self._pool_size == self._maxsize:
             raise AsynchPoolError(f"{self} is already full")
-        if self.pool_size > self._maxsize:
+        if self._pool_size > self._maxsize:
             raise AsynchPoolError(f"{self} is overburden")
 
         conn = Connection(**self._connection_kwargs)
@@ -188,9 +188,9 @@ class Pool:
         if n < 0:
             msg = f"cannot create a negative number ({n}) of connections for {self}"
             raise ValueError(msg)
-        if (self.pool_size + n) > self.maxsize:
+        if (self._pool_size + n) > self.maxsize:
             msg = (
-                f"{self} has the {self.pool_size} connections, "
+                f"{self} has the {self._pool_size} connections, "
                 f"adding {n} will exceed its maxsize ({self.maxsize})"
             )
             raise AsynchPoolError(msg)
@@ -211,7 +211,7 @@ class Pool:
             raise AsynchPoolError(msg)
 
     async def _ensure_minsize_connections(self, *, strict: bool = False) -> None:
-        if (gap := self.minsize - self.pool_size) > 0:
+        if (gap := self.minsize - self._pool_size) > 0:
             await self._init_connections(gap, strict=strict)
 
     @asynccontextmanager
