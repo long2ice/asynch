@@ -1,3 +1,5 @@
-from asynch.connection import Connection, connect  # noqa: F401
-from asynch.cursors import Cursor, DictCursor  # noqa: F401
-from asynch.pool import Pool, create_pool  # noqa: F401
+from asynch.connection import Connection
+from asynch.cursors import Cursor, DictCursor
+from asynch.pool import Pool
+
+__all__ = ["Connection", "Cursor", "DictCursor", "Pool"]

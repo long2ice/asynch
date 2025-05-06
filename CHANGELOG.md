@@ -4,6 +4,14 @@
 
 ### 0.3.0
 
+- Update the `Connection` and `Pool` classes API. By @stankudrow in #130:
+  - remove the deprecated `connected` property from the `Connection` class
+  - fix type hinting for `Cursor` class as incoming parameter for the connection `cursor` method
+  - make the connection `close` async method more consistent
+  - remove the `asynch/connection.py::connect` function
+  - get rid of inheritance from the `asyncio.AbstractServer` for the `Pool` class (mypy is satisfied)
+  - check the freshness of a connection before giving it from a pool (inspired by the issue #127 from @nils-borrmann-tacto).
+  - remove the`asynch/pool.py::create_pool` function
 - Move to poetry>=2.1. By @stankudrow in #133.
 - Add `mypy` dependency. By @stankudrow in #128.
 - Gracefully handle connections terminated by the server. By @nils-borrmann-tacto in #129.

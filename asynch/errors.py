@@ -375,7 +375,7 @@ class ErrorCode:
     ILLEGAL_PROJECTION_MANIPULATOR = 2002
 
 
-class Warning(Exception):
+class Warning(Exception):  # noqa: A001
     """Asynch DB-API v2.0 Warning.
 
     Exception raised for important warnings

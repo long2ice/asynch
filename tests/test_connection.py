@@ -1,5 +1,4 @@
 import ssl
-from typing import Optional
 
 import pytest
 
@@ -33,8 +32,8 @@ def _test_connection_credentials(
 def _test_connectivity_invariant(
     conn: Connection,
     *,
-    is_connected: Optional[bool] = None,
-    is_closed: Optional[bool] = None,
+    is_connected: bool = False,
+    is_closed: bool = False,
 ) -> None:
     __tracebackhide__ = True
 
@@ -129,8 +128,8 @@ def test_connection_status_offline():
     repstr = f"<Connection object at 0x{id(conn):x}; status: created>"
 
     assert repr(conn) == repstr
-    assert conn.opened is None
-    assert conn.closed is None
+    assert not conn.opened
+    assert not conn.closed
 
 
 @pytest.mark.asyncio
@@ -144,7 +143,7 @@ async def test_connection_status_online():
         await conn.connect()
         assert repr(conn) == f"{repstr}; status: opened>"
         assert conn.opened
-        assert conn.closed is None
+        assert conn.closed is False
 
         await conn.close()
         assert repr(conn) == f"{repstr}; status: closed>"
@@ -153,7 +152,7 @@ async def test_connection_status_online():
     finally:
         await conn.close()
         assert repr(conn) == f"{repstr}; status: closed>"
-        assert not conn.opened
+        assert conn.opened is False
         assert conn.closed
 
 
@@ -163,7 +162,7 @@ async def test_async_context_manager_interface():
     _test_connectivity_invariant(conn=conn)
 
     async with conn:
-        _test_connectivity_invariant(conn=conn, is_connected=True, is_closed=None)
+        _test_connectivity_invariant(conn=conn, is_connected=True, is_closed=False)
         await conn.ping()
 
     _test_connectivity_invariant(conn=conn, is_connected=False, is_closed=True)
@@ -228,3 +227,22 @@ async def test_connection_cleanup(get_tcp_connections):
         final_tcps = await get_tcp_connections(cn)
 
     assert final_tcps == init_tcps
+
+
+@pytest.mark.asyncio
+async def test_connection_close():
+    conn = Connection()
+
+    # it does not break
+    await conn.close()
+
+    assert not conn.opened
+    assert conn.closed
+
+    async with Connection() as conn:
+        assert conn.opened
+
+        await conn.close()
+
+        assert not conn.opened
+        assert conn.closed

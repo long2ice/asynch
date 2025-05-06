@@ -5,7 +5,7 @@ integer_types = (int,)
 class_types = (type,)
 text_type = str
 binary_type = bytes
-range = range
+range = range  # noqa: A001
 StandardError = Exception
 
 

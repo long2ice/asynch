@@ -1,5 +1,4 @@
 from typing import Optional
-from warnings import warn
 
 from asynch.cursors import Cursor
 from asynch.errors import NotSupportedError
@@ -49,8 +48,8 @@ class Connection:
         self._port = port
         self._database = database
         # connection additional settings
-        self._opened: Optional[bool] = None
-        self._closed: Optional[bool] = None
+        self._opened: bool = False
+        self._closed: bool = False
         self._cursor_cls = cursor_cls
         self._connection_kwargs = kwargs
         self._echo = echo
@@ -63,58 +62,26 @@ class Connection:
         await self.close()
 
     def __repr__(self) -> str:
-        cls_name = self.__class__.__name__
+        cls_name = type(self).__name__
         status = self.status
         return f"<{cls_name} object at 0x{id(self):x}; status: {status}>"
 
     @property
-    def connected(self) -> Optional[bool]:
-        """Returns the connection open status.
-
-        If the return value is None,
-        the connection was only created,
-        but neither opened or closed.
-
-        The attribute is deprecated in favour of `opened` one.
-        The reason is about tautology on `connection.connected` case.
-
-        :returns: the connection open status
-        :rtype: None | bool
-        """
-
-        warn(
-            (
-                "Please consider using the `opened` property. "
-                "The `connected` property may be removed in the version 0.2.6 or later."
-            ),
-            DeprecationWarning,
-        )
-        return self._opened
-
-    @property
     def opened(self) -> Optional[bool]:
-        """Returns the connection open status.
-
-        If the return value is None,
-        the connection was only created,
-        but neither opened or closed.
+        """Return True if the connection is opened.
 
         :returns: the connection open status
-        :rtype: None | bool
+        :rtype: bool
         """
 
         return self._opened
 
     @property
-    def closed(self) -> Optional[bool]:
-        """Returns the connection close status.
-
-        If the return value is None,
-        the connection was only created,
-        but neither opened or closed.
+    def closed(self) -> bool:
+        """Return True if the connection is closed.
 
         :returns: the connection close status
-        :rtype: None | bool
+        :rtype: bool
         """
 
         return self._closed
@@ -123,25 +90,16 @@ class Connection:
     def status(self) -> str:
         """Return the status of the connection.
 
-        If conn.connected is None and conn.closed is None,
-        then the connection is in the "created" state.
-        It was neither opened nor closed.
-
-        When executing `async with conn: ...`,
-        the `conn.opened` is True and `conn.closed` is None.
-        When leaving the context, the `conn.closed` is True
-        and the `conn.opened` is False.
-
         :raise ConnectionError: an unresolved connection state
         :return: the Connection object status
         :rtype: str (ConnectionStatus StrEnum)
         """
 
-        if self._opened is None and self._closed is None:
+        if not (self._opened or self._closed):
             return ConnectionStatus.created
-        if self._opened:
+        if self._opened and not self._closed:
             return ConnectionStatus.opened
-        if self._closed:
+        if self._closed and not self._opened:
             return ConnectionStatus.closed
         raise ConnectionError(f"{self} is in an unknown state")
 
@@ -172,37 +130,37 @@ class Connection:
     async def close(self) -> None:
         """Close the connection."""
 
+        if self._closed:
+            return
         if self._opened:
             await self._connection.disconnect()
-            self._opened = False
-            self._closed = True
+        self._opened = False
+        self._closed = True
 
     async def commit(self):
         raise NotSupportedError
 
-    async def rollback(self):
-        raise NotSupportedError
-
     async def connect(self) -> None:
-        if not self._opened:
-            await self._connection.connect()
-            self._opened = True
-            if self._closed is True:
-                self._closed = False
+        if self._opened:
+            return
+        await self._connection.connect()
+        self._opened = True
+        if self._closed:
+            self._closed = False
 
     def cursor(self, cursor: Optional[type[Cursor]] = None, *, echo: bool = False) -> Cursor:
         """Return the cursor object for the connection.
 
         When a parameter is interpreted as True,
         it takes precedence over the corresponding default value.
-        If cursor is None, but echo is True, then an instance
-        of a default `Cursor` class will be created with echoing
-        set to True even if the `self.echo` property returns False.
+        If the `cursor` is None, but the `echo` is True,
+        then a default Cursor instance will be created
+        with echoing even if the `self.echo` returns False.
 
-        :param cursor Optional[Cursor]: Cursor factory class
-        :param echo bool: to override the `Connection.echo` parametre for a cursor
+        :param cursor Optional[type[Cursor]]: Cursor factory class
+        :param echo bool: to override the `Connection.echo` parameter for a cursor
 
-        :return: the cursor object of a connection
+        :return: a cursor object of the given connection
         :rtype: Cursor
         """
 
@@ -220,52 +178,32 @@ class Connection:
             msg = f"Ping has failed for {self}"
             raise ConnectionError(msg)
 
+    async def _refresh(self) -> None:
+        """Refresh the connection.
 
-async def connect(
-    dsn: Optional[str] = None,
-    user: str = constants.DEFAULT_USER,
-    password: str = constants.DEFAULT_PASSWORD,
-    host: str = constants.DEFAULT_HOST,
-    port: int = constants.DEFAULT_PORT,
-    database: str = constants.DEFAULT_DATABASE,
-    cursor_cls=Cursor,
-    echo: bool = False,
-    **kwargs,
-) -> Connection:
-    """Return an opened connection to a ClickHouse server.
+        Attempting to ping and if failed,
+        then trying to connect again.
+        If the reconnection does not work,
+        an Exception is propagated.
 
-    Equivalent to the following steps:
-    1. conn = Connection(...)  # init a Connection instance
-    2. conn.connect()  # connect to a ClickHouse server
-    3. return conn
+        :raises ConnectionError:
+            1. refreshing created, i.e., not opened connection
+            2. refreshing already closed connection
 
-    When the connection is no longer needed,
-    consider `await`ing the `conn.close()` method.
+        :return: None
+        """
 
-    :param dsn str: DSN/connection string (if None -> constructed from default dsn parts)
-    :param user str: user string ("default" by default)
-    :param password str: password string ("" by default)
-    :param host str: host string ("127.0.0.1" by default)
-    :param port int: port integer (9000 by default)
-    :param database str: database string ("default" by default)
-    :param cursor_cls Cursor: Cursor class (asynch.Cursor by default)
-    :param echo bool: connection echo mode (False by default)
-    :param kwargs dict: connection settings
+        if self.status == ConnectionStatus.created:
+            msg = f"the {self} is not opened to be refreshed"
+            raise ConnectionError(msg)
+        if self.status == ConnectionStatus.closed:
+            msg = f"the {self} is already closed"
+            raise ConnectionError(msg)
 
-    :return: an opened Connection object
-    :rtype: Connection
-    """
+        try:
+            await self.ping()
+        except ConnectionError:
+            await self.connect()
 
-    conn = Connection(
-        dsn=dsn,
-        user=user,
-        password=password,
-        host=host,
-        port=port,
-        database=database,
-        cursor_cls=cursor_cls,
-        echo=echo,
-        **kwargs,
-    )
-    await conn.connect()
-    return conn
+    async def rollback(self):
+        raise NotSupportedError
