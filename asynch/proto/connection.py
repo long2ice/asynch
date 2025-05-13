@@ -12,6 +12,7 @@ from asynch.errors import (
     ServerException,
     UnexpectedPacketFromServerError,
     UnknownPacketFromServerError,
+    Error,
 )
 from asynch.proto import constants
 from asynch.proto.block import (
@@ -580,7 +581,11 @@ class Connection:
         logger.debug("Connecting. Database: %s. User: %s", self.database, self.user)
         for host, port in self.hosts:
             logger.debug("Connecting to %s:%s", host, port)
-            return await self._init_connection(host, port)
+            try:
+                return await self._init_connection(host, port)
+            except Exception as err:
+                logger.error("Failed to connect to %s:%s, error: %s", host, port, err)
+        raise Error(f'All hosts unreachable: {self.hosts}')
 
     async def execute(
         self,
