@@ -15,31 +15,38 @@ class Connection:
         user: str = constants.DEFAULT_USER,
         password: str = constants.DEFAULT_PASSWORD,
         host: str = constants.DEFAULT_HOST,
-        port: int = constants.DEFAULT_PORT,
+        port: int | None = None,
         database: str = constants.DEFAULT_DATABASE,
         cursor_cls=Cursor,
         echo: bool = False,
         stack_track: bool = False,
+        secure: bool = False,
         **kwargs,
     ):
+        if secure and not port:
+            port = constants.DEFAULT_SECURE_PORT
+        elif not secure and not port:
+            port = constants.DEFAULT_PORT
         if dsn:
             config = parse_dsn(dsn)
-            self._connection = ProtoConnection(**config, stack_track=stack_track, **kwargs)
             user = config.get("user", None) or user
             password = config.get("password", None) or password
             host = config.get("host", None) or host
             port = config.get("port", None) or port
             database = config.get("database", None) or database
+            secure = config.get("secure", None) or secure
         else:
-            self._connection = ProtoConnection(
-                host=host,
-                port=port,
-                database=database,
-                user=user,
-                password=password,
-                stack_track=stack_track,
-                **kwargs,
-            )
+            config = {
+                "host": host,
+                "port": port,
+                "database": database,
+                "user": user,
+                "password": password,
+                "secure": secure,
+                "stack_track": stack_track,
+            }
+
+        self._connection = ProtoConnection(**config, stack_track=stack_track, **kwargs)
         self._dsn = dsn
         # dsn parts
         self._user = user
@@ -47,6 +54,7 @@ class Connection:
         self._host = host
         self._port = port
         self._database = database
+        self._secure = secure
         # connection additional settings
         self._opened: bool = False
         self._closed: bool = False
