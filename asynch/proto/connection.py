@@ -161,10 +161,16 @@ class Connection:
                 )
             ),
             "strings_as_bytes": self.settings.pop("strings_as_bytes", False),
-            "strings_encoding": self.settings.pop("strings_encoding", constants.STRINGS_ENCODING),
+            "strings_encoding": self.settings.pop(
+                "strings_encoding", constants.STRINGS_ENCODING
+            ),
             "use_numpy": self.settings.pop("use_numpy", False),
-            "opentelemetry_traceparent": self.settings.pop("opentelemetry_traceparent", None),
-            "opentelemetry_tracestate": self.settings.pop("opentelemetry_tracestate", ""),
+            "opentelemetry_traceparent": self.settings.pop(
+                "opentelemetry_traceparent", None
+            ),
+            "opentelemetry_tracestate": self.settings.pop(
+                "opentelemetry_tracestate", ""
+            ),
             "quota_key": self.settings.pop("quota_key", ""),
             "input_format_null_as_default": self.settings.pop(
                 "input_format_null_as_default", False
@@ -459,7 +465,9 @@ class Connection:
         elif packet_type == ServerPacket.END_OF_STREAM:
             self.is_query_executing = False
         elif packet_type == ServerPacket.TABLE_COLUMNS:
-            packet.multistring_message = await self.receive_multistring_message(packet_type)
+            packet.multistring_message = await self.receive_multistring_message(
+                packet_type
+            )
         elif packet_type == ServerPacket.PART_UUIDS:
             packet.block = await self.receive_data()
 
@@ -487,17 +495,25 @@ class Connection:
 
             yield packet
 
-    async def receive_result(self, with_column_types=False, progress=False, columnar=False):
+    async def receive_result(
+        self, with_column_types=False, progress=False, columnar=False
+    ):
         generator = self.packet_generator()
 
         if progress:
             return ProgressQueryResult(
-                self.reader, generator, with_column_types=with_column_types, columnar=columnar
+                self.reader,
+                generator,
+                with_column_types=with_column_types,
+                columnar=columnar,
             )
 
         else:
             result = QueryResult(
-                self.reader, generator, with_column_types=with_column_types, columnar=columnar
+                self.reader,
+                generator,
+                with_column_types=with_column_types,
+                columnar=columnar,
             )
             return await result.get_result()
 
@@ -525,7 +541,10 @@ class Connection:
             revision >= constants.DBMS_MIN_REVISION_WITH_SETTINGS_SERIALIZED_AS_STRINGS
         )
         await write_settings(
-            self.writer, self.context.settings, settings_as_strings, self.settings_is_important
+            self.writer,
+            self.context.settings,
+            settings_as_strings,
+            self.settings_is_important,
         )
         if revision >= constants.DBMS_MIN_REVISION_WITH_INTERSERVER_SECRET:
             await self.writer.write_str("")
@@ -540,7 +559,9 @@ class Connection:
 
     async def _init_connection(self, host: str, port: int):
         self.host, self.port = host, port
-        reader, writer = await asyncio.open_connection(host, port, ssl=self._get_ssl_context())
+        reader, writer = await asyncio.open_connection(
+            host, port, ssl=self._get_ssl_context()
+        )
         self.writer = BufferedWriter(writer)
         self.reader = BufferedReader(reader)
         self.block_reader = self.get_block_reader()
@@ -584,14 +605,14 @@ class Connection:
 
     async def execute(
         self,
-        query,
-        args=None,
-        with_column_types=False,
-        external_tables=None,
-        query_id="",
-        settings=None,
-        types_check=False,
-        columnar=False,
+        query: str,
+        args: Iterable | None = None,
+        with_column_types: bool = False,
+        external_tables: Iterable[Mapping] | None = None,
+        query_id: str = "",
+        settings: dict | None = None,
+        types_check: bool = False,
+        columnar: bool = False,
     ):
         """
         Executes query.
@@ -721,7 +742,7 @@ class Connection:
         columnar: bool = False,
     ):
         if params is not None:
-            query = self.substitute_params(query, params)
+            query = substitute_params(query, params)
 
         await self.send_query(query, query_id=query_id)
         await self.send_external_tables(external_tables, types_check=types_check)
@@ -773,18 +794,22 @@ class Connection:
         columnar: bool = False,
     ):
         if params is not None:
-            query = self.substitute_params(query, params)
+            query = substitute_params(query, params)
 
         await self.send_query(query, query_id=query_id)
         await self.send_external_tables(external_tables, types_check=types_check)
-        return await self.receive_result(with_column_types=with_column_types, columnar=columnar)
+        return await self.receive_result(
+            with_column_types=with_column_types, columnar=columnar
+        )
 
     async def send_external_tables(self, tables, types_check=False):
         for table in tables or []:
             if not table["structure"]:
                 raise ValueError(f'Empty table "{table["name"]}" structure')
 
-            block = RowOrientedBlock(table["structure"], table["data"], types_check=types_check)
+            block = RowOrientedBlock(
+                table["structure"], table["data"], types_check=types_check
+            )
             await self.send_block(block, table_name=table["name"])
 
         # Empty block, end of data transfer.
@@ -880,7 +905,7 @@ class Connection:
         types_check: bool = False,
     ):
         if params is not None:
-            query = self.substitute_params(query, params)
+            query = substitute_params(query, params)
 
         await self.send_query(query, query_id=query_id)
         await self.send_external_tables(external_tables, types_check=types_check)
