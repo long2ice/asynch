@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from enum import Enum
-from typing import Any
+from types import MappingProxyType
+from typing import Any, Dict, Mapping
 from uuid import UUID
 
 from .compat import string_types, text_type
@@ -48,17 +49,12 @@ def escape_param(item: Any) -> str:
         return item
 
 
-def escape_params(params: dict) -> dict:
-    escaped = {}
-
-    for key, value in params.items():
-        escaped[key] = escape_param(value)
-
-    return escaped
+def escape_params(params: Mapping[str, Any]) -> MappingProxyType[str, str]:
+    return MappingProxyType({key: escape_param(value) for key, value in params.keys()})
 
 
-def substitute_params(query: str, params: dict) -> str:
-    if not isinstance(params, dict):
+def substitute_params(query: str, params: Mapping) -> str:
+    if not isinstance(params, Mapping):
         raise ValueError("Parameters are expected in dict form")
 
     try:

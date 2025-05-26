@@ -4,7 +4,7 @@ import ssl
 from collections.abc import AsyncGenerator
 from time import time
 from types import GeneratorType
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Iterable, Mapping, Optional, Union
 from urllib.parse import urlparse
 
 from asynch.errors import (
@@ -587,7 +587,7 @@ class Connection:
         query: str,
         args: Iterable | None = None,
         with_column_types: bool = False,
-        external_tables: Iterable[dict] | None = None,
+        external_tables: Iterable[Mapping] | None = None,
         query_id: str = "",
         settings: dict | None = None,
         types_check: bool = False,
