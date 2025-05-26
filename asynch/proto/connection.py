@@ -585,7 +585,7 @@ class Connection:
     async def execute(
         self,
         query: str,
-        args: Iterable[Any] | None = None,
+        args: Iterable | None = None,
         with_column_types: bool = False,
         external_tables: Iterable[dict] | None = None,
         query_id: str = "",
