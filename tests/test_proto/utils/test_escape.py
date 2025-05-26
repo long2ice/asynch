@@ -36,8 +36,16 @@ def test_escape_param(item, expected):
     ("params", "expected"),
     [
         param({"test": "test"}, {"test": "'test'"}, id="strings"),
-        param({"test": 1}, {"test": 1}, id="ints"),
-        param({"test": 1.0}, {"test": 1.0}, id="floats"),
+        param(
+            {"test": 1, "test2": 2, "test3": 0, "test4": -1},
+            {"test": 1, "test2": 2, "test3": 0, "test4": -1},
+            id="ints",
+        ),
+        param(
+            {"test": 1.0, "test2": 0.1, "test3": -0.1, "test4": 0.0},
+            {"test": 1.0, "test2": 0.1, "test3": -0.1, "test4": 0.0},
+            id="floats",
+        ),
         param({"test": None}, {"test": "NULL"}, id="none"),
         param({"test": date(2025, 5, 21)}, {"test": "'2025-05-21'"}, id="dates"),
         param(
