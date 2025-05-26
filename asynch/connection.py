@@ -23,18 +23,18 @@ class Connection:
         secure: bool = False,
         **kwargs,
     ):
-        if secure and not port:
+        if secure and port is None:
             port = constants.DEFAULT_SECURE_PORT
-        elif not secure and not port:
+        elif not secure and port is None:
             port = constants.DEFAULT_PORT
         if dsn:
             config = parse_dsn(dsn)
-            user = config.get("user", None) or user
-            password = config.get("password", None) or password
-            host = config.get("host", None) or host
-            port = config.get("port", None) or port
-            database = config.get("database", None) or database
-            secure = config.get("secure", None) or secure
+            user = config.get("user") or user
+            password = config.get("password") or password
+            host = config.get("host") or host
+            port = config.get("port") or port
+            database = config.get("database") or database
+            secure = config.get("secure") or secure
         else:
             config = {
                 "host": host,
