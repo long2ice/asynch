@@ -4,7 +4,7 @@ import ssl
 from collections.abc import AsyncGenerator
 from time import time
 from types import GeneratorType
-from typing import Optional, Union
+from typing import Any, Iterable, Mapping, Optional, Union
 from urllib.parse import urlparse
 
 from asynch.errors import (
@@ -35,7 +35,7 @@ from asynch.proto.result import (
 from asynch.proto.settings import write_settings
 from asynch.proto.streams.block import BlockReader, BlockWriter
 from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
-from asynch.proto.utils.escape import escape_params
+from asynch.proto.utils.escape import escape_params, substitute_params
 from asynch.proto.utils.helpers import chunks, column_chunks
 
 logger = logging.getLogger(__name__)
@@ -584,14 +584,14 @@ class Connection:
 
     async def execute(
         self,
-        query,
-        args=None,
-        with_column_types=False,
-        external_tables=None,
-        query_id="",
-        settings=None,
-        types_check=False,
-        columnar=False,
+        query: str,
+        args: Iterable | None = None,
+        with_column_types: bool = False,
+        external_tables: Iterable[Mapping] | None = None,
+        query_id: str = "",
+        settings: dict | None = None,
+        types_check: bool = False,
+        columnar: bool = False,
     ):
         """
         Executes query.
@@ -712,8 +712,8 @@ class Connection:
 
     async def process_ordinary_query_with_progress(
         self,
-        query,
-        params=None,
+        query: str,
+        params: dict | None = None,
         with_column_types=False,
         external_tables=None,
         query_id=None,
@@ -721,7 +721,7 @@ class Connection:
         columnar=False,
     ):
         if params is not None:
-            query = self.substitute_params(query, params)
+            query = substitute_params(query, params)
 
         await self.send_query(query, query_id=query_id)
         await self.send_external_tables(external_tables, types_check=types_check)
@@ -764,16 +764,16 @@ class Connection:
 
     async def process_ordinary_query(
         self,
-        query,
-        params=None,
-        with_column_types=False,
+        query: str,
+        params: dict | None = None,
+        with_column_types: bool = False,
         external_tables=None,
         query_id="",
-        types_check=False,
-        columnar=False,
+        types_check: bool = False,
+        columnar: bool = False,
     ):
         if params is not None:
-            query = self.substitute_params(query, params)
+            query = substitute_params(query, params)
 
         await self.send_query(query, query_id=query_id)
         await self.send_external_tables(external_tables, types_check=types_check)
@@ -800,13 +800,6 @@ class Connection:
             )
 
         await self.block_writer.write(block)
-
-    def substitute_params(self, query, params):
-        if not isinstance(params, dict):
-            raise ValueError("Parameters are expected in dict form")
-
-        escaped = escape_params(params)
-        return query % escaped
 
     async def process_insert_query(
         self,
@@ -880,7 +873,7 @@ class Connection:
         types_check=False,
     ):
         if params is not None:
-            query = self.substitute_params(query, params)
+            query = substitute_params(query, params)
 
         await self.send_query(query, query_id=query_id)
         await self.send_external_tables(external_tables, types_check=types_check)

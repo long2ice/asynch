@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from enum import Enum
+from typing import Any, Mapping
 from uuid import UUID
 
 from .compat import string_types, text_type
@@ -18,7 +19,7 @@ escape_chars_map = {
 }
 
 
-def escape_param(item):
+def escape_param(item: Any) -> str:
     if item is None:
         return "NULL"
 
@@ -47,10 +48,16 @@ def escape_param(item):
         return item
 
 
-def escape_params(params):
-    escaped = {}
+def escape_params(params: Mapping[str, Any]) -> dict[str, str]:
+    return {key: escape_param(value) for key, value in params.items()}
 
-    for key, value in params.items():
-        escaped[key] = escape_param(value)
 
-    return escaped
+def substitute_params(query: str, params: Mapping) -> str:
+    if not isinstance(params, Mapping):
+        raise ValueError("Parameters are expected in dict form")
+
+    try:
+        escaped = escape_params(params)
+        return query.format(**escaped)
+    except KeyError as e:
+        raise KeyError(f"Parameter {e} not found") from e
