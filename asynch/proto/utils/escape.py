@@ -1,7 +1,6 @@
 from datetime import date, datetime
 from enum import Enum
-from types import MappingProxyType
-from typing import Any, Dict, Mapping
+from typing import Any, Mapping
 from uuid import UUID
 
 from .compat import string_types, text_type
@@ -49,8 +48,8 @@ def escape_param(item: Any) -> str:
         return item
 
 
-def escape_params(params: Mapping[str, Any]) -> MappingProxyType[str, str]:
-    return MappingProxyType({key: escape_param(value) for key, value in params.keys()})
+def escape_params(params: Mapping[str, Any]) -> dict[str, str]:
+    return {key: escape_param(value) for key, value in params.items()}
 
 
 def substitute_params(query: str, params: Mapping) -> str:

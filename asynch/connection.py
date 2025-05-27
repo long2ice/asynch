@@ -23,10 +23,8 @@ class Connection:
         secure: bool = False,
         **kwargs,
     ):
-        if secure and port is None:
-            port = constants.DEFAULT_SECURE_PORT
-        elif not secure and port is None:
-            port = constants.DEFAULT_PORT
+        if port is None:
+            port = constants.DEFAULT_SECURE_PORT if secure else constants.DEFAULT_PORT
         if dsn:
             config = parse_dsn(dsn)
             user = config.get("user") or user
