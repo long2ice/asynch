@@ -89,6 +89,13 @@ async def test_execute(proto_conn: ProtoConnection):
     assert ret == [(1,)]
 
 
+@pytest.mark.asyncio
+async def test_execute_with_args(proto_conn: ProtoConnection):
+    query = "SELECT {val}"
+    ret = await proto_conn.execute(query, args={"val": 2})
+    assert ret == [(2,)]
+
+
 @asynccontextmanager
 async def create_table(connection, spec):
     await connection.execute("DROP TABLE IF EXISTS test.test")
