@@ -96,6 +96,13 @@ async def test_execute_with_args(proto_conn: ProtoConnection):
     assert ret == [(2,)]
 
 
+@pytest.mark.asyncio
+async def test_execute_with_missing_arg(proto_conn: ProtoConnection):
+    query = "SELECT {var}"
+    with pytest.raises(KeyError, match="Parameter 'var' not found"):
+        await proto_conn.execute(query, args={"foo": 1})
+
+
 @asynccontextmanager
 async def create_table(connection, spec):
     await connection.execute("DROP TABLE IF EXISTS test.test")

@@ -809,7 +809,7 @@ class Connection:
         try:
             return query.format(**escape_params(params))
         except KeyError as exc:
-            raise KeyError(f"Parameter '{exc}' not found") from exc
+            raise KeyError(f"Parameter {exc} not found") from exc
 
     async def process_insert_query(
         self,
