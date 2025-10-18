@@ -2,7 +2,7 @@ import asyncio
 import logging
 from collections import deque
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 from typing import Optional
 
 from asynch.connection import Connection
@@ -170,7 +170,7 @@ class Pool:
             self._acquired_connections.append(conn)
             return conn
 
-        logger.debug(f"No free connection in pool. Creating new connection.")
+        logger.debug("No free connection in pool. Creating new connection.")
         conn = await self._create_connection()
         self._acquired_connections.append(conn)
         return conn
