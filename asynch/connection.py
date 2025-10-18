@@ -20,11 +20,14 @@ class Connection:
         cursor_cls=Cursor,
         echo: bool = False,
         stack_track: bool = False,
+        pre_ping: bool = True,
         **kwargs,
     ):
         if dsn:
             config = parse_dsn(dsn)
-            self._connection = ProtoConnection(**config, stack_track=stack_track, **kwargs)
+            self._connection = ProtoConnection(
+                **config, stack_track=stack_track, pre_ping=pre_ping, **kwargs
+            )
             user = config.get("user", None) or user
             password = config.get("password", None) or password
             host = config.get("host", None) or host

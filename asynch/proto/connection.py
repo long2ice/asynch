@@ -94,6 +94,7 @@ class Connection:
         alt_hosts: str = None,
         stack_track=False,
         settings_is_important=False,
+        pre_ping: bool = True,
         **kwargs,
     ):
         self.stack_track = stack_track
@@ -119,6 +120,7 @@ class Connection:
         self._lock = asyncio.Lock()
         self.secure_socket = secure
         self.verify = verify
+        self.pre_ping = pre_ping
 
         ssl_options = {}
         if ssl_version is not None:
@@ -759,9 +761,10 @@ class Connection:
         if not self.connected:
             await self.connect()
 
-        elif not await self.ping():
-            logger.info("Connection was closed, reconnecting.")
-            await self.connect()
+        elif self.pre_ping:
+            if not await self.ping():
+                logger.info("Connection was closed, reconnecting.")
+                await self.connect()
 
     async def process_ordinary_query(
         self,

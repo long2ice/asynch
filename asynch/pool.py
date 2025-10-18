@@ -138,15 +138,9 @@ class Pool:
         if self._pool_size > self._maxsize:
             raise AsynchPoolError(f"{self} is overburden")
 
-        conn = Connection(**self._connection_kwargs)
+        conn = Connection(pre_ping=False, **self._connection_kwargs)
         await conn.connect()
-
-        try:
-            await conn.ping()
-            return conn
-        except ConnectionError as e:
-            msg = f"failed to create a {conn} for {self}"
-            raise AsynchPoolError(msg) from e
+        return conn
 
     async def _create_and_release_connection(self) -> None:
         conn = await self._create_connection()
@@ -179,10 +173,9 @@ class Pool:
         if conn not in self._acquired_connections:
             raise AsynchPoolError(f"the connection {conn} does not belong to {self}")
 
+        logger.debug(f"Releasing connection {conn}")
         self._acquired_connections.remove(conn)
-        if await conn.is_live():
-            logger.debug(f"Releasing connection {conn}")
-            self._free_connections.append(conn)
+        self._free_connections.append(conn)
 
     async def _init_connections(self, n: int, *, strict: bool = False) -> None:
         if n < 0:
