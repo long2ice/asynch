@@ -226,7 +226,9 @@ class Pool:
         :return: a free connection from the pool
         :rtype: Connection
         """
-        logger.debug(f"Acquiring connection from Pool ({len(self._free_connections)} free connections, {len(self._acquired_connections)} acquired connections)")
+        logger.debug(
+            f"Acquiring connection from Pool ({len(self._free_connections)} free connections, {len(self._acquired_connections)} acquired connections)"
+        )
 
         async with self._sem:
             async with self._lock:

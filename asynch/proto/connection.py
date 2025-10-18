@@ -578,7 +578,9 @@ class Connection:
         if self.connected:
             await self.disconnect()
         for host, port in self.hosts:
-            logger.debug("Connecting to %s:%s Database: %s. User: %s", host, port, self.database, self.user)
+            logger.debug(
+                "Connecting to %s:%s Database: %s. User: %s", host, port, self.database, self.user
+            )
             return await self._init_connection(host, port)
 
     async def execute(
