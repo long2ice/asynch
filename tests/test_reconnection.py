@@ -40,7 +40,7 @@ async def proxy(request):
 
 @pytest.fixture()
 async def proxy_pool(proxy):
-    async with Pool(minsize=1, maxsize=1, dsn=CONNECTION_DSN.replace("9000", "9001")) as pool:
+    async with Pool(minsize=1, maxsize=2, dsn=CONNECTION_DSN.replace("9000", "9001")) as pool:
         yield pool
 
 
@@ -64,6 +64,30 @@ async def test_close_disconnected_connection(proxy_pool):
             await cursor.execute("SELECT 1")
 
     await asyncio.sleep(TIMEOUT * 2)
+
+
+@pytest.mark.asyncio
+async def test_connection_reuse(proxy_pool):
+    async def execute_sleep():
+        async with proxy_pool.connection() as c:
+            async with c.cursor() as cursor:
+                await cursor.execute("SELECT sleep(0.1)")
+
+    await asyncio.gather(execute_sleep(), execute_sleep())
+
+    # There are two live connections in the pool.
+    assert proxy_pool.free_connections == 2
+
+    logger.info(f"Killing {proxy_pool._free_connections[0]}")
+    await proxy_pool._free_connections[0]._connection.writer.close()
+
+    async with proxy_pool.connection() as c:
+        async with c.cursor() as cursor:
+            await cursor.execute("SELECT 1")
+
+    # The first connection was not live anymore and was closed. The second connection was reused.
+    # There is now only one connection in the pool.
+    assert proxy_pool.free_connections == 1
 
 
 async def reader_to_writer(name: str, graceful: bool, reader: StreamReader, writer: StreamWriter):
