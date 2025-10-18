@@ -156,8 +156,8 @@ class Pool:
     async def _get_fresh_connection(self) -> Optional[Connection]:
         while self._free_connections:
             conn = self._pop_connection()
-            with suppress(ConnectionError):
-                await conn._refresh()
+            logger.debug(f"Testing connection {conn}")
+            if await conn.is_live():
                 return conn
         return None
 
@@ -176,13 +176,9 @@ class Pool:
             raise AsynchPoolError(f"the connection {conn} does not belong to {self}")
 
         self._acquired_connections.remove(conn)
-        try:
-            await conn._refresh()
-        except ConnectionError as e:
-            msg = f"the {conn} is invalidated"
-            raise AsynchPoolError(msg) from e
-
-        self._free_connections.append(conn)
+        if await conn.is_live():
+            logger.info(f"Releasing connection {conn}")
+            self._free_connections.append(conn)
 
     async def _init_connections(self, n: int, *, strict: bool = False) -> None:
         if n < 0:
@@ -226,10 +222,13 @@ class Pool:
         :return: a free connection from the pool
         :rtype: Connection
         """
+        logger.debug(f"{self._free_connections} free connections, {self._acquired_connections} acquired connections")
 
         async with self._sem:
             async with self._lock:
                 conn = await self._acquire_connection()
+                logger.debug("acquired connection %s", conn)
+
             try:
                 yield conn
             finally:

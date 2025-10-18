@@ -6,7 +6,9 @@ from asynch.proto import constants
 from asynch.proto.connection import Connection as ProtoConnection
 from asynch.proto.models.enums import ConnectionStatus
 from asynch.proto.utils.dsn import parse_dsn
+import logging
 
+logger = logging.getLogger(__name__)
 
 class Connection:
     def __init__(
@@ -178,32 +180,25 @@ class Connection:
             msg = f"Ping has failed for {self}"
             raise ConnectionError(msg)
 
-    async def _refresh(self) -> None:
-        """Refresh the connection.
+    async def is_live(self) -> bool:
+        """Checks if the connection is live.
 
-        Attempting to ping and if failed,
-        then trying to connect again.
-        If the reconnection does not work,
-        an Exception is propagated.
+        Attempts to ping and returns True if successful.
 
         :raises ConnectionError:
             1. refreshing created, i.e., not opened connection
             2. refreshing already closed connection
 
-        :return: None
+        :return: True if the connection is alive, otherwise False.
         """
-
-        if self.status == ConnectionStatus.created:
-            msg = f"the {self} is not opened to be refreshed"
-            raise ConnectionError(msg)
-        if self.status == ConnectionStatus.closed:
-            msg = f"the {self} is already closed"
-            raise ConnectionError(msg)
+        if self.status == ConnectionStatus.created or self.status == ConnectionStatus.closed:
+            return False
 
         try:
             await self.ping()
+            return True
         except ConnectionError:
-            await self.connect()
+            return False
 
     async def rollback(self):
         raise NotSupportedError
