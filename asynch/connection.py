@@ -6,9 +6,7 @@ from asynch.proto import constants
 from asynch.proto.connection import Connection as ProtoConnection
 from asynch.proto.models.enums import ConnectionStatus
 from asynch.proto.utils.dsn import parse_dsn
-import logging
 
-logger = logging.getLogger(__name__)
 
 class Connection:
     def __init__(
