@@ -1,6 +1,6 @@
 # DSN default values
 DEFAULT_USER = "default"
-DEFAULT_PASSWORD = "default"  # nosec: B105
+DEFAULT_PASSWORD = ""  # nosec: B105
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 9000
