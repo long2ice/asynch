@@ -246,6 +246,7 @@ class Cursor:
             "external_tables": external_tables,
             "types_check": execution_options.get("types_check", self._types_check),
             "query_id": self._query_id,
+            "columnar": execution_options.get("columnar", False),
         }
 
         return execute, execute_kwargs
