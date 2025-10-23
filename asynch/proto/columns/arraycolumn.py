@@ -1,5 +1,5 @@
+from collections import deque
 from itertools import chain
-from queue import Queue
 from struct import Struct
 
 from .base import Column
@@ -82,15 +82,14 @@ class ArrayColumn(Column):
         self,
         value,
     ):
-        q = Queue()
-        q.put((self, value, 0))
+        q = deque([(self, value, 0)])
 
         cur_depth = 0
         offset = 0
         nulls_map = []
 
-        while not q.empty():
-            column, value, depth = q.get_nowait()
+        while q:
+            column, value, depth = q.popleft()
 
             if cur_depth != depth:
                 cur_depth = depth
@@ -112,7 +111,7 @@ class ArrayColumn(Column):
             nested_column = column.nested_column
             if isinstance(nested_column, ArrayColumn):
                 for x in value:
-                    q.put((nested_column, x, cur_depth + 1))
+                    q.append((nested_column, x, cur_depth + 1))
                     nulls_map.append(None if x is None else False)
 
     async def _write_data(
@@ -176,8 +175,7 @@ class ArrayColumn(Column):
         self,
         size,
     ):
-        q = Queue()
-        q.put((self, size, 0))
+        q = deque([(self, size, 0)])
 
         slices_series = []
 
@@ -196,8 +194,8 @@ class ArrayColumn(Column):
         nested_column = self.nested_column
 
         # Read and store info about slices.
-        while not q.empty():
-            column, size, depth = q.get_nowait()
+        while q:
+            column, size, depth = q.popleft()
 
             nested_column = column.nested_column
 
@@ -220,7 +218,7 @@ class ArrayColumn(Column):
                 for _i in range(size):
                     offset = await self.size_unpack()
                     nested_column_size = offset
-                    q.put((nested_column, offset - prev_offset, cur_depth + 1))
+                    q.append((nested_column, offset - prev_offset, cur_depth + 1))
                     slices.append((prev_offset, offset))
                     prev_offset = offset
 
