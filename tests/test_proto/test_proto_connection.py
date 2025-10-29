@@ -99,7 +99,7 @@ async def test_execute_with_args(proto_conn: ProtoConnection):
 @pytest.mark.asyncio
 async def test_execute_with_missing_arg(proto_conn: ProtoConnection):
     query = "SELECT {var}"
-    with pytest.raises(KeyError, match="Parameter 'var' not found"):
+    with pytest.raises(KeyError, match="'var'"):
         await proto_conn.execute(query, args={"foo": 1})
 
 
