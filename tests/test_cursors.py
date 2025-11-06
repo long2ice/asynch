@@ -58,6 +58,10 @@ async def test_fetchone(conn: Connection):
         ret = await cursor.fetchone()
         assert ret == (1,)
 
+        await cursor.execute("SELECT {val}", args={"val": 2})
+        ret = await cursor.fetchone()
+        assert ret == (2,)
+
         await cursor.execute("SELECT * FROM system.tables")
         ret = await cursor.fetchall()
         assert isinstance(ret, list)
@@ -70,6 +74,10 @@ async def test_fetchall(conn: Connection):
         ret = await cursor.fetchall()
         assert ret == [(1,)]
 
+        await cursor.execute("SELECT {val}", args={"val": 2})
+        ret = await cursor.fetchall()
+        assert ret == [(2,)]
+
 
 @pytest.mark.asyncio
 async def test_dict_cursor(conn: Connection):
@@ -77,6 +85,10 @@ async def test_dict_cursor(conn: Connection):
         await cursor.execute("SELECT 1")
         ret = await cursor.fetchall()
         assert ret == [{"1": 1}]
+
+        await cursor.execute("SELECT {val}", args={"val": 2})
+        ret = await cursor.fetchall()
+        assert ret == [{"2": 2}]
 
 
 @pytest.mark.asyncio
