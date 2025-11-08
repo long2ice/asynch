@@ -90,6 +90,9 @@ class Column:
     async def write_data(self, items):
         if self.nullable:
             await self._write_nulls_map(items)
+        else:
+            if None in items:
+                raise ColumnTypeMismatchException(None)
 
         await self._write_data(items)
 
