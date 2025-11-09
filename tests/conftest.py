@@ -88,6 +88,26 @@ async def initialize_tests():
                 ORDER BY id
                 """
             )
+            await cursor.execute(
+                """
+                CREATE TABLE if not exists test.asynch_nullable
+                (
+                    `id`       Int32,
+                    `cnt`      Nullable(Int32),
+                    `decimal`  Nullable(Decimal(10, 2)),
+                    `date`     Nullable(Date),
+                    `datetime` Nullable(DateTime),
+                    `float`    Nullable(Float32),
+                    `uuid`     Nullable(UUID),
+                    `string`   Nullable(String),
+                    `ipv4`     Nullable(IPv4),
+                    `ipv6`     Nullable(IPv6),
+                    `bool`     Nullable(Bool)
+                )
+                ENGINE = MergeTree
+                ORDER BY id
+                """
+            )
         yield
 
 
@@ -96,6 +116,7 @@ async def truncate_table():
     async with Connection(dsn=CONNECTION_DSN) as conn:
         async with conn.cursor(cursor=DictCursor) as cursor:
             await cursor.execute("truncate table test.asynch")
+            await cursor.execute("truncate table test.asynch_nullable")
         yield
 
 
