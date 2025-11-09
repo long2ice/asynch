@@ -114,12 +114,13 @@ async def test_insert_dict(conn: Connection):
         )
         assert rows == 1
 
+
 @pytest.mark.asyncio
 async def test_nullable_insert_dict(conn: Connection):
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.execute(
             """INSERT INTO test.asynch_nullable("""
-                """id,cnt,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
+            """id,cnt,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
             [
                 {
                     "id": 1,
@@ -142,6 +143,7 @@ async def test_nullable_insert_dict(conn: Connection):
         result = await cursor.fetchone()
         del result["id"]
         assert len([item for item in result.values() if item is not None]) == 0
+
 
 @pytest.mark.asyncio
 async def test_nullable_in_non_nullable_insert_dict(conn: Connection):
