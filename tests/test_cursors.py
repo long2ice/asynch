@@ -149,7 +149,7 @@ async def test_nullable_insert_dict(conn: Connection):
 async def test_nullable_in_non_nullable_insert_dict(conn: Connection):
     async with conn.cursor(cursor=DictCursor) as cursor:
         try:
-            rows = await cursor.execute(
+            await cursor.execute(
                 """INSERT INTO test.asynch(id,string) VALUES""",
                 [
                     {
@@ -163,7 +163,7 @@ async def test_nullable_in_non_nullable_insert_dict(conn: Connection):
             assert True
 
         try:
-            rows = await cursor.execute(
+            await cursor.execute(
                 """INSERT INTO test.asynch(id,decimal) VALUES""",
                 [
                     {
@@ -177,7 +177,7 @@ async def test_nullable_in_non_nullable_insert_dict(conn: Connection):
             assert True
 
         try:
-            rows = await cursor.execute(
+            await cursor.execute(
                 """INSERT INTO test.asynch(id,float) VALUES""",
                 [
                     {
