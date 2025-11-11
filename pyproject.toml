@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "asynch"
-version = "0.3.0"
+version = "0.3.1"
 description = "An asyncio driver for ClickHouse with native TCP support"
 authors = [
     {name = "long2ice",email = "long2ice@gmail.com"}
