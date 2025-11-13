@@ -61,6 +61,9 @@ class BufferedWriter:
     async def close(self) -> None:
         if not self.writer:
             return
+        if self.writer.is_closing():
+            return
+
         self.writer.close()
         await self.writer.wait_closed()
 

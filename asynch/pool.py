@@ -2,7 +2,7 @@ import asyncio
 import logging
 from collections import deque
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 from typing import Optional
 
 from asynch.connection import Connection
@@ -132,7 +132,7 @@ class Pool:
     def minsize(self) -> int:
         return self._minsize
 
-    async def _create_connection(self) -> None:
+    async def _create_connection(self) -> Connection:
         if self._pool_size == self._maxsize:
             raise AsynchPoolError(f"{self} is already full")
         if self._pool_size > self._maxsize:
@@ -143,10 +143,14 @@ class Pool:
 
         try:
             await conn.ping()
-            self._free_connections.append(conn)
+            return conn
         except ConnectionError as e:
             msg = f"failed to create a {conn} for {self}"
             raise AsynchPoolError(msg) from e
+
+    async def _create_and_release_connection(self) -> None:
+        conn = await self._create_connection()
+        self._free_connections.append(conn)
 
     def _pop_connection(self) -> Connection:
         if not self._free_connections:
@@ -156,8 +160,8 @@ class Pool:
     async def _get_fresh_connection(self) -> Optional[Connection]:
         while self._free_connections:
             conn = self._pop_connection()
-            with suppress(ConnectionError):
-                await conn._refresh()
+            logger.debug(f"Testing connection {conn}")
+            if await conn.is_live():
                 return conn
         return None
 
@@ -166,8 +170,8 @@ class Pool:
             self._acquired_connections.append(conn)
             return conn
 
-        await self._create_connection()
-        conn = self._pop_connection()
+        logger.debug("No free connection in pool. Creating new connection.")
+        conn = await self._create_connection()
         self._acquired_connections.append(conn)
         return conn
 
@@ -176,13 +180,9 @@ class Pool:
             raise AsynchPoolError(f"the connection {conn} does not belong to {self}")
 
         self._acquired_connections.remove(conn)
-        try:
-            await conn._refresh()
-        except ConnectionError as e:
-            msg = f"the {conn} is invalidated"
-            raise AsynchPoolError(msg) from e
-
-        self._free_connections.append(conn)
+        if await conn.is_live():
+            logger.debug(f"Releasing connection {conn}")
+            self._free_connections.append(conn)
 
     async def _init_connections(self, n: int, *, strict: bool = False) -> None:
         if n < 0:
@@ -199,7 +199,7 @@ class Pool:
 
         # it is possible that the `_create_connection` may not create `n` connections
         tasks: list[asyncio.Task] = [
-            asyncio.create_task(self._create_connection()) for _ in range(n)
+            asyncio.create_task(self._create_and_release_connection()) for _ in range(n)
         ]
         # that is why possible exceptions from the `_create_connection` are also gathered
         if strict and any(
@@ -226,10 +226,15 @@ class Pool:
         :return: a free connection from the pool
         :rtype: Connection
         """
+        logger.debug(
+            f"Acquiring connection from Pool ({len(self._free_connections)} free connections, {len(self._acquired_connections)} acquired connections)"
+        )
 
         async with self._sem:
             async with self._lock:
                 conn = await self._acquire_connection()
+                logger.debug(f"Acquired connection {conn}")
+
             try:
                 yield conn
             finally:
