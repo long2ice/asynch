@@ -1,4 +1,5 @@
 from itertools import islice, tee
+from string import Formatter
 
 
 def chunks(seq, n):
@@ -29,3 +30,8 @@ def pairwise(iterable):
     a, b = tee(iterable)
     next(b, None)
     return zip(a, b)
+
+
+def query_is_format_style(query: str) -> bool:
+    """Validate that query uses {name} style formatting"""
+    return any(name for _, name, *_ in Formatter().parse(query) if name)

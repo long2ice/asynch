@@ -97,10 +97,45 @@ async def test_execute_with_args(proto_conn: ProtoConnection):
 
 
 @pytest.mark.asyncio
+async def test_execute_with_args_and_no_placeholder(proto_conn: ProtoConnection):
+    query = "SELECT 1"
+    ret = await proto_conn.execute(query, args={"val": 2})
+    assert ret == [(1,)]
+
+
+@pytest.mark.asyncio
 async def test_execute_with_missing_arg(proto_conn: ProtoConnection):
     query = "SELECT {var}"
     with pytest.raises(KeyError, match="'var'"):
         await proto_conn.execute(query, args={"foo": 1})
+
+
+@pytest.mark.asyncio
+async def test_execute_with_multiple_args(proto_conn: ProtoConnection):
+    query = "SELECT {val}, {var}"
+    ret = await proto_conn.execute(query, args={"val": 2, "var": 3})
+    assert ret == [(2, 3)]
+
+
+@pytest.mark.asyncio
+async def test_execute_with_c_format_args(proto_conn: ProtoConnection):
+    query = "SELECT %(val)s"
+    ret = await proto_conn.execute(query, args={"val": 2})
+    assert ret == [(2,)]
+
+
+@pytest.mark.asyncio
+async def test_execute_with_missing_c_format_arg(proto_conn: ProtoConnection):
+    query = "SELECT %(var)s"
+    with pytest.raises(KeyError, match="'var'"):
+        await proto_conn.execute(query, args={"foo": 1})
+
+
+@pytest.mark.asyncio
+async def test_execute_with_multiple_c_format_args(proto_conn: ProtoConnection):
+    query = "SELECT %(val)s, %(var)s"
+    ret = await proto_conn.execute(query, args={"val": 2, "var": 3})
+    assert ret == [(2, 3)]
 
 
 @asynccontextmanager
