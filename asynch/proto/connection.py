@@ -8,6 +8,7 @@ from typing import Any, Iterable, Mapping, Optional, Union
 from urllib.parse import urlparse
 
 from asynch.errors import (
+    OperationalError,
     PartiallyConsumedQueryError,
     ServerException,
     UnexpectedPacketFromServerError,
@@ -320,10 +321,12 @@ class Connection:
                 msg = self.unexpected_packet_message("Pong", packet_type)
                 raise UnexpectedPacketFromServerError(msg)
             return True
-        except AttributeError:
-            logger.debug("The connection %s is not open", self)
+        except OperationalError as e:
+            logger.info("The connection %s is not open", self, exc_info=e)
+        except AttributeError as e:
+            logger.info("The connection %s is not open", self, exc_info=e)
         except IndexError as e:
-            logger.debug(
+            logger.info(
                 "Ping package smaller than expected or empty. "
                 "There may be connection or network problems - "
                 "we believe that the connection is incorrect.",
@@ -334,7 +337,7 @@ class Connection:
             # because this is a connection loss case
             if isinstance(e, RuntimeError) and "TCPTransport closed=True" not in str(e):
                 raise e
-            logger.debug("Socket closed", exc_info=e)
+            logger.info("Socket closed", exc_info=e)
         return False
 
     async def receive_data(self, raw=False):
