@@ -4,7 +4,7 @@ import ssl
 from collections.abc import AsyncGenerator
 from time import time
 from types import GeneratorType
-from typing import Optional, Union
+from typing import Any, Iterable, Mapping, Optional, Union
 from urllib.parse import urlparse
 
 from asynch.errors import (
@@ -718,13 +718,13 @@ class Connection:
 
     async def process_ordinary_query_with_progress(
         self,
-        query,
-        params=None,
-        with_column_types=False,
-        external_tables=None,
-        query_id=None,
-        types_check=False,
-        columnar=False,
+        query: str,
+        params: Optional[Mapping[str, Any]] = None,
+        with_column_types: bool = False,
+        external_tables: Optional[Iterable[Mapping]] = None,
+        query_id: Optional[str] = None,
+        types_check: bool = False,
+        columnar: bool = False,
     ):
         if params is not None:
             query = self.substitute_params(query, params)
@@ -771,13 +771,13 @@ class Connection:
 
     async def process_ordinary_query(
         self,
-        query,
-        params=None,
-        with_column_types=False,
-        external_tables=None,
-        query_id="",
-        types_check=False,
-        columnar=False,
+        query: str,
+        params: Optional[Mapping[str, Any]] = None,
+        with_column_types: bool = False,
+        external_tables: Optional[Iterable[Mapping]] = None,
+        query_id: Optional[str] = None,
+        types_check: bool = False,
+        columnar: bool = False,
     ):
         if params is not None:
             query = self.substitute_params(query, params)
@@ -808,12 +808,12 @@ class Connection:
 
         await self.block_writer.write(block)
 
-    def substitute_params(self, query, params):
-        if not isinstance(params, dict):
-            raise ValueError("Parameters are expected in dict form")
+    @staticmethod
+    def substitute_params(query: str, params: Mapping[str, Any]) -> str:
+        if not isinstance(params, Mapping):
+            raise ValueError("Parameters are expected to be a mapping")
 
-        escaped = escape_params(params)
-        return query % escaped
+        return query.format(**escape_params(params))
 
     async def process_insert_query(
         self,
@@ -879,12 +879,12 @@ class Connection:
 
     async def iter_process_ordinary_query(
         self,
-        query,
-        params=None,
-        with_column_types=False,
-        external_tables=None,
-        query_id=None,
-        types_check=False,
+        query: str,
+        params: Optional[Mapping[str, Any]] = None,
+        with_column_types: bool = False,
+        external_tables: Optional[Iterable[Mapping]] = None,
+        query_id: Optional[str] = None,
+        types_check: bool = False,
     ):
         if params is not None:
             query = self.substitute_params(query, params)

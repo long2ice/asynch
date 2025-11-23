@@ -2,6 +2,10 @@
 
 ## 0.3
 
+### 0.3.1
+
+- Fix params substitution for select queries. By @dmkulazhenko in #141.
+
 ### 0.3.0
 
 - Update the `Connection` and `Pool` classes API. By @stankudrow in #130:
