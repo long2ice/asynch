@@ -12,12 +12,18 @@ class ConnectionStatus(str, Enum):
     opened = "opened"
     closed = "closed"
 
+    def __str__(self):
+        return self.value
+
 
 class CursorStatus(str, Enum):
     ready = "ready"
     running = "running"
     finished = "finished"
     closed = "closed"
+
+    def __str__(self):
+        return self.value
 
 
 class PoolStatus(str, Enum):
@@ -29,3 +35,6 @@ class PoolStatus(str, Enum):
 class ClickhouseScheme(str, Enum):
     clickhouse = "clickhouse"
     clickhouses = "clickhouses"
+
+    def __str__(self):
+        return self.value

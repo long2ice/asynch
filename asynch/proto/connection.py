@@ -8,11 +8,11 @@ from typing import Any, Iterable, Mapping, Optional, Union
 from urllib.parse import urlparse
 
 from asynch.errors import (
+    OperationalError,
     PartiallyConsumedQueryError,
     ServerException,
     UnexpectedPacketFromServerError,
     UnknownPacketFromServerError,
-    OperationalError,
 )
 from asynch.proto import constants
 from asynch.proto.block import (
