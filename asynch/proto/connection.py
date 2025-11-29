@@ -442,6 +442,7 @@ class Connection:
 
         elif packet_type == ServerPacket.EXCEPTION:
             packet.exception = await self.receive_exception()
+            self.is_query_executing = False
 
         elif packet.type == ServerPacket.PROGRESS:
             packet.progress = await self.receive_progress()

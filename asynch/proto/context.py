@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
+from asynch.errors import ServerException
 from asynch.proto.result import QueryInfo
 
 if TYPE_CHECKING:
@@ -55,7 +56,9 @@ class ExecuteContext:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            if issubclass(exc_type, (Exception, KeyboardInterrupt)):
+            if not issubclass(exc_type, ServerException) and issubclass(
+                exc_type, (Exception, KeyboardInterrupt)
+            ):
                 await self._connection.disconnect()
                 raise exc_val
         self._connection.track_current_database(self._query)
