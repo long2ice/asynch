@@ -1,3 +1,4 @@
+from asynch.errors import ClickHouseException
 from asynch.proto import constants
 from asynch.proto.block import BaseBlock, BlockInfo, ColumnOrientedBlock
 from asynch.proto.columns import read_column, write_column
@@ -30,6 +31,9 @@ class BlockWriter:
             await self.writer.write_str(
                 col_type,
             )
+            if revision >= constants.DBMS_MIN_REVISION_WITH_CUSTOM_SERIALIZATION:
+                # We write always sparse data without custom serialization.
+                await self.writer.write_uint8(0)
 
             if n_columns:
                 try:
@@ -77,6 +81,14 @@ class BlockReader:
 
             names.append(column_name)
             types.append(column_type)
+
+            if revision >= constants.DBMS_MIN_REVISION_WITH_CUSTOM_SERIALIZATION:
+                # Only with revision 54465 will the server actually send custom serialization.
+                has_custom_serialization = bool(await self.reader.read_uint8())
+                if has_custom_serialization:
+                    raise ClickHouseException(
+                        f"Custom serialization for column {column_name} not supported."
+                    )
 
             if n_rows:
                 column = await read_column(
