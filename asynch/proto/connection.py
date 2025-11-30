@@ -828,30 +828,49 @@ class Connection:
         await self.send_query(query_without_data, query_id=query_id)
         await self.send_external_tables(external_tables, types_check=types_check)
 
-        sample_block = await self.receive_sample_block()
+        sample_block = await self._receive_sample_block()
         if sample_block:
             rv = await self.send_data(
                 sample_block, data, types_check=types_check, columnar=columnar
             )
-            packet = await self._receive_packet()
-            if packet.exception:
-                raise packet.exception
+            await self._receive_end_of_stream()
+
             return rv
 
-    async def receive_sample_block(self):
+    async def _receive_sample_block(self):
         while True:
             packet = await self._receive_packet()
 
             if packet.type == ServerPacket.DATA:
                 return packet.block
-
             elif packet.type == ServerPacket.EXCEPTION:
                 raise packet.exception
             elif packet.type == ServerPacket.LOG:
-                self.log_block(packet.block)
+                pass
             elif packet.type == ServerPacket.TABLE_COLUMNS:
                 pass
+            else:
+                message = self.unexpected_packet_message(
+                    "Data, Exception or TableColumns", packet.type
+                )
+                raise UnexpectedPacketFromServerError(message)
 
+    async def _receive_end_of_stream(self):
+        while True:
+            packet = await self._receive_packet()
+
+            if packet.type == ServerPacket.END_OF_STREAM:
+                return
+            elif packet.type == ServerPacket.EXCEPTION:
+                raise packet.exception
+            elif packet.type == ServerPacket.LOG:
+                pass
+            elif packet.type == ServerPacket.PROFILE_INFO:
+                pass
+            elif packet.type == ServerPacket.PROFILE_EVENTS:
+                pass
+            elif packet.type == ServerPacket.PROGRESS:
+                pass
             else:
                 message = self.unexpected_packet_message(
                     "Data, Exception or TableColumns", packet.type

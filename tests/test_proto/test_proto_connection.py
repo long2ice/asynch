@@ -103,6 +103,17 @@ async def test_execute_with_missing_arg(proto_conn: ProtoConnection):
         await proto_conn.execute(query, args={"foo": 1})
 
 
+@pytest.mark.asyncio
+async def test_large_insert(proto_conn: ProtoConnection):
+    data = [(1,)] * 10_000
+    async with create_table(proto_conn, "a Int64"):
+        await proto_conn.execute(
+            "INSERT INTO test.test (a) VALUES", data, settings={"insert_block_size": 1000}
+        )
+        rv = await proto_conn.execute("SELECT * FROM test.test")
+        assert rv == data
+
+
 @asynccontextmanager
 async def create_table(connection, spec):
     await connection.execute("DROP TABLE IF EXISTS test.test")
