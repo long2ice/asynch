@@ -10,14 +10,15 @@ from asynch.proto.connection import Connection as ProtoConnection
 from asynch.proto.cs import ServerInfo
 
 
-@pytest.fixture()
-async def proto_conn(config) -> AsyncIterator[ProtoConnection]:
+@pytest.fixture(params=[False, "lz4", "zstd"])
+async def proto_conn(request, config) -> AsyncIterator[ProtoConnection]:
     _conn = ProtoConnection(
         user=config.user,
         password=config.password,
         host=config.host,
         port=config.port,
         database=config.database,
+        compression=request.param,
     )
     await _conn.connect()
     yield _conn
@@ -101,6 +102,17 @@ async def test_execute_with_missing_arg(proto_conn: ProtoConnection):
     query = "SELECT {var}"
     with pytest.raises(KeyError, match="'var'"):
         await proto_conn.execute(query, args={"foo": 1})
+
+
+@pytest.mark.asyncio
+async def test_large_insert(proto_conn: ProtoConnection):
+    data = [(1,)] * 10_000
+    async with create_table(proto_conn, "a Int64"):
+        await proto_conn.execute(
+            "INSERT INTO test.test (a) VALUES", data, settings={"insert_block_size": 1000}
+        )
+        rv = await proto_conn.execute("SELECT * FROM test.test")
+        assert rv == data
 
 
 @asynccontextmanager

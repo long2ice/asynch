@@ -219,6 +219,7 @@ class CompressedBufferedWriter(BufferedWriter):
     async def flush(self):
         await self.compressor.write(self.buffer)
         self.position = 0
+        self.buffer = bytearray()
 
 
 class CompressedBufferedReader(BufferedReader):
