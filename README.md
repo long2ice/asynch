@@ -119,7 +119,6 @@ Executing an SQL statement with parameters:
 
 ```python
 async def execute(conn: Connection):
-    # by default, an instance of the `Cursor` class
     async with conn.cursor() as cursor:
         await cursor.execute(
             """
