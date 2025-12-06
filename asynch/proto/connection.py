@@ -36,7 +36,7 @@ from asynch.proto.settings import write_settings
 from asynch.proto.streams.block import BlockReader, BlockWriter
 from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 from asynch.proto.utils.escape import escape_params
-from asynch.proto.utils.helpers import chunks, column_chunks, query_is_format_style
+from asynch.proto.utils.helpers import chunks, column_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -806,8 +806,6 @@ class Connection:
         if not isinstance(params, Mapping):
             raise ValueError("Parameters are expected to be a mapping")
 
-        if query_is_format_style(query):
-            return query.format(**escape_params(params))
         return query % escape_params(params)
 
     async def process_insert_query(
