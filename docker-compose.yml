@@ -1,0 +1,30 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.10-alpine
+    container_name: asynch_clickhouse
+    ports:
+      - "9000:9000"  # Native protocol
+      - "8123:8123"  # HTTP interface
+    environment:
+      # Simple setup - no password required
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      CLICKHOUSE_DB: default
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./docker/clickhouse/users.xml:/etc/clickhouse-server/users.d/default.xml:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "clickhouse", "client", "--query", "SELECT 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+volumes:
+  clickhouse_data:

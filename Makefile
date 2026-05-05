@@ -45,4 +45,26 @@ build: deps clean
 clean:
 	rm -rf ./dist
 
+# ClickHouse database management
+db-up:
+	docker compose up -d clickhouse
+
+db-down:
+	docker compose down
+
+db-logs:
+	docker compose logs -f clickhouse
+
+db-status:
+	docker compose ps clickhouse
+
+db-reset:
+	docker compose down
+	docker volume rm asynch_clickhouse_data 2>/dev/null || true
+	docker compose up -d clickhouse
+
+# Connect to ClickHouse CLI (requires database to be running)
+db-cli:
+	docker exec -it asynch_clickhouse clickhouse-client --user default
+
 ci: check test

@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <!-- Custom configuration for development -->
+
+    <!-- Enable logging for development -->
+    <logger>
+        <level>information</level>
+        <console>1</console>
+    </logger>
+
+    <!-- Allow connections from any host (for development) -->
+    <listen_host>0.0.0.0</listen_host>
+
+    <!-- Disable access control notifications for cleaner logs -->
+    <access_control_improvements>
+        <users_without_row_policies_can_read_rows>1</users_without_row_policies_can_read_rows>
+    </access_control_improvements>
+</clickhouse>
