@@ -27,6 +27,18 @@ lint:
 test:
 	$(PY_DEBUG_OPTS) pytest
 
+# Run only PEP 249 compliance tests (shows all failures, not just the first)
+test-pep249:
+	$(PY_DEBUG_OPTS) pytest tests/pep249/ -p no:randomly --no-header --tb=short --override-ini="addopts=-s -vvv"
+
+# Run only SQLAlchemy compatibility tests
+test-sqlalchemy:
+	$(PY_DEBUG_OPTS) pytest tests/sqlalchemy/ -p no:randomly --no-header --tb=short --override-ini="addopts=-s -vvv"
+
+# Run PEP 249 + SQLAlchemy tests together (TDD workflow — see all failures at once)
+test-compat:
+	$(PY_DEBUG_OPTS) pytest tests/pep249/ tests/sqlalchemy/ -p no:randomly --no-header --tb=short --override-ini="addopts=-s -vvv"
+
 build: deps clean
 	poetry build
 
