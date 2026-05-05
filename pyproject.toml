@@ -2,14 +2,12 @@
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[project]
+[tool.poetry]
 name = "asynch"
 version = "0.3.1"
 description = "An asyncio driver for ClickHouse with native TCP support"
-authors = [
-    {name = "long2ice",email = "long2ice@gmail.com"}
-]
-license = {file = "LICENSE"}
+authors = ["long2ice <long2ice@gmail.com>"]
+license = "Apache-2.0"
 readme = "README.md"
 keywords = ["asyncio", "clickhouse", "python", "driver"]
 classifiers = [
@@ -28,29 +26,9 @@ classifiers = [
     "Topic :: Database",
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
-requires-python = ">=3.9,<4.0"
-dependencies = [
-    "ciso8601 (>=2.3.2,<3.0.0)",
-    "leb128 (>=1.0.8,<2.0.0)",
-    "lz4 (>=4.4.3,<5.0.0)",
-    "pytz (>=2025.1,<2026.0)",
-    "tzlocal (>=5.3.1,<6.0.0)",
-    "zstd (>=1.5.6.6,<2.0.0.0)",
-]
-
-[project.optional-dependencies]
-compression = ["clickhouse-cityhash (>=1.0.2.4,<2.0.0.0)"]
-
-[project.urls]
 homepage = "https://github.com/long2ice/asynch"
 repository = "https://github.com/long2ice/asynch.git"
 documentation = "https://github.com/long2ice/asynch"
-
-[tool.poetry]
-name = "asynch"
-version = "0.3.1"
-description = "An asyncio driver for ClickHouse with native TCP support"
-authors = ["long2ice <long2ice@gmail.com>"]
 package-mode = true
 include = ["LICENSE", "README.md"]
 packages = [
