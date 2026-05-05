@@ -18,7 +18,6 @@ import pytest
 sqlalchemy = pytest.importorskip(
     "sqlalchemy",
     reason="sqlalchemy is not installed — skipping SQLAlchemy tests",
-    allow_module_level=True,
 )
 
 # ---------------------------------------------------------------------------

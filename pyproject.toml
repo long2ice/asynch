@@ -55,6 +55,7 @@ clickhouse-cityhash = "^1.0.2"
 bandit = "^1.8.3"
 uvloop = "^0.21.0"
 clickhouse-driver = "^0.2.9"
+sqlalchemy = "^2.0.49"
 
 [tool.poetry.group.lint.dependencies]
 mypy = "^1.15.0"
