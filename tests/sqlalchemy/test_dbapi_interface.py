@@ -13,6 +13,7 @@ SQLAlchemy reads or calls the following on a DB-API module / connection / cursor
   - Cursor: execute(), fetchone(), fetchmany(), fetchall()
   - Cursor: setinputsizes(), setoutputsize()
 """
+
 import datetime
 
 import pytest

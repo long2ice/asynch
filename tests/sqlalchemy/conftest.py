@@ -8,6 +8,7 @@ are skipped if that package is not installed.
 
 Connection settings are inherited from the root conftest via the `config` fixture.
 """
+
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -85,11 +86,13 @@ async def sa_cursor(sa_conn):
 # SQLAlchemy async engine fixture (requires clickhouse-sqlalchemy)
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="session")
 def ch_sa_dialect():
     """Import marker: skip if clickhouse-sqlalchemy is not installed."""
     try:
         import clickhouse_sqlalchemy  # noqa: F401
+
         return clickhouse_sqlalchemy
     except ImportError:
         pytest.skip("clickhouse-sqlalchemy is not installed")

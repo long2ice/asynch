@@ -10,6 +10,7 @@ SQLAlchemy Core operations (DDL, DML, queries) via the clickhouse+asynch dialect
 Install requirements:
     pip install sqlalchemy clickhouse-sqlalchemy
 """
+
 import datetime
 
 import pytest
@@ -69,9 +70,7 @@ class TestCoreTextQueries:
             await conn.commit()
 
         async with async_engine.connect() as conn:
-            result = await conn.execute(
-                text(f"SELECT name FROM {SA_TABLE} WHERE id = 1")
-            )
+            result = await conn.execute(text(f"SELECT name FROM {SA_TABLE} WHERE id = 1"))
             row = result.fetchone()
             assert row is not None
             assert row[0] == "Alice"
@@ -104,9 +103,7 @@ class TestCoreResultMapping:
         from sqlalchemy import text
 
         async with async_engine.connect() as conn:
-            result = await conn.execute(
-                text("SELECT toInt32(1) AS id, 'hello' AS name")
-            )
+            result = await conn.execute(text("SELECT toInt32(1) AS id, 'hello' AS name"))
             row = result.mappings().fetchone()
             assert row is not None
             assert row["id"] == 1
@@ -123,15 +120,17 @@ class TestCoreResultMapping:
                         f"INSERT INTO {SA_TABLE} (id, name, score, created) VALUES "
                         "(:id, :name, :score, :created)"
                     ),
-                    {"id": i, "name": f"row{i}", "score": float(i),
-                     "created": datetime.date(2024, 1, 1)},
+                    {
+                        "id": i,
+                        "name": f"row{i}",
+                        "score": float(i),
+                        "created": datetime.date(2024, 1, 1),
+                    },
                 )
             await conn.commit()
 
         async with async_engine.connect() as conn:
-            result = await conn.execute(
-                text(f"SELECT id, name FROM {SA_TABLE} ORDER BY id")
-            )
+            result = await conn.execute(text(f"SELECT id, name FROM {SA_TABLE} ORDER BY id"))
             rows = result.fetchall()
             assert len(rows) == 3
             assert rows[0][0] == 1
@@ -149,15 +148,12 @@ class TestCoreTransaction:
                     f"INSERT INTO {SA_TABLE} (id, name, score, created) VALUES "
                     "(:id, :name, :score, :created)"
                 ),
-                {"id": 10, "name": "tx_test", "score": 1.0,
-                 "created": datetime.date(2024, 1, 1)},
+                {"id": 10, "name": "tx_test", "score": 1.0, "created": datetime.date(2024, 1, 1)},
             )
             # commit happens automatically on context manager exit
 
         async with async_engine.connect() as conn:
-            result = await conn.execute(
-                text(f"SELECT name FROM {SA_TABLE} WHERE id = 10")
-            )
+            result = await conn.execute(text(f"SELECT name FROM {SA_TABLE} WHERE id = 10"))
             row = result.fetchone()
             assert row is not None
             assert row[0] == "tx_test"
@@ -172,8 +168,12 @@ class TestCoreTransaction:
                         f"INSERT INTO {SA_TABLE} (id, name, score, created) VALUES "
                         "(:id, :name, :score, :created)"
                     ),
-                    {"id": 20, "name": "should_rollback", "score": 0.0,
-                     "created": datetime.date(2024, 1, 1)},
+                    {
+                        "id": 20,
+                        "name": "should_rollback",
+                        "score": 0.0,
+                        "created": datetime.date(2024, 1, 1),
+                    },
                 )
                 raise ValueError("intentional error to trigger rollback")
         except ValueError:

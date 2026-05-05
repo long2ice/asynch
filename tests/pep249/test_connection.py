@@ -10,6 +10,7 @@ Covers:
 - Async context manager protocol (__aenter__ / __aexit__)
 - Connection cannot be used after close()
 """
+
 import pytest
 
 import asynch
@@ -85,9 +86,7 @@ class TestConnectionRollback:
         except NotSupportedError:
             pass  # valid per PEP 249
         except Exception as exc:
-            pytest.fail(
-                f"rollback() raised an unexpected exception: {type(exc).__name__}: {exc}"
-            )
+            pytest.fail(f"rollback() raised an unexpected exception: {type(exc).__name__}: {exc}")
 
 
 class TestConnectionCursor:

@@ -14,6 +14,7 @@ Key ORM interface points tested:
 - cursor.lastrowid behaviour (None for ClickHouse)
 - cursor.description type_code for ORM column type mapping
 """
+
 import datetime
 
 import pytest
@@ -67,8 +68,7 @@ class TestORMSelect:
                     "INSERT INTO test.sa_compat (id, name, score, created) "
                     "VALUES (:id, :name, :score, :created)"
                 ),
-                {"id": 1, "name": "ORM Alice", "score": 9.5,
-                 "created": datetime.date(2024, 1, 1)},
+                {"id": 1, "name": "ORM Alice", "score": 9.5, "created": datetime.date(2024, 1, 1)},
             )
             await conn.commit()
 
@@ -82,8 +82,7 @@ class TestORMSelect:
 
     async def test_select_column_types(self, async_session, async_engine):
         """ORM must correctly map ClickHouse column types via cursor.description."""
-        from sqlalchemy import text
-        from sqlalchemy import select
+        from sqlalchemy import select, text
 
         async with async_engine.connect() as conn:
             await conn.execute(
@@ -91,8 +90,12 @@ class TestORMSelect:
                     "INSERT INTO test.sa_compat (id, name, score, created) "
                     "VALUES (:id, :name, :score, :created)"
                 ),
-                {"id": 2, "name": "type test", "score": 3.14,
-                 "created": datetime.date(2024, 6, 15)},
+                {
+                    "id": 2,
+                    "name": "type test",
+                    "score": 3.14,
+                    "created": datetime.date(2024, 6, 15),
+                },
             )
             await conn.commit()
 
@@ -118,8 +121,7 @@ class TestORMSessionLifecycle:
 
             if not isinstance(exc, NotSupportedError):
                 pytest.fail(
-                    f"Session rollback raised unexpected exception: "
-                    f"{type(exc).__name__}: {exc}"
+                    f"Session rollback raised unexpected exception: {type(exc).__name__}: {exc}"
                 )
 
     async def test_session_close_no_raise(self, async_session):
@@ -136,9 +138,7 @@ class TestORMColumnTypeMapping:
         from sqlalchemy import inspect
 
         async with async_engine.connect() as conn:
-            inspector = await conn.run_sync(
-                lambda sync_conn: inspect(sync_conn)
-            )
+            inspector = await conn.run_sync(lambda sync_conn: inspect(sync_conn))
             columns = inspector.get_columns("sa_compat", schema="test")
             id_col = next(c for c in columns if c["name"] == "id")
             # The type must be some form of Integer
@@ -149,8 +149,8 @@ class TestORMColumnTypeMapping:
             )
 
     async def test_float_column_maps_correctly(self, async_engine):
-        from sqlalchemy import inspect
-        from sqlalchemy import Float as SAFloat, Numeric
+        from sqlalchemy import Float as SAFloat
+        from sqlalchemy import Numeric, inspect
 
         async with async_engine.connect() as conn:
             inspector = await conn.run_sync(lambda c: inspect(c))
@@ -177,8 +177,12 @@ class TestLastRowid:
                     "INSERT INTO test.sa_compat (id, name, score, created) "
                     "VALUES (:id, :name, :score, :created)"
                 ),
-                {"id": 50, "name": "lastrowid_test", "score": 0.0,
-                 "created": datetime.date(2024, 1, 1)},
+                {
+                    "id": 50,
+                    "name": "lastrowid_test",
+                    "score": 0.0,
+                    "created": datetime.date(2024, 1, 1),
+                },
             )
             # SQLAlchemy wraps the cursor; lastrowid must be accessible
             assert result.inserted_primary_key is None or result.inserted_primary_key is not None

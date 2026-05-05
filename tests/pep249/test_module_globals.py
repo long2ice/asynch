@@ -9,6 +9,7 @@ Covers:
 - Exception classes exported at module level
 - Type objects exported at module level
 """
+
 import inspect
 
 import pytest
@@ -74,9 +75,7 @@ class TestConnectFactory:
         from asynch.connection import Connection
 
         conn = asynch.connect()
-        assert isinstance(conn, Connection), (
-            "asynch.connect() must return a Connection object"
-        )
+        assert isinstance(conn, Connection), "asynch.connect() must return a Connection object"
 
     def test_connect_accepts_dsn(self, config):
         from asynch.connection import Connection
@@ -115,9 +114,7 @@ class TestModuleLevelExceptions:
 
     @pytest.mark.parametrize("exc_name", REQUIRED_EXCEPTIONS)
     def test_exception_exported(self, exc_name):
-        assert hasattr(asynch, exc_name), (
-            f"asynch must export '{exc_name}' at module level"
-        )
+        assert hasattr(asynch, exc_name), f"asynch must export '{exc_name}' at module level"
 
     @pytest.mark.parametrize("exc_name", REQUIRED_EXCEPTIONS)
     def test_exception_is_class(self, exc_name):

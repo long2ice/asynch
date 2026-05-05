@@ -11,6 +11,7 @@ Covers:
 - fetchall() returns empty list when exhausted
 - Rows are sequences (indexable, iterable)
 """
+
 import datetime
 
 import pytest
@@ -75,9 +76,7 @@ class TestFetchmany:
         pep249_cursor.arraysize = 2
         await pep249_cursor.execute(f"SELECT id FROM {PEP249_TABLE} ORDER BY id")
         rows = await pep249_cursor.fetchmany()  # no explicit size
-        assert len(rows) == 2, (
-            "fetchmany() with no size arg must use arraysize"
-        )
+        assert len(rows) == 2, "fetchmany() with no size arg must use arraysize"
 
     async def test_size_zero_returns_empty(self, three_rows):
         rows = await three_rows.fetchmany(0)
@@ -150,9 +149,7 @@ class TestRowFormat:
 
     async def test_null_maps_to_none(self, pep249_cursor, populated_table):
         """SQL NULL must map to Python None per PEP 249."""
-        await pep249_cursor.execute(
-            f"SELECT name FROM {PEP249_TABLE} WHERE id = 3"
-        )
+        await pep249_cursor.execute(f"SELECT name FROM {PEP249_TABLE} WHERE id = 3")
         row = await pep249_cursor.fetchone()
         assert row is not None
         assert row[0] is None, "SQL NULL must map to Python None"

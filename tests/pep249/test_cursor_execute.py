@@ -10,6 +10,7 @@ Covers:
 - Calling fetch before execute raises ProgrammingError
 - execute() on a closed cursor raises InterfaceError
 """
+
 import datetime
 
 import pytest

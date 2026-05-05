@@ -12,6 +12,7 @@ Covers:
 - Exceptions can be raised and caught at all hierarchy levels
 - Exceptions carry meaningful messages
 """
+
 import pytest
 
 from asynch import errors
@@ -50,9 +51,7 @@ class TestError:
 
 class TestInterfaceError:
     def test_is_error(self):
-        assert issubclass(errors.InterfaceError, errors.Error), (
-            "InterfaceError must subclass Error"
-        )
+        assert issubclass(errors.InterfaceError, errors.Error), "InterfaceError must subclass Error"
 
     def test_is_not_database_error(self):
         """InterfaceError and DatabaseError are siblings, not parent-child."""
@@ -73,9 +72,7 @@ class TestInterfaceError:
 
 class TestDatabaseError:
     def test_is_error(self):
-        assert issubclass(errors.DatabaseError, errors.Error), (
-            "DatabaseError must subclass Error"
-        )
+        assert issubclass(errors.DatabaseError, errors.Error), "DatabaseError must subclass Error"
 
     def test_is_raisable(self):
         with pytest.raises(errors.DatabaseError):

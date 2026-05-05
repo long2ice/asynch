@@ -11,6 +11,7 @@ Covers:
 - Remaining fields may be None
 - type_code correctly maps ClickHouse types to PEP 249 type objects
 """
+
 import datetime
 
 import pytest
@@ -54,9 +55,7 @@ class TestDescriptionStructure:
     async def test_description_is_sequence(self, pep249_cursor):
         await pep249_cursor.execute("SELECT 1 AS n")
         assert pep249_cursor.description is not None
-        assert hasattr(pep249_cursor.description, "__iter__"), (
-            "description must be iterable"
-        )
+        assert hasattr(pep249_cursor.description, "__iter__"), "description must be iterable"
 
     async def test_description_has_one_item_per_column(self, pep249_cursor):
         await pep249_cursor.execute("SELECT 1 AS a, 2 AS b, 3 AS c")
@@ -65,9 +64,7 @@ class TestDescriptionStructure:
     async def test_each_item_is_seven_elements(self, pep249_cursor):
         await pep249_cursor.execute("SELECT 1 AS n")
         for item in pep249_cursor.description:
-            assert len(item) == 7, (
-                f"Each description item must have 7 elements; got {len(item)}"
-            )
+            assert len(item) == 7, f"Each description item must have 7 elements; got {len(item)}"
 
     async def test_item_is_indexable(self, pep249_cursor):
         await pep249_cursor.execute("SELECT 1 AS n")
@@ -167,9 +164,7 @@ class TestDescriptionOptionalFields:
 
     async def test_optional_fields_are_none_or_value(self, pep249_cursor):
         await pep249_cursor.execute("SELECT 1 AS n")
-        _, _, display_size, internal_size, precision, scale, null_ok = (
-            pep249_cursor.description[0]
-        )
+        _, _, display_size, internal_size, precision, scale, null_ok = pep249_cursor.description[0]
         # Each field is either None or a valid value — no hard type requirement
         for field in (display_size, internal_size, precision, scale):
             assert field is None or isinstance(field, int), (

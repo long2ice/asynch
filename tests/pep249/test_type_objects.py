@@ -9,6 +9,7 @@ Covers:
 - Type singletons map correctly to ClickHouse type name strings
 - Type singletons are exported from asynch module
 """
+
 import datetime
 
 import pytest
@@ -123,12 +124,22 @@ class TestTypeObjectClickHouseMapping:
         )
 
     # NUMBER
-    @pytest.mark.parametrize("ch_type", [
-        "Int8", "Int16", "Int32", "Int64",
-        "UInt8", "UInt16", "UInt32", "UInt64",
-        "Float32", "Float64",
-        "Decimal",
-    ])
+    @pytest.mark.parametrize(
+        "ch_type",
+        [
+            "Int8",
+            "Int16",
+            "Int32",
+            "Int64",
+            "UInt8",
+            "UInt16",
+            "UInt32",
+            "UInt64",
+            "Float32",
+            "Float64",
+            "Decimal",
+        ],
+    )
     def test_number_covers_type(self, ch_type):
         assert asynch.NUMBER == ch_type, (
             f"asynch.NUMBER should equal '{ch_type}' (ClickHouse numeric type)"

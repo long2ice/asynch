@@ -7,6 +7,7 @@ inherited from the root conftest via the `config` fixture.
 A dedicated table `test.pep249` is created once per test session and truncated
 before each test function.
 """
+
 import pytest
 
 from asynch.connection import Connection

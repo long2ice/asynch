@@ -47,13 +47,31 @@ repository = "https://github.com/long2ice/asynch.git"
 documentation = "https://github.com/long2ice/asynch"
 
 [tool.poetry]
+name = "asynch"
+version = "0.3.1"
+description = "An asyncio driver for ClickHouse with native TCP support"
+authors = ["long2ice <long2ice@gmail.com>"]
 package-mode = true
-requires-poetry = ">=2.1"
 include = ["LICENSE", "README.md"]
 packages = [
     { include = "asynch" },
     { include = "asynch/py.typed" }
 ]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+ciso8601 = "^2.3.2"
+leb128 = "^1.0.8"
+lz4 = "^4.4.3"
+pytz = "^2025.1"
+tzlocal = "^5.3.1"
+zstd = "^1.5.6"
+
+[tool.poetry.extras]
+compression = ["clickhouse-cityhash"]
+
+[tool.poetry.group.compression.dependencies]
+clickhouse-cityhash = "^1.0.2"
 
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.8.3"

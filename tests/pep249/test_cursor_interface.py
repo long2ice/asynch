@@ -18,6 +18,7 @@ Covers:
 - setoutputsize (singular) method exists
 - lastrowid attribute exists (SQLAlchemy optional extension)
 """
+
 import inspect
 
 import pytest
@@ -74,9 +75,7 @@ class TestCursorMethodPresence:
     @pytest.mark.parametrize("method", REQUIRED_METHODS)
     def test_method_is_callable(self, pep249_conn):
         cursor = pep249_conn.cursor()
-        assert callable(getattr(cursor, method)), (
-            f"cursor.{method} must be callable"
-        )
+        assert callable(getattr(cursor, method)), f"cursor.{method} must be callable"
 
     def test_setoutputsize_singular(self, pep249_conn):
         """PEP 249 specifies 'setoutputsize' (singular), not 'setoutputsizes'."""
@@ -123,9 +122,7 @@ class TestCursorRowcount:
 
     def test_rowcount_initial_value(self, pep249_conn):
         cursor = pep249_conn.cursor()
-        assert cursor.rowcount == -1, (
-            "rowcount must be -1 before any execute() call"
-        )
+        assert cursor.rowcount == -1, "rowcount must be -1 before any execute() call"
 
 
 class TestCursorDescriptionInitial:
@@ -133,9 +130,7 @@ class TestCursorDescriptionInitial:
 
     def test_description_none_before_execute(self, pep249_conn):
         cursor = pep249_conn.cursor()
-        assert cursor.description is None, (
-            "description must be None before any execute() call"
-        )
+        assert cursor.description is None, "description must be None before any execute() call"
 
 
 class TestCursorCallproc:
@@ -147,9 +142,7 @@ class TestCursorCallproc:
         except NotSupportedError:
             pass  # valid — ClickHouse has no stored procedures
         except Exception as exc:
-            pytest.fail(
-                f"callproc raised an unexpected exception: {type(exc).__name__}: {exc}"
-            )
+            pytest.fail(f"callproc raised an unexpected exception: {type(exc).__name__}: {exc}")
 
 
 class TestCursorNextset:
