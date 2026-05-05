@@ -39,7 +39,7 @@ class TestCursorAttributePresence:
     ]
 
     @pytest.mark.parametrize("attr", REQUIRED_ATTRS)
-    def test_attribute_exists(self, pep249_conn):
+    def test_attribute_exists(self, pep249_conn, attr):
         cursor = pep249_conn.cursor()
         assert hasattr(cursor, attr), f"Cursor must have attribute '{attr}'"
 
@@ -68,12 +68,12 @@ class TestCursorMethodPresence:
     ]
 
     @pytest.mark.parametrize("method", REQUIRED_METHODS)
-    def test_method_exists(self, pep249_conn):
+    def test_method_exists(self, pep249_conn, method):
         cursor = pep249_conn.cursor()
         assert hasattr(cursor, method), f"Cursor must have method '{method}'"
 
     @pytest.mark.parametrize("method", REQUIRED_METHODS)
-    def test_method_is_callable(self, pep249_conn):
+    def test_method_is_callable(self, pep249_conn, method):
         cursor = pep249_conn.cursor()
         assert callable(getattr(cursor, method)), f"cursor.{method} must be callable"
 
