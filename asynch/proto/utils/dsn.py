@@ -8,11 +8,11 @@ from asynch.proto.utils.compat import asbool
 _SCHEME_SEPARATOR = "://"
 
 _COMPRESSION_ALGORITHMS: set[str] = {
-    CompressionAlgorithm.lz4,
-    CompressionAlgorithm.lz4hc,
-    CompressionAlgorithm.zstd,
+    CompressionAlgorithm.lz4.value,
+    CompressionAlgorithm.lz4hc.value,
+    CompressionAlgorithm.zstd.value,
 }
-_SUPPORTED_SCHEMES: set[str] = {ClickhouseScheme.clickhouse, ClickhouseScheme.clickhouses}
+_SUPPORTED_SCHEMES: set[str] = {ClickhouseScheme.clickhouse.value, ClickhouseScheme.clickhouses.value}
 _TIMEOUTS: set[str] = {"connect_timeout", "send_receive_timeout", "sync_request_timeout"}
 
 
@@ -68,7 +68,7 @@ def parse_dsn(dsn: str) -> dict[str, Any]:
     if path:
         kwargs["database"] = path
 
-    if url.scheme == ClickhouseScheme.clickhouses:
+    if url.scheme == ClickhouseScheme.clickhouses.value:
         kwargs["secure"] = True
 
     for name, value in parse_qs(url.query).items():

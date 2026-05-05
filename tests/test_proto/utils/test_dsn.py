@@ -13,10 +13,10 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
     [
         ("", pytest.raises(DSNError), None),
         ("some_scheme://", pytest.raises(DSNError), None),
-        (f"{ClickhouseScheme.clickhouse}://", pytest.raises(DSNError), None),
-        (f"{ClickhouseScheme.clickhouses}://", pytest.raises(DSNError), None),
+        (f"{ClickhouseScheme.clickhouse.value}://", pytest.raises(DSNError), None),
+        (f"{ClickhouseScheme.clickhouses.value}://", pytest.raises(DSNError), None),
         (
-            f"{ClickhouseScheme.clickhouse}://ch@lochost/",
+            f"{ClickhouseScheme.clickhouse.value}://ch@lochost/",
             does_not_raise(),
             {
                 "user": "ch",
@@ -24,7 +24,7 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
             },
         ),
         (
-            f"{ClickhouseScheme.clickhouse}://ch:pwd@lochost/",
+            f"{ClickhouseScheme.clickhouse.value}://ch:pwd@lochost/",
             does_not_raise(),
             {
                 "user": "ch",
@@ -33,7 +33,7 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
             },
         ),
         (
-            f"{ClickhouseScheme.clickhouse}://ch@lochost:4321/",
+            f"{ClickhouseScheme.clickhouse.value}://ch@lochost:4321/",
             does_not_raise(),
             {
                 "user": "ch",
@@ -42,7 +42,7 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
             },
         ),
         (
-            f"{ClickhouseScheme.clickhouse}://ch:pwd@lochost:1234/db",
+            f"{ClickhouseScheme.clickhouse.value}://ch:pwd@lochost:1234/db",
             does_not_raise(),
             {
                 "user": "ch",
@@ -58,12 +58,12 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
             None,
         ),
         (
-            f"{ClickhouseScheme.clickhouse}://lochost:1234/test",
+            f"{ClickhouseScheme.clickhouse.value}://lochost:1234/test",
             does_not_raise(),
             {"host": "lochost", "port": 1234, "database": "test"},
         ),
         (
-            f"{ClickhouseScheme.clickhouse} :// lochost : 1234 / test",
+            f"{ClickhouseScheme.clickhouse.value} :// lochost : 1234 / test",
             pytest.raises(DSNError),
             None,
         ),
@@ -82,7 +82,7 @@ def test_dsn_basic_credentials(
     ("dsn", "query", "answer"),
     [
         (
-            f"{ClickhouseScheme.clickhouses}://ch:pwd@loc:1029/def",
+            f"{ClickhouseScheme.clickhouses.value}://ch:pwd@loc:1029/def",
             "verify=true&ssl_version=PROTOCOL_TLSv1&ca_certs=path/to/CA.crt&ciphers=AES&client_name",
             {
                 "verify": True,
@@ -92,7 +92,7 @@ def test_dsn_basic_credentials(
             },
         ),
         (
-            f"{ClickhouseScheme.clickhouse}://ch:pwd@loc:2938/ault",
+            f"{ClickhouseScheme.clickhouse.value}://ch:pwd@loc:2938/ault",
             (
                 "verify=true"
                 "&secure=yes"

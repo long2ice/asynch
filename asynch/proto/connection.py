@@ -104,7 +104,7 @@ class Connection:
         self.hosts = [(host, port or default_port)]
         if alt_hosts:
             for host in alt_hosts.split(","):
-                url = urlparse(f"{ClickhouseScheme.clickhouse}://" + host)
+                url = urlparse(f"{ClickhouseScheme.clickhouse.value}://" + host)
                 self.hosts.append((url.hostname, url.port or default_port))
         self.database = database
         self.host = None
