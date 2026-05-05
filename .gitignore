@@ -164,5 +164,8 @@ cython_debug/
 # Visual Studio Code
 .vscode
 
+# Claude AI assistant
+.claude/
+
 # ruff stuff
 .ruff_cache
