@@ -5,11 +5,11 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "asynch"
 version = "0.3.1"
-description = "An asyncio driver for ClickHouse with native TCP support"
+description = "PEP 249 compliant asyncio ClickHouse driver with native TCP support and SQLAlchemy compatibility"
 authors = ["long2ice <long2ice@gmail.com>"]
 license = "Apache-2.0"
 readme = "README.md"
-keywords = ["asyncio", "clickhouse", "python", "driver"]
+keywords = ["asyncio", "clickhouse", "python", "driver", "pep249", "dbapi", "sqlalchemy", "database"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Framework :: AsyncIO",
@@ -24,7 +24,9 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Database",
-    "Topic :: Software Development :: Libraries :: Python Modules"
+    "Topic :: Database :: Database Engines/Servers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Libraries"
 ]
 homepage = "https://github.com/long2ice/asynch"
 repository = "https://github.com/long2ice/asynch.git"

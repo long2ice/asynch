@@ -1,5 +1,31 @@
 # ChangeLog
 
+## 0.4 (Unreleased)
+
+### 0.4.0
+
+- **MAJOR**: Full PEP 249 (Python Database API v2.0) compliance implementation:
+  - Add module globals: `apilevel="2.0"`, `threadsafety=1`, `paramstyle="pyformat"`
+  - Implement module-level `connect()` factory function with full parameter support
+  - Export all PEP 249 exceptions (`Warning`, `Error`, `DatabaseError`, etc.) at module level
+  - Create comprehensive type system in `asynch.dbapi_types`:
+    - Type objects: `STRING`, `NUMBER`, `DATETIME`, `BINARY`, `ROWID`
+    - Type constructors: `Date`, `Time`, `Timestamp`, `DateFromTicks`, etc.
+    - ClickHouse to PEP 249 type mapping with `Nullable`/`LowCardinality` support
+  - Enhance cursor interface:
+    - Add public `cursor.arraysize` property with getter/setter
+    - Add `cursor.setoutputsize()` method (renamed from `setoutputsizes`, kept alias)
+    - Add `cursor.lastrowid` property (returns `None` for ClickHouse)
+    - Add `cursor.callproc()` method (raises `NotSupportedError` per spec)
+    - Add `cursor.nextset()` async method (returns `None` for single result sets)
+  - Fix `cursor.description` to use PEP 249 type objects and return `None` for non-SELECT
+  - Change `connection.commit()` from raising `NotSupportedError` to no-op behavior
+  - Fix cursor and connection `__repr__` methods to show clean status strings
+- **MAJOR**: SQLAlchemy compatibility support:
+  - Full DB-API interface compatibility for SQLAlchemy Core and ORM
+  - Comprehensive test suite covering SQLAlchemy integration patterns
+  - Support for `clickhouse+asynch://` connection URLs
+
 ## 0.3
 
 ### 0.3.1

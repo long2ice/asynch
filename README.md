@@ -7,7 +7,15 @@
 
 ## Introduction
 
-`asynch` is an asynchronous ClickHouse Python driver with native TCP interface support, which reuses most of [clickhouse-driver](https://github.com/mymarilyn/clickhouse-driver) features and complies with [PEP249](https://www.python.org/dev/peps/pep-0249/).
+`asynch` is an asynchronous ClickHouse Python driver with native TCP interface support, which reuses most of [clickhouse-driver](https://github.com/mymarilyn/clickhouse-driver) features and is fully compliant with [PEP249](https://www.python.org/dev/peps/pep-0249/) (Python Database API Specification v2.0).
+
+### ✨ Features
+
+- **Full PEP249 Compliance**: Complete implementation of the Python Database API Specification v2.0
+- **SQLAlchemy Compatible**: Works seamlessly with SQLAlchemy Core and ORM
+- **Asynchronous**: Built for modern async/await Python applications
+- **Type Safety**: Comprehensive type system with proper ClickHouse to Python type mapping
+- **Connection Pooling**: Efficient connection management for high-performance applications
 
 ## Installation
 
@@ -35,7 +43,32 @@ For more details, please refer to the project [CHANGELOG.md](./CHANGELOG.md) fil
 
 ## Usage
 
-Basically, a connection to a ClickHouse server can be established in two ways:
+### Quick Start with PEP249 Interface
+
+The simplest way to use asynch is through the PEP249-compliant interface:
+
+```python
+import asynch
+
+# Create connection using the module-level connect() function
+conn = asynch.connect(
+    host="127.0.0.1",
+    port=9000,
+    user="default",
+    database="default"
+)
+
+async def main():
+    async with conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT version()")
+            result = await cursor.fetchone()
+            print(f"ClickHouse version: {result[0]}")
+```
+
+### Advanced Connection Management
+
+For more control, a connection to a ClickHouse server can be established in two ways:
 
 1. with a DSN string, e.g., `clickhouse://[user:password]@host:port/database`;
 
@@ -216,6 +249,42 @@ async def use_pool():
 
     await pool.shutdown()
 ```
+
+### SQLAlchemy Integration
+
+`asynch` is fully compatible with SQLAlchemy, allowing you to use ClickHouse with your existing SQLAlchemy applications:
+
+```python
+from sqlalchemy.ext.asyncio import create_async_engine
+import sqlalchemy as sa
+
+# Create an async engine for ClickHouse
+engine = create_async_engine("clickhouse+asynch://user:password@host:port/database")
+
+async def sqlalchemy_example():
+    async with engine.begin() as conn:
+        # Execute raw SQL
+        result = await conn.execute(sa.text("SELECT version()"))
+        row = result.fetchone()
+        print(f"ClickHouse version: {row[0]}")
+
+        # Use SQLAlchemy Core constructs
+        metadata = sa.MetaData()
+        table = sa.Table('my_table', metadata, autoload_with=conn)
+        query = sa.select(table)
+        result = await conn.execute(query)
+        rows = result.fetchall()
+```
+
+### PEP249 Compliance
+
+`asynch` fully implements the Python Database API Specification v2.0:
+
+- **Module globals**: `apilevel = "2.0"`, `threadsafety = 1`, `paramstyle = "pyformat"`
+- **Connection interface**: `connect()`, `commit()`, `rollback()`, `close()`, `cursor()`
+- **Cursor interface**: `execute()`, `executemany()`, `fetch*()`, `description`, `rowcount`
+- **Type system**: `STRING`, `NUMBER`, `DATETIME`, `BINARY`, `ROWID` type objects
+- **Exception hierarchy**: Complete set of standard exceptions (`Error`, `DatabaseError`, etc.)
 
 ## ThanksTo
 
