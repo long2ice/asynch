@@ -4,10 +4,42 @@ from typing import Optional
 
 from asynch.errors import InterfaceError, ProgrammingError
 from asynch.proto.models.enums import CursorStatus
+from asynch.dbapi_types import STRING, BINARY, NUMBER, DATETIME, ROWID
 
 Column = namedtuple("Column", "name type_code display_size internal_size precision scale null_ok")
 
 logger = logging.getLogger(__name__)
+
+# Map ClickHouse base type names to PEP 249 type objects
+_TYPE_MAP = {
+    **{t: NUMBER for t in (
+        "Int8", "Int16", "Int32", "Int64",
+        "UInt8", "UInt16", "UInt32", "UInt64",
+        "Int128", "Int256", "UInt128", "UInt256",
+        "Float32", "Float64",
+        "Decimal", "Decimal32", "Decimal64", "Decimal128", "Decimal256",
+        "Bool",
+    )},
+    **{t: STRING for t in (
+        "String", "FixedString", "Enum8", "Enum16",
+        "LowCardinality", "UUID", "IPv4", "IPv6", "JSON",
+    )},
+    **{t: DATETIME for t in ("Date", "Date32", "DateTime", "DateTime64")},
+    "Array": BINARY,
+    "Map": BINARY,
+    "Tuple": BINARY,
+}
+
+
+def _ch_type_to_dbapi(ch_type_str: str):
+    """Return the PEP 249 type object for a ClickHouse type string."""
+    base = ch_type_str.split("(")[0].strip()  # strip e.g. "Nullable(", "LowCardinality("
+    # Unwrap Nullable / LowCardinality
+    for wrapper in ("Nullable", "LowCardinality"):
+        if base == wrapper:
+            inner = ch_type_str[len(wrapper) + 1:-1]
+            return _ch_type_to_dbapi(inner)
+    return _TYPE_MAP.get(base, STRING)
 
 
 class Cursor:
@@ -49,11 +81,25 @@ class Cursor:
         :rtype: str (CursorStatus StrEnum)
         """
 
-        return self._state
+        return self._state.value
+
+    @property
+    def arraysize(self) -> int:
+        """Number of rows to fetch at a time with fetchmany()."""
+        return self._arraysize
+
+    @arraysize.setter
+    def arraysize(self, value: int) -> None:
+        """Set number of rows to fetch at a time with fetchmany()."""
+        self._arraysize = value
 
     def setinputsizes(self, *args):
         """Does nothing, required by DB API."""
 
+    def setoutputsize(self, size, column=None):
+        """Does nothing, required by DB-API 2.0."""
+
+    # Deprecated alias — remove in a future release
     def setoutputsizes(self, *args):
         """Does nothing, required by DB API."""
 
@@ -135,7 +181,7 @@ class Cursor:
             return None
         return self._rows.pop(0)
 
-    async def fetchmany(self, size: Optional[int]):
+    async def fetchmany(self, size: Optional[int] = None):
         self._check_query_started()
 
         if size is None:
@@ -274,8 +320,20 @@ class Cursor:
         columns = self._columns or []
         types = self._types or []
 
+        # Return None for non-SELECT operations (no columns)
+        if not columns:
+            return None
+
         return [
-            Column(name, type_code, None, None, None, None, True)
+            Column(
+                name,
+                _ch_type_to_dbapi(type_code),  # Convert to PEP 249 type object
+                None,   # display_size
+                None,   # internal_size
+                None,   # precision
+                None,   # scale
+                True,   # null_ok — ClickHouse Nullable columns can be detected but True is safe default
+            )
             for name, type_code in zip(columns, types)
         ]
 
@@ -355,6 +413,34 @@ class Cursor:
         """
         self._query_id = query_id
 
+    # PEP 249 required methods and properties
+
+    def callproc(self, procname, parameters=()):
+        """Call a stored database procedure with the given name.
+
+        ClickHouse does not support stored procedures, so this always
+        raises NotSupportedError as required by PEP 249.
+        """
+        from asynch.errors import NotSupportedError
+        raise NotSupportedError("ClickHouse does not support stored procedures")
+
+    async def nextset(self):
+        """Skip to the next available set, discarding remaining rows.
+
+        ClickHouse does not support multiple result sets, so this always
+        returns None as required by PEP 249.
+        """
+        return None
+
+    @property
+    def lastrowid(self):
+        """Return the row id of the last INSERT operation.
+
+        ClickHouse does not have a concept of row IDs, so this always
+        returns None as required by PEP 249.
+        """
+        return None
+
     # End non-PEP methods
 
 
@@ -373,7 +459,7 @@ class DictCursor(Cursor):
             return dict(zip(self._columns, row)) if row else {}
         raise AttributeError("Invalid columns.")
 
-    async def fetchmany(self, size: Optional[int]) -> list[dict]:
+    async def fetchmany(self, size: Optional[int] = None) -> list[dict]:
         """Fetch no more than `size` rows from the last executed query.
 
         :param size Optional[int]: fetch upt to the `size` entries or self._arraysize if None
