@@ -156,7 +156,11 @@ class Pool:
     async def _get_fresh_connection(self) -> Optional[Connection]:
         while self._free_connections:
             conn = self._pop_connection()
-            with suppress(ConnectionError):
+            # Suppress ConnectionError (stale/dead connection) and RuntimeError
+            # (connection's asyncio StreamReader is bound to a different event
+            # loop — happens when the same Pool is reused across tests with
+            # per-test event loops).  In both cases, discard and try the next.
+            with suppress(ConnectionError, RuntimeError):
                 await conn._refresh()
                 return conn
         return None
@@ -214,6 +218,22 @@ class Pool:
         if (gap := self.minsize - self._pool_size) > 0:
             await self._init_connections(gap, strict=strict)
 
+    def _reset_for_new_loop(self) -> None:
+        """Recreate asyncio primitives and discard connections when the event loop changes.
+
+        asyncio.Lock and asyncio.Semaphore bind to the first event loop that awaits them
+        (Python 3.10+ _LoopBoundMixin).  When the same Pool singleton is reused across
+        tests that each create a fresh event loop, the primitives raise
+        "bound to a different event loop".  Recreating them (and discarding the stale
+        connections, which are also loop-bound) restores a usable state.
+        """
+        self._sem = asyncio.Semaphore(self._maxsize)
+        self._lock = asyncio.Lock()
+        self._free_connections.clear()
+        self._acquired_connections.clear()
+        self._opened = False
+        self._closed = False
+
     @asynccontextmanager
     async def connection(self) -> AsyncIterator[Connection]:
         """Get a connection from the pool.
@@ -226,6 +246,10 @@ class Pool:
         :return: a free connection from the pool
         :rtype: Connection
         """
+
+        running = asyncio.get_running_loop()
+        if getattr(self._lock, "_loop", None) not in (None, running):
+            self._reset_for_new_loop()
 
         async with self._sem:
             async with self._lock:
@@ -250,6 +274,10 @@ class Pool:
         :return: a pool object with `minsize` opened connections
         :rtype: Pool
         """
+
+        running = asyncio.get_running_loop()
+        if getattr(self._lock, "_loop", None) not in (None, running):
+            self._reset_for_new_loop()
 
         async with self._lock:
             if self._opened:

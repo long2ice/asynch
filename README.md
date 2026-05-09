@@ -250,31 +250,57 @@ async def use_pool():
     await pool.shutdown()
 ```
 
-### SQLAlchemy Integration
+### SQLAlchemy Core Integration
 
-`asynch` is fully compatible with SQLAlchemy, allowing you to use ClickHouse with your existing SQLAlchemy applications:
+`asynch` works well alongside SQLAlchemy Core. Because `asynch` uses `paramstyle = "pyformat"`,
+you can compile any SQLAlchemy `ClauseElement` with a ClickHouse dialect and pass the resulting
+SQL string and parameter dict directly to an `asynch` cursor.
 
 ```python
-from sqlalchemy.ext.asyncio import create_async_engine
 import sqlalchemy as sa
+from sqlalchemy import create_engine, text, select
+from asynch import Pool
+from asynch.cursors import DictCursor
 
-# Create an async engine for ClickHouse
-engine = create_async_engine("clickhouse+asynch://user:password@host:port/database")
+# Build a throwaway sync engine just to get the ClickHouse dialect object.
+# clickhouse-sqlalchemy produces %(name)s pyformat SQL that asynch accepts directly.
+_ch_dialect = create_engine("clickhouse+native://user:password@host:9000/database").dialect
 
-async def sqlalchemy_example():
-    async with engine.begin() as conn:
-        # Execute raw SQL
-        result = await conn.execute(sa.text("SELECT version()"))
-        row = result.fetchone()
-        print(f"ClickHouse version: {row[0]}")
+async def main():
+    async with Pool(
+        minsize=2,
+        maxsize=10,
+        host="host",
+        port=9000,
+        user="user",
+        password="password",
+        database="database",
+    ) as pool:
+        # --- raw SQL via text() ---
+        async with pool.connection() as conn:
+            stmt = text("SELECT :limit rows")
+            compiled = stmt.compile(dialect=_ch_dialect)
+            async with conn.cursor(cursor=DictCursor) as cursor:
+                await cursor.execute(str(compiled), dict(compiled.params))
+                print(await cursor.fetchall())
 
-        # Use SQLAlchemy Core constructs
+        # --- SQLAlchemy Core construct ---
         metadata = sa.MetaData()
-        table = sa.Table('my_table', metadata, autoload_with=conn)
-        query = sa.select(table)
-        result = await conn.execute(query)
-        rows = result.fetchall()
+        my_table = sa.Table("my_table", metadata, autoload_with=None)  # define columns manually
+        query = select(my_table).where(my_table.c.id > 0).limit(10)
+
+        async with pool.connection() as conn:
+            compiled = query.compile(dialect=_ch_dialect)
+            async with conn.cursor(cursor=DictCursor) as cursor:
+                await cursor.execute(str(compiled), dict(compiled.params))
+                rows = await cursor.fetchall()   # list[dict] — column names are keys
+                print(rows)
 ```
+
+> **Note on `clickhouse+asynch://`**: A dedicated `create_async_engine("clickhouse+asynch://...")`
+> shortcut requires a registered SQLAlchemy async dialect entry point, which is not currently part
+> of this package. The pattern above — compile with the sync ClickHouse dialect, execute with an
+> asynch cursor — gives you the same result with no extra dependency.
 
 ### PEP249 Compliance
 
