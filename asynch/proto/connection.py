@@ -825,9 +825,8 @@ class Connection:
             rv = await self.send_data(
                 sample_block, data, types_check=types_check, columnar=columnar
             )
-            packet = await self._receive_packet()
-            if packet.exception:
-                raise packet.exception
+            while await self.receive_packet():
+                pass
             return rv
 
     async def receive_sample_block(self):

@@ -2,10 +2,11 @@ import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from asynch.proto.block import RowOrientedBlock
 from asynch.proto.connection import Connection as ProtoConnection
 from asynch.proto.cs import ServerInfo
 
@@ -101,6 +102,90 @@ async def test_execute_with_missing_arg(proto_conn: ProtoConnection):
     query = "SELECT {var}"
     with pytest.raises(KeyError, match="'var'"):
         await proto_conn.execute(query, args={"foo": 1})
+
+
+@pytest.mark.asyncio
+async def test_process_insert_query_drains_packets_until_end_of_stream():
+    proto_conn = ProtoConnection()
+    sample_block = RowOrientedBlock(columns_with_types=[("value", "UInt8")])
+
+    proto_conn.send_query = AsyncMock()
+    proto_conn.send_external_tables = AsyncMock()
+    proto_conn.receive_sample_block = AsyncMock(return_value=sample_block)
+    proto_conn.send_data = AsyncMock(return_value=1)
+    proto_conn.receive_packet = AsyncMock(side_effect=[True, True, False])
+
+    result = await proto_conn.process_insert_query(
+        "INSERT INTO test.test VALUES",
+        [(1,)],
+    )
+
+    assert result == 1
+    assert proto_conn.receive_packet.await_count == 3
+    proto_conn.send_data.assert_awaited_once_with(
+        sample_block, [(1,)], types_check=False, columnar=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_process_insert_query_returns_after_end_of_stream():
+    proto_conn = ProtoConnection()
+    sample_block = RowOrientedBlock(columns_with_types=[("value", "UInt8")])
+
+    proto_conn.send_query = AsyncMock()
+    proto_conn.send_external_tables = AsyncMock()
+    proto_conn.receive_sample_block = AsyncMock(return_value=sample_block)
+    proto_conn.send_data = AsyncMock(return_value=1)
+    proto_conn.receive_packet = AsyncMock(return_value=False)
+
+    result = await proto_conn.process_insert_query(
+        "INSERT INTO test.test VALUES",
+        [(1,)],
+    )
+
+    assert result == 1
+    proto_conn.receive_packet.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_process_insert_query_propagates_server_exception_while_draining():
+    proto_conn = ProtoConnection()
+    sample_block = RowOrientedBlock(columns_with_types=[("value", "UInt8")])
+    exception = RuntimeError("insert failed")
+
+    proto_conn.send_query = AsyncMock()
+    proto_conn.send_external_tables = AsyncMock()
+    proto_conn.receive_sample_block = AsyncMock(return_value=sample_block)
+    proto_conn.send_data = AsyncMock(return_value=1)
+    proto_conn.receive_packet = AsyncMock(side_effect=[True, exception])
+
+    with pytest.raises(RuntimeError, match="insert failed"):
+        await proto_conn.process_insert_query(
+            "INSERT INTO test.test VALUES",
+            [(1,)],
+        )
+
+    assert proto_conn.receive_packet.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_process_insert_query_without_sample_block_does_not_send_data():
+    proto_conn = ProtoConnection()
+
+    proto_conn.send_query = AsyncMock()
+    proto_conn.send_external_tables = AsyncMock()
+    proto_conn.receive_sample_block = AsyncMock(return_value=None)
+    proto_conn.send_data = AsyncMock()
+    proto_conn.receive_packet = AsyncMock()
+
+    result = await proto_conn.process_insert_query(
+        "INSERT INTO test.test VALUES",
+        [(1,)],
+    )
+
+    assert result is None
+    proto_conn.send_data.assert_not_awaited()
+    proto_conn.receive_packet.assert_not_awaited()
 
 
 @asynccontextmanager
