@@ -190,7 +190,7 @@ class Pool:
             raise ValueError(msg)
         if (self._pool_size + n) > self.maxsize:
             msg = (
-                f"{self} has the {self._pool_size} connections, "
+                f"{self} has {self._pool_size} connections, "
                 f"adding {n} will exceed its maxsize ({self.maxsize})"
             )
             raise AsynchPoolError(msg)
@@ -207,7 +207,7 @@ class Pool:
             for i in await asyncio.gather(*tasks, return_exceptions=True)
             if isinstance(i, Exception)
         ):
-            msg = f"failed to create the {n} connection(s) for the {self}"
+            msg = f"failed to create {n} connection(s) for {self}"
             raise AsynchPoolError(msg)
 
     async def _ensure_minsize_connections(self, *, strict: bool = False) -> None:
@@ -243,9 +243,7 @@ class Pool:
     async def startup(self) -> "Pool":
         """Initialise the pool.
 
-        When entering the context,
-        the pool get filled with connections
-        up to the pool `minsize` value.
+        The pool is filled with `minsize` connections.
 
         :return: a pool object with `minsize` opened connections
         :rtype: Pool

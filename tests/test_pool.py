@@ -8,6 +8,7 @@ from asynch.errors import AsynchPoolError
 from asynch.pool import Pool
 from asynch.proto import constants
 from asynch.proto.models.enums import PoolStatus
+from tests.conftest import CONNECTION_DSN
 
 
 def _get_pool_size(pool: Pool) -> int:
@@ -41,7 +42,7 @@ async def test_pool_repr():
     assert repr(pool) == repstr
 
     min_size, max_size = 2, 3
-    pool = Pool(minsize=min_size, maxsize=max_size)
+    pool = Pool(minsize=min_size, maxsize=max_size, dsn=CONNECTION_DSN)
     async with pool:
         repstr = (
             f"<Pool(minsize={min_size}, maxsize={max_size}) "
@@ -95,10 +96,10 @@ async def test_pool_connection_management(get_tcp_connections):
         async with pool.connection():
             pass
 
-    async with Connection() as conn:
+    async with Connection(dsn=CONNECTION_DSN) as conn:
         init_tcps = await get_tcp_connections(conn)
 
-    async with Pool(minsize=1, maxsize=2) as pool:
+    async with Pool(minsize=1, maxsize=2, dsn=CONNECTION_DSN) as pool:
         async with pool.connection():
             assert pool.free_connections == 0
             assert pool.acquired_connections == 1
@@ -150,7 +151,7 @@ async def test_pool_connection_management(get_tcp_connections):
         assert pool.free_connections == 2
         assert pool.acquired_connections == 0
 
-    async with Connection() as conn:
+    async with Connection(dsn=CONNECTION_DSN) as conn:
         assert init_tcps == await get_tcp_connections(conn)
 
 
@@ -171,20 +172,20 @@ async def test_pool_concurrent_connection_management(get_tcp_connections):
                 assert ret == (selectee,)
                 return selectee
 
-    async with Connection() as conn:
+    async with Connection(dsn=CONNECTION_DSN) as conn:
         init_tcps = await get_tcp_connections(conn)
 
     min_size, max_size = 10, 21
     selectees = list(range(min_size, max_size + 1))  # exceeding the maxsize
     answers = []
-    async with Pool(minsize=min_size, maxsize=max_size) as pool:
+    async with Pool(minsize=min_size, maxsize=max_size, dsn=CONNECTION_DSN) as pool:
         tasks = [
             asyncio.create_task(_test_pool_connection(pool=pool, selectee=selectee))
             for selectee in selectees
         ]
         answers = await asyncio.gather(*tasks)
 
-    async with Connection() as conn:
+    async with Connection(dsn=CONNECTION_DSN) as conn:
         noc = await get_tcp_connections(conn)
         assert noc == init_tcps
 
@@ -207,7 +208,11 @@ async def test_pool_broken_connection_handling():
                 return ret
 
     min_size, max_size = 1, 1
-    pool = Pool(minsize=min_size, maxsize=max_size)
+    pool = Pool(
+        minsize=min_size,
+        maxsize=max_size,
+        dsn=CONNECTION_DSN,
+    )
     async with pool:
         async with pool.connection() as conn:
             await conn.ping()
