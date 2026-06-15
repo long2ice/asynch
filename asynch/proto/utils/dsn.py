@@ -16,8 +16,7 @@ _SUPPORTED_SCHEMES: set[str] = {ClickhouseScheme.clickhouse, ClickhouseScheme.cl
 _TIMEOUTS: set[str] = {"connect_timeout", "send_receive_timeout", "sync_request_timeout"}
 
 
-class DSNError(Exception):
-    pass
+class DSNError(Exception): ...
 
 
 def parse_dsn(dsn: str) -> dict[str, Any]:
@@ -33,9 +32,9 @@ def parse_dsn(dsn: str) -> dict[str, Any]:
 
     :param dsn str: the DSN string
 
-    :raises DSNError: when parsing fails under the strict mode
+    :raises DSNError: DNS parsing failure(s)
 
-    :return: the dictionary of DSN string components
+    :return: DSN configuration dictionary
     :rtype: dict[str, Any]
     """
 

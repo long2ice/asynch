@@ -3,6 +3,7 @@ import ssl
 import pytest
 
 from asynch.connection import Connection
+from tests.conftest import CONNECTION_DSN
 
 HOST = "192.168.15.103"
 PORT = 10000
@@ -134,7 +135,7 @@ def test_connection_status_offline():
 
 @pytest.mark.asyncio
 async def test_connection_status_online():
-    conn = Connection()
+    conn = Connection(dsn=CONNECTION_DSN)
     conn_id = id(conn)
 
     repstr = f"<{conn.__class__.__name__} object at 0x{conn_id:x}"
@@ -158,7 +159,7 @@ async def test_connection_status_online():
 
 @pytest.mark.asyncio
 async def test_async_context_manager_interface():
-    conn = Connection()
+    conn = Connection(dsn=CONNECTION_DSN)
     _test_connectivity_invariant(conn=conn)
 
     async with conn:
@@ -178,7 +179,7 @@ async def test_async_context_manager_interface():
 
 @pytest.mark.asyncio
 async def test_connection_ping():
-    conn = Connection()  # default
+    conn = Connection(dsn=CONNECTION_DSN)
 
     with pytest.raises(ConnectionError):
         await conn.ping()
@@ -210,13 +211,13 @@ async def test_connection_cleanup(get_tcp_connections):
 
     # get the number of total TCP connections to the ClickHouse
     init_tcps = 0
-    conn = Connection()
+    conn = Connection(dsn=CONNECTION_DSN)
     async with conn as cn:
         init_tcps = await get_tcp_connections(cn)
 
     # open-execute-close connections
     for _ in range(100):
-        async with Connection() as cn:
+        async with Connection(dsn=CONNECTION_DSN) as cn:
             async with cn.cursor() as cur:
                 await cur.execute("SELECT 1")
                 ret = await cur.fetchone()
@@ -231,7 +232,7 @@ async def test_connection_cleanup(get_tcp_connections):
 
 @pytest.mark.asyncio
 async def test_connection_close():
-    conn = Connection()
+    conn = Connection(dsn=CONNECTION_DSN)
 
     # it does not break
     await conn.close()
@@ -239,7 +240,7 @@ async def test_connection_close():
     assert not conn.opened
     assert conn.closed
 
-    async with Connection() as conn:
+    async with Connection(dsn=CONNECTION_DSN) as conn:
         assert conn.opened
 
         await conn.close()

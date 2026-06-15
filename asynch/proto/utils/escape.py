@@ -22,28 +22,20 @@ escape_chars_map = {
 def escape_param(item: Any) -> str:
     if item is None:
         return "NULL"
-
     elif isinstance(item, datetime):
         return "'%s'" % item.strftime("%Y-%m-%d %H:%M:%S")
-
     elif isinstance(item, date):
         return "'%s'" % item.strftime("%Y-%m-%d")
-
     elif isinstance(item, string_types):
         return "'%s'" % "".join(escape_chars_map.get(c, c) for c in item)
-
     elif isinstance(item, list):
         return "[%s]" % ", ".join(text_type(escape_param(x)) for x in item)
-
     elif isinstance(item, tuple):
         return "(%s)" % ", ".join(text_type(escape_param(x)) for x in item)
-
     elif isinstance(item, Enum):
         return escape_param(item.value)
-
     elif isinstance(item, UUID):
         return "'%s'" % str(item)
-
     else:
         return str(item)
 

@@ -77,7 +77,7 @@ class Connection:
         user: str = constants.DEFAULT_USER,
         password: str = constants.DEFAULT_PASSWORD,
         host: str = constants.DEFAULT_HOST,
-        port: int = constants.DEFAULT_PORT,
+        port: Optional[int] = None,
         database: str = constants.DEFAULT_DATABASE,
         client_name: str = constants.CLIENT_NAME,
         connect_timeout: int = constants.DBMS_DEFAULT_CONNECT_TIMEOUT_SEC,
@@ -91,21 +91,19 @@ class Connection:
         ssl_version=None,
         ca_certs=None,
         ciphers=None,
-        alt_hosts: str = None,
+        alt_hosts: str = "",
         stack_track=False,
         settings_is_important=False,
         **kwargs,
     ):
+        if port is None:
+            port = constants.DEFAULT_SECURE_PORT if secure else constants.DEFAULT_PORT
         self.stack_track = stack_track
-        if secure:
-            default_port = constants.DEFAULT_SECURE_PORT
-        else:
-            default_port = constants.DEFAULT_PORT
-        self.hosts = [(host, port or default_port)]
+        self.hosts = [(host, port)]
         if alt_hosts:
             for host in alt_hosts.split(","):
                 url = urlparse(f"{ClickhouseScheme.clickhouse}://" + host)
-                self.hosts.append((url.hostname, url.port or default_port))
+                self.hosts.append((url.hostname or host, url.port or port))
         self.database = database
         self.host = None
         self.port = None

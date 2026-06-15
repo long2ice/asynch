@@ -15,21 +15,26 @@ class Connection:
         user: str = constants.DEFAULT_USER,
         password: str = constants.DEFAULT_PASSWORD,
         host: str = constants.DEFAULT_HOST,
-        port: int = constants.DEFAULT_PORT,
+        port: Optional[int] = None,
         database: str = constants.DEFAULT_DATABASE,
         cursor_cls=Cursor,
         echo: bool = False,
         stack_track: bool = False,
+        secure: bool = False,
         **kwargs,
     ):
+        self._dsn = dsn
+        if port is None:
+            port = constants.DEFAULT_SECURE_PORT if secure else constants.DEFAULT_PORT
         if dsn:
             config = parse_dsn(dsn)
             self._connection = ProtoConnection(**config, stack_track=stack_track, **kwargs)
-            user = config.get("user", None) or user
-            password = config.get("password", None) or password
-            host = config.get("host", None) or host
-            port = config.get("port", None) or port
-            database = config.get("database", None) or database
+            self._user = config.get("user")
+            self._password = config.get("password")
+            self._host = config.get("host")
+            self._port = config.get("port")
+            self._database = config.get("database")
+            self._secure = config.get("secure")
         else:
             self._connection = ProtoConnection(
                 host=host,
@@ -38,15 +43,15 @@ class Connection:
                 user=user,
                 password=password,
                 stack_track=stack_track,
+                secure=secure,
                 **kwargs,
             )
-        self._dsn = dsn
-        # dsn parts
-        self._user = user
-        self._password = password
-        self._host = host
-        self._port = port
-        self._database = database
+            self._user = user
+            self._password = password
+            self._host = host
+            self._port = port
+            self._database = database
+            self._secure = secure
         # connection additional settings
         self._opened: bool = False
         self._closed: bool = False
@@ -104,23 +109,23 @@ class Connection:
         raise ConnectionError(f"{self} is in an unknown state")
 
     @property
-    def host(self) -> str:
+    def host(self) -> Optional[str]:
         return self._host
 
     @property
-    def port(self) -> int:
+    def port(self) -> Optional[int]:
         return self._port
 
     @property
-    def user(self) -> str:
+    def user(self) -> Optional[str]:
         return self._user
 
     @property
-    def password(self) -> str:
+    def password(self) -> Optional[str]:
         return self._password
 
     @property
-    def database(self) -> str:
+    def database(self) -> Optional[str]:
         return self._database
 
     @property
