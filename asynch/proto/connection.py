@@ -806,7 +806,7 @@ class Connection:
         if not isinstance(params, Mapping):
             raise ValueError("Parameters are expected to be a mapping")
 
-        return query.format(**escape_params(params))
+        return query % escape_params(params)
 
     async def process_insert_query(
         self,

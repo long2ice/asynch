@@ -115,6 +115,31 @@ async def fetchall():
         assert ret == [(1,)]
 ```
 
+Executing an SQL statement with parameters:
+
+```python
+async def execute(conn: Connection):
+    async with conn.cursor() as cursor:
+        await cursor.execute(
+            """
+            SELECT
+                EXISTS(
+                    SELECT 1
+                    FROM table_a
+                    WHERE profile_id = %(profile_id)s
+                ) AS has_a,
+                EXISTS(
+                    SELECT 1
+                    FROM table_b
+                    WHERE profile_id = %(profile_id)s
+                ) AS has_b
+            """,
+            {"profile_id": profile_id}
+        )
+        ret = await cursor.fetchone()
+        assert ret == (True,)
+```
+
 Using an instance of the `DictCursor` class to get results as a sequence of `dict`ionaries representing the rows of an executed SQL query:
 
 ```python

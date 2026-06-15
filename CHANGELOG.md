@@ -2,6 +2,10 @@
 
 ## 0.3
 
+### 0.3.2
+
+- Restore %(param)s style param substition support. By @baconfield in #147
+
 ### 0.3.1
 
 - Fix params substitution for select queries. By @dmkulazhenko in #141.
