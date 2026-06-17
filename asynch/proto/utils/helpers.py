@@ -6,11 +6,10 @@ from asynch.proto import constants
 def get_default_port(*, secure: bool = False) -> int:
     """Returns the default port.
 
-    Args:
-        secure (bool): return the default secure port
+    :param secure bool: return the default secure port
 
-    Returns:
-        int
+    :returns: the default port
+    :rtype: int
     """
     if secure:
         return constants.DEFAULT_SECURE_PORT
