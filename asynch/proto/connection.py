@@ -96,8 +96,7 @@ class Connection:
         settings_is_important=False,
         **kwargs,
     ):
-        if port is None:
-            port = get_default_port(secure=secure)
+        port = get_default_port(secure=secure) if port is None else port
         self.stack_track = stack_track
         self.hosts = [(host, port)]
         if alt_hosts:
