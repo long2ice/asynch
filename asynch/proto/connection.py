@@ -36,7 +36,7 @@ from asynch.proto.settings import write_settings
 from asynch.proto.streams.block import BlockReader, BlockWriter
 from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 from asynch.proto.utils.escape import escape_params
-from asynch.proto.utils.helpers import chunks, column_chunks
+from asynch.proto.utils.helpers import chunks, column_chunks, get_default_port
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class Connection:
         **kwargs,
     ):
         if port is None:
-            port = constants.DEFAULT_SECURE_PORT if secure else constants.DEFAULT_PORT
+            port = get_default_port(secure=secure)
         self.stack_track = stack_track
         self.hosts = [(host, port)]
         if alt_hosts:

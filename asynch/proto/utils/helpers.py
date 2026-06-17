@@ -1,5 +1,21 @@
 from itertools import islice, tee
 
+from asynch.proto import constants
+
+
+def get_default_port(*, secure: bool = False) -> int:
+    """Returns the default port.
+
+    Args:
+        secure (bool): return the default secure port
+
+    Returns:
+        int
+    """
+    if secure:
+        return constants.DEFAULT_SECURE_PORT
+    return constants.DEFAULT_PORT
+
 
 def chunks(seq, n):
     it = iter(seq)

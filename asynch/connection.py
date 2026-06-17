@@ -6,6 +6,7 @@ from asynch.proto import constants
 from asynch.proto.connection import Connection as ProtoConnection
 from asynch.proto.models.enums import ConnectionStatus
 from asynch.proto.utils.dsn import parse_dsn
+from asynch.proto.utils.helpers import get_default_port
 
 
 class Connection:
@@ -25,7 +26,7 @@ class Connection:
     ):
         self._dsn = dsn
         if port is None:
-            port = constants.DEFAULT_SECURE_PORT if secure else constants.DEFAULT_PORT
+            port = get_default_port(secure=secure)
         if dsn:
             config = parse_dsn(dsn)
             self._connection = ProtoConnection(**config, stack_track=stack_track, **kwargs)
