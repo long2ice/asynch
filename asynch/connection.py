@@ -25,8 +25,7 @@ class Connection:
         **kwargs,
     ):
         self._dsn = dsn
-        if port is None:
-            port = get_default_port(secure=secure)
+        port = get_default_port(secure=secure) if port is None else port
         if dsn:
             config = parse_dsn(dsn)
             self._connection = ProtoConnection(**config, stack_track=stack_track, **kwargs)
