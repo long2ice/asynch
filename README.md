@@ -230,7 +230,7 @@ async def use_pool():
                 assert ret == (1,)
 ```
 
-Or, you may opne/close the pool manually:
+Or, you may open/close the pool manually:
 
 ```python
 async def use_pool():
