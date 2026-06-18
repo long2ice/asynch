@@ -4,8 +4,8 @@
 
 ### 0.3.2
 
-- Restore %(param)s style param substition support. By @baconfield in #147
 - Fix connection secure parameter management. By @stankudrow in #162 (inspired by PR #138 by @barakor)
+- Restore %(param)s style param substition support. By @baconfield in #147
 
 ### 0.3.1
 
