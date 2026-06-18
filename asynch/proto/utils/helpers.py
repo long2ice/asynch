@@ -1,20 +1,5 @@
 from itertools import islice, tee
 
-from asynch.proto import constants
-
-
-def get_default_port(*, secure: bool = False) -> int:
-    """Returns the default port.
-
-    :param secure bool: return the default secure port
-
-    :returns: the default port
-    :rtype: int
-    """
-    if secure:
-        return constants.DEFAULT_SECURE_PORT
-    return constants.DEFAULT_PORT
-
 
 def chunks(seq, n):
     it = iter(seq)

@@ -1,63 +1,84 @@
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from asynch.cursors import Cursor
 from asynch.errors import NotSupportedError
 from asynch.proto import constants
 from asynch.proto.connection import Connection as ProtoConnection
+from asynch.proto.connection import get_default_port
 from asynch.proto.models.enums import ConnectionStatus
 from asynch.proto.utils.dsn import parse_dsn
-from asynch.proto.utils.helpers import get_default_port
 
 
 class Connection:
     def __init__(
         self,
         dsn: Optional[str] = None,
-        user: str = constants.DEFAULT_USER,
-        password: str = constants.DEFAULT_PASSWORD,
-        host: str = constants.DEFAULT_HOST,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        host: Optional[str] = None,
         port: Optional[int] = None,
-        database: str = constants.DEFAULT_DATABASE,
+        database: Optional[str] = None,
         cursor_cls=Cursor,
         echo: bool = False,
         stack_track: bool = False,
         secure: bool = False,
         **kwargs,
     ):
-        self._dsn = dsn
-        port = get_default_port(secure=secure) if port is None else port
-        if dsn:
-            config = parse_dsn(dsn)
-            self._connection = ProtoConnection(**config, stack_track=stack_track, **kwargs)
-            self._user = config.get("user")
-            self._password = config.get("password")
-            self._host = config.get("host")
-            self._port = config.get("port")
-            self._database = config.get("database")
-            self._secure = config.get("secure")
-        else:
-            self._connection = ProtoConnection(
-                host=host,
-                port=port,
-                database=database,
-                user=user,
-                password=password,
-                stack_track=stack_track,
-                secure=secure,
-                **kwargs,
-            )
-            self._user = user
-            self._password = password
-            self._host = host
-            self._port = port
-            self._database = database
-            self._secure = secure
+        self._proto_kwargs = self._get_proto_connection_kwargs(
+            dsn,
+            user,
+            password,
+            host,
+            port,
+            database,
+            secure=secure,
+            stack_track=stack_track,
+            **kwargs,
+        )
+        self._connection = ProtoConnection(**self._proto_kwargs)
+        self._cursor_cls = cursor_cls
+        self._echo = echo
         # connection additional settings
         self._opened: bool = False
         self._closed: bool = False
-        self._cursor_cls = cursor_cls
-        self._connection_kwargs = kwargs
-        self._echo = echo
+
+    @staticmethod
+    def _get_proto_connection_kwargs(
+        dsn: Optional[str],
+        user: Optional[str],
+        password: Optional[str],
+        host: Optional[str],
+        port: Optional[int],
+        database: Optional[str],
+        *,
+        secure: bool,
+        stack_track: bool,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        conninfo: Dict[str, Any] = {}
+        if dsn:
+            config = parse_dsn(dsn)
+            conninfo = {**conninfo, **config}
+            # Parameters suppercede DSN parts!
+            # If a param is given and it is not False-evaliuated, this is it,
+            # otherwise the corresponding DSN part is used OR the param itself.
+            user = user or config.get("user", constants.DEFAULT_USER)
+            password = password or config.get("password", constants.DEFAULT_PASSWORD)
+            host = host or config.get("host", constants.DEFAULT_HOST)
+            port = port or config.get("port", get_default_port(secure=secure))
+            database = database or config.get("database", constants.DEFAULT_DATABASE)
+            secure = secure or config.get("secure", secure)
+        return {
+            **conninfo,
+            "user": user,
+            "password": password,
+            "host": host,
+            "port": port,
+            "database": database,
+            "secure": secure,
+            "stack_track": stack_track,
+            **kwargs,
+        }
 
     async def __aenter__(self) -> "Connection":
         await self.connect()
@@ -110,23 +131,23 @@ class Connection:
 
     @property
     def host(self) -> Optional[str]:
-        return self._host
+        return self._proto_kwargs.get("host")
 
     @property
     def port(self) -> Optional[int]:
-        return self._port
+        return self._proto_kwargs.get("port")
 
     @property
     def user(self) -> Optional[str]:
-        return self._user
+        return self._proto_kwargs.get("user")
 
     @property
     def password(self) -> Optional[str]:
-        return self._password
+        return self._proto_kwargs.get("password")
 
     @property
     def database(self) -> Optional[str]:
-        return self._database
+        return self._proto_kwargs.get("database")
 
     @property
     def echo(self) -> bool:

@@ -36,9 +36,22 @@ from asynch.proto.settings import write_settings
 from asynch.proto.streams.block import BlockReader, BlockWriter
 from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 from asynch.proto.utils.escape import escape_params
-from asynch.proto.utils.helpers import chunks, column_chunks, get_default_port
+from asynch.proto.utils.helpers import chunks, column_chunks
 
 logger = logging.getLogger(__name__)
+
+
+def get_default_port(*, secure: bool = False) -> int:
+    """Returns the default port.
+
+    :param secure bool: return the default secure port
+
+    :returns: the default port
+    :rtype: int
+    """
+    if secure:
+        return constants.DEFAULT_SECURE_PORT
+    return constants.DEFAULT_PORT
 
 
 class QueryProcessingStage:
