@@ -42,7 +42,7 @@ def _test_connectivity_invariant(
     assert conn.closed is is_closed
 
 
-def test_dsn():
+def test_dsn() -> None:
     dsn = f"clickhouse://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
     conn = Connection(dsn=dsn)
 
@@ -50,6 +50,60 @@ def test_dsn():
         conn, host=HOST, port=PORT, user=USER, password=PASSWORD, database=DATABASE
     )
     _test_connectivity_invariant(conn=conn)
+
+
+@pytest.mark.parametrize(
+    ("dsn", "params", "answer"),
+    [
+        (
+            "",
+            {
+                "host": HOST,
+                "port": PORT,
+                "user": USER,
+                "password": PASSWORD,
+                "database": DATABASE,
+            },
+            {
+                "host": HOST,
+                "port": PORT,
+                "user": USER,
+                "password": PASSWORD,
+                "database": DATABASE,
+            },
+        ),
+        (
+            f"clickhouses://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}",
+            {
+                "host": "243.164.23.54",
+                "port": None,
+                "user": "test_user",
+                "database": "db",
+            },
+            {
+                "host": "243.164.23.54",
+                "port": PORT,
+                "user": "test_user",
+                "password": PASSWORD,
+                "database": "db",
+            },
+        ),
+        (
+            f"clickhouses://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}",
+            {},
+            {
+                "host": HOST,
+                "port": PORT,
+                "user": USER,
+                "password": PASSWORD,
+                "database": DATABASE,
+            },
+        ),
+    ],
+)
+def test_connection_params(dsn: str, params: dict, answer: dict) -> None:
+    conn = Connection(dsn=dsn, **params)
+    _test_connection_credentials(conn, **answer)
 
 
 def test_secure_dsn():
