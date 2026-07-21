@@ -22,9 +22,11 @@
   - Change `connection.commit()` from raising `NotSupportedError` to no-op behavior
   - Fix cursor and connection `__repr__` methods to show clean status strings
 - **MAJOR**: SQLAlchemy compatibility support:
-  - Full DB-API interface compatibility for SQLAlchemy Core and ORM
+  - Full DB-API interface compatibility for SQLAlchemy Core and basic compatibility with the ORM*
   - Comprehensive test suite covering SQLAlchemy integration patterns
   - Support for `clickhouse+asynch://` connection URLs
+
+*Full ORM paradigm is obviously still disjoint from ClickHouse, but basic compatibility with SQLAlchemy ORM constructs is achieved
 
 ## 0.3
 

@@ -12,10 +12,12 @@
 ### ✨ Features
 
 - **Full PEP249 Compliance**: Complete implementation of the Python Database API Specification v2.0
-- **SQLAlchemy Compatible**: Works seamlessly with SQLAlchemy Core and ORM
+- **SQLAlchemy Compatible**: Works seamlessly with SQLAlchemy Core and basic compatibility with the ORM*
 - **Asynchronous**: Built for modern async/await Python applications
 - **Type Safety**: Comprehensive type system with proper ClickHouse to Python type mapping
 - **Connection Pooling**: Efficient connection management for high-performance applications
+
+*Full ORM paradigm is obviously still disjoint from ClickHouse, but basic compatibility with SQLAlchemy ORM constructs is achieved
 
 ## Installation
 
