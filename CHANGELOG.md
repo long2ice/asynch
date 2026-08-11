@@ -2,6 +2,10 @@
 
 ## 0.3
 
+### Unreleased
+
+- Widen `pytz` version constraint to `>=2025.1,<2027.0` for compatibility with Apache Airflow 3.3.0 (requires `pytz>=2026.2`).
+
 ### 0.3.2
 
 - Restore %(param)s style param substition support. By @baconfield in #147
