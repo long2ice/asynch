@@ -3,7 +3,7 @@ from typing import Any
 from urllib.parse import ParseResult, parse_qs, unquote, urlparse
 
 from asynch.proto.models.enums import ClickhouseScheme, CompressionAlgorithm
-from asynch.proto.utils.compat import asbool
+from asynch.proto.utils.helpers import asbool
 
 _SCHEME_SEPARATOR = "://"
 
@@ -51,8 +51,8 @@ def parse_dsn(dsn: str) -> dict[str, Any]:
         msg = f"nothing to parse after the scheme in the {dsn}"
         raise DSNError(msg)
 
-    settings = {}
-    kwargs = {}
+    settings: dict[str, Any] = {}
+    kwargs: dict[str, Any] = {}
 
     url: ParseResult = urlparse(dsn, scheme=scheme)
     if url.username:
@@ -71,10 +71,10 @@ def parse_dsn(dsn: str) -> dict[str, Any]:
     if url.scheme == ClickhouseScheme.clickhouses:
         kwargs["secure"] = True
 
-    for name, value in parse_qs(url.query).items():
-        if not value:
+    for name, values in parse_qs(url.query).items():
+        if not values:
             continue
-        value = value[0]
+        value = values[0]
         if name == "compression":
             value = value.lower()
             if value in _COMPRESSION_ALGORITHMS:

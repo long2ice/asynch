@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 from collections import deque
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
-from typing import Optional
 
 from asynch.connection import Connection
 from asynch.errors import AsynchPoolError
@@ -36,7 +37,7 @@ class Pool:
         self._opened: bool = False
         self._closed: bool = False
 
-    async def __aenter__(self) -> "Pool":
+    async def __aenter__(self) -> Pool:
         await self.startup()
         return self
 
@@ -153,7 +154,7 @@ class Pool:
             raise AsynchPoolError(f"no free connection in {self}")
         return self._free_connections.popleft()
 
-    async def _get_fresh_connection(self) -> Optional[Connection]:
+    async def _get_fresh_connection(self) -> Connection | None:
         while self._free_connections:
             conn = self._pop_connection()
             with suppress(ConnectionError):
@@ -240,7 +241,7 @@ class Pool:
                         logger.warning(e)
                     await self._ensure_minsize_connections(strict=True)
 
-    async def startup(self) -> "Pool":
+    async def startup(self) -> Pool:
         """Initialise the pool.
 
         When entering the context,

@@ -4,33 +4,50 @@
 -include .env
 export
 
-DIRS = asynch/ tests/ benchmark/
-PY_DEBUG_OPTS = PYTHONDEVMODE=1 PYTHONTRACEMALLOC=1
+checkfiles = asynch/ tests/ benchmark/ scripts/ build_cython.py
+py_warn = PYTHONDEVMODE=1 PYTHONTRACEMALLOC=1
 
 up:
-	poetry update
+	@uv lock --upgrade
+	$(MAKE) deps options=--frozen
 
 deps:
-	poetry install --extras compression --no-root --with lint,test
+	uv sync --all-groups --all-extras $(options)
 
-bench: deps
-	python3 benchmark/main.py
+_style:
+	@ruff format $(checkfiles)
+	@ruff check --fix $(checkfiles)
+style: deps _style
 
-check:
-	ruff format --check $(DIRS)
-	ruff check $(DIRS)
+_stubtest:
+	@if ls asynch/**/*.pyi >/dev/null 2>&1; then \
+		stubtest asynch --mypy-config-file pyproject.toml --allowlist stubtest_allowlist.txt \
+			--ignore-missing-stub --ignore-disjoint-bases --ignore-positional-only; \
+	fi
 
-lint:
-	ruff format $(DIRS)
-	ruff check --fix $(DIRS)
+_check:
+	@ruff format --check $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
+	@ruff check $(checkfiles)
+	@mypy asynch/
+	$(MAKE) _stubtest
+check: deps _check
 
-test:
-	$(PY_DEBUG_OPTS) pytest
+stubs: deps
+	@python scripts/gen_stubs.py
+	$(MAKE) _stubtest
 
-build: deps clean
-	poetry build
+_test:
+	$(py_warn) pytest
+test: deps _test
 
 clean:
-	rm -rf ./dist
+	@rm -rf build dist
+	@find asynch \( -name '*.so' -o -name '*.c' -o -name '*.html' \) -delete
 
-ci: check test
+build: clean
+	@uv build
+
+benchmark: deps
+	@python -m benchmark.run_all
+
+ci: deps _check _test

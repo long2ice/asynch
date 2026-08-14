@@ -12,7 +12,7 @@ from asynch.proto.connection import Connection as ProtoConnection
 
 @pytest.fixture()
 def connection(conn: Connection) -> ProtoConnection:
-    return conn._connection  # noqa
+    return conn._connection
 
 
 @asynccontextmanager
@@ -150,7 +150,7 @@ async def test_ip(connection, spec, data, expected, expected_exc, insert_options
             await connection.execute("INSERT INTO test (a) VALUES", data, **insert_options)
             inserted = await connection.execute("SELECT * FROM test")
         except Exception as e:
-            assert isinstance(e, expected_exc)  # noqa
+            assert isinstance(e, expected_exc)
             return
 
         assert inserted == expected

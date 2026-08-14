@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from asynch.proto.result import QueryInfo
 
@@ -8,10 +10,10 @@ if TYPE_CHECKING:
 
 
 class Context:
-    def __init__(self):
-        self._server_info: Optional["ServerInfo"] = None
-        self._settings = {}
-        self._client_settings = {}
+    def __init__(self) -> None:
+        self._server_info: ServerInfo | None = None
+        self._settings: dict = {}
+        self._client_settings: dict = {}
 
     @property
     def server_info(self):
@@ -39,7 +41,7 @@ class Context:
 
 
 class ExecuteContext:
-    def __init__(self, connection: "Connection", query, settings):
+    def __init__(self, connection: Connection, query, settings):
         self._query = query
         self._settings = settings
         self._connection = connection

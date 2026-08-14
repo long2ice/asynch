@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
+from asynch.errors import ServerException
 from asynch.proto.connection import Connection as ProtoConnection
 from asynch.proto.cs import ServerInfo
 
@@ -166,9 +167,13 @@ async def test_input_format_null_as_default(proto_conn, spec, data, expected):
 async def test_watch_zero_limit(proto_conn: ProtoConnection) -> None:
     await proto_conn.execute("DROP TABLE IF EXISTS test.test")
     await proto_conn.execute("CREATE TABLE test.test (x Int8) ENGINE=Memory;")
-    await proto_conn.execute("SET allow_experimental_live_view = 1")
-    await proto_conn.execute("DROP VIEW IF EXISTS lv")
-    await proto_conn.execute("CREATE LIVE VIEW lv AS SELECT sum(x) FROM test.test")
+    try:
+        await proto_conn.execute("SET allow_experimental_live_view = 1")
+        await proto_conn.execute("DROP VIEW IF EXISTS lv")
+        await proto_conn.execute("CREATE LIVE VIEW lv AS SELECT sum(x) FROM test.test")
+    except ServerException:
+        # LIVE VIEW was experimental and has been removed from modern ClickHouse.
+        pytest.skip("LIVE VIEW is not supported by this ClickHouse server")
     await proto_conn.execute("INSERT INTO test.test VALUES (10)")
 
     results = await proto_conn.execute_iter("WATCH lv LIMIT 0")

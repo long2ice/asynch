@@ -1,5 +1,5 @@
+from contextlib import AbstractContextManager as ContextManager
 from contextlib import asynccontextmanager, nullcontext
-from typing import ContextManager
 from uuid import UUID
 
 import pytest

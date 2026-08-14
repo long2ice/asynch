@@ -1,9 +1,8 @@
+from collections.abc import Mapping
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, Mapping
+from typing import Any
 from uuid import UUID
-
-from .compat import string_types, text_type
 
 escape_chars_map = {
     "\b": "\\b",
@@ -24,25 +23,25 @@ def escape_param(item: Any) -> str:
         return "NULL"
 
     elif isinstance(item, datetime):
-        return "'%s'" % item.strftime("%Y-%m-%d %H:%M:%S")
+        return "'{}'".format(item.strftime("%Y-%m-%d %H:%M:%S"))
 
     elif isinstance(item, date):
-        return "'%s'" % item.strftime("%Y-%m-%d")
+        return "'{}'".format(item.strftime("%Y-%m-%d"))
 
-    elif isinstance(item, string_types):
-        return "'%s'" % "".join(escape_chars_map.get(c, c) for c in item)
+    elif isinstance(item, str):
+        return "'{}'".format("".join(escape_chars_map.get(c, c) for c in item))
 
     elif isinstance(item, list):
-        return "[%s]" % ", ".join(text_type(escape_param(x)) for x in item)
+        return "[{}]".format(", ".join(escape_param(x) for x in item))
 
     elif isinstance(item, tuple):
-        return "(%s)" % ", ".join(text_type(escape_param(x)) for x in item)
+        return "({})".format(", ".join(escape_param(x) for x in item))
 
     elif isinstance(item, Enum):
         return escape_param(item.value)
 
     elif isinstance(item, UUID):
-        return "'%s'" % str(item)
+        return f"'{str(item)}'"
 
     else:
         return str(item)

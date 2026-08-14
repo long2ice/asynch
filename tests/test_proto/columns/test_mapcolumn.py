@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from contextlib import asynccontextmanager
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 
@@ -93,7 +95,7 @@ async def test_map_column(
     conn: Connection,
     spec: str,
     data: list[tuple[dict[str, Any], ...]],
-    cursor_settings: Optional[dict[str, Any]],
+    cursor_settings: dict[str, Any] | None,
 ):
     async with conn.cursor() as cursor:
         if cursor_settings:

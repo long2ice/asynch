@@ -4,6 +4,7 @@ import pytest
 
 from asynch.connection import Connection
 from asynch.cursors import DictCursor
+from asynch.errors import ServerException
 from asynch.proto import constants
 
 
@@ -52,13 +53,24 @@ async def test_cursor_async_for(
 
 
 @pytest.mark.asyncio
+async def test_fetchone_propagates_stream_errors(conn: Connection):
+    """A server error arriving mid-stream must propagate, not read as end-of-stream."""
+    async with conn.cursor() as cursor:
+        cursor.set_stream_results(stream_results=True, max_row_buffer=1)
+        await cursor.execute("SELECT throwIf(number = 3) FROM system.numbers LIMIT 10")
+        with pytest.raises(ServerException):
+            while await cursor.fetchone() is not None:
+                pass
+
+
+@pytest.mark.asyncio
 async def test_fetchone(conn: Connection):
     async with conn.cursor() as cursor:
         await cursor.execute("SELECT 1")
         ret = await cursor.fetchone()
         assert ret == (1,)
 
-        await cursor.execute("SELECT {val}", args={"val": 2})
+        await cursor.execute("SELECT %(val)s", args={"val": 2})
         ret = await cursor.fetchone()
         assert ret == (2,)
 
@@ -74,7 +86,7 @@ async def test_fetchall(conn: Connection):
         ret = await cursor.fetchall()
         assert ret == [(1,)]
 
-        await cursor.execute("SELECT {val}", args={"val": 2})
+        await cursor.execute("SELECT %(val)s", args={"val": 2})
         ret = await cursor.fetchall()
         assert ret == [(2,)]
 
@@ -86,7 +98,7 @@ async def test_dict_cursor(conn: Connection):
         ret = await cursor.fetchall()
         assert ret == [{"1": 1}]
 
-        await cursor.execute("SELECT {val}", args={"val": 2})
+        await cursor.execute("SELECT %(val)s", args={"val": 2})
         ret = await cursor.fetchall()
         assert ret == [{"2": 2}]
 
@@ -95,7 +107,8 @@ async def test_dict_cursor(conn: Connection):
 async def test_insert_dict(conn: Connection):
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.execute(
-            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
+            "INSERT INTO test.asynch"
+            "(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES",
             [
                 {
                     "id": 1,
@@ -118,7 +131,8 @@ async def test_insert_dict(conn: Connection):
 async def test_insert_tuple(conn: Connection):
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.execute(
-            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
+            "INSERT INTO test.asynch"
+            "(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES",
             [
                 (
                     1,
@@ -141,7 +155,8 @@ async def test_insert_tuple(conn: Connection):
 async def test_executemany(conn: Connection):
     async with conn.cursor(cursor=DictCursor) as cursor:
         rows = await cursor.executemany(
-            """INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES""",
+            "INSERT INTO test.asynch"
+            "(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES",
             [
                 (
                     1,
@@ -190,7 +205,10 @@ ENGINE = MergeTree
         show_table_sql = """show create table test.alter_table"""
         await cursor.execute(show_table_sql)
         assert await cursor.fetchone() == (
-            "CREATE TABLE test.alter_table\n(\n    `id` Int32,\n    `c` String\n)\nENGINE = MergeTree\nORDER BY id\nSETTINGS index_granularity = 8192",
+            (
+                "CREATE TABLE test.alter_table\n(\n    `id` Int32,\n    `c` String\n)\n"
+                "ENGINE = MergeTree\nORDER BY id\nSETTINGS index_granularity = 8192"
+            ),
         )
         await cursor.execute("drop table test.alter_table")
 

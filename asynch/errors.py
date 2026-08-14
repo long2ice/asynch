@@ -1,4 +1,4 @@
-from typing import Union
+from __future__ import annotations
 
 
 class ErrorCode:
@@ -401,7 +401,7 @@ class Error(Exception):
 
 
 class ClickHouseException(Error):
-    code: Union[None, int] = None
+    code: None | int = None
 
     def __init__(self, message=None):
         self.message = message
@@ -521,7 +521,8 @@ class DataError(DatabaseError):
 class OperationalError(DatabaseError):
     """ClickHouse OperationalError.
 
-    Exception raised for errors that are related to the database's operation and not necessarily under the control of the programmer,
+    Exception raised for errors that are related to the database's operation
+    and not necessarily under the control of the programmer,
     e.g. an unexpected disconnect occurs,
     the data source name is not found,
     a transaction could not be processed,
@@ -566,8 +567,9 @@ class ProgrammingError(DatabaseError):
 class NotSupportedError(DatabaseError):
     """ClickHouse NotSupportedError.
 
-    Exception raised in case a method or database API was used which is not supported by the database,
-    e.g. requesting a .rollback() on a connection that does not support transaction or has transactions turned off.
+    Exception raised in case a method or database API was used
+    which is not supported by the database, e.g. requesting a .rollback()
+    on a connection that does not support transaction or has transactions turned off.
 
     It must be a subclass of DatabaseError.
     """

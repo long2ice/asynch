@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 from asynch.cursors import Cursor
 from asynch.errors import NotSupportedError
@@ -11,7 +11,7 @@ from asynch.proto.utils.dsn import parse_dsn
 class Connection:
     def __init__(
         self,
-        dsn: Optional[str] = None,
+        dsn: str | None = None,
         user: str = constants.DEFAULT_USER,
         password: str = constants.DEFAULT_PASSWORD,
         host: str = constants.DEFAULT_HOST,
@@ -54,7 +54,7 @@ class Connection:
         self._connection_kwargs = kwargs
         self._echo = echo
 
-    async def __aenter__(self) -> "Connection":
+    async def __aenter__(self) -> Connection:
         await self.connect()
         return self
 
@@ -67,7 +67,7 @@ class Connection:
         return f"<{cls_name} object at 0x{id(self):x}; status: {status}>"
 
     @property
-    def opened(self) -> Optional[bool]:
+    def opened(self) -> bool | None:
         """Return True if the connection is opened.
 
         :returns: the connection open status
@@ -148,7 +148,7 @@ class Connection:
         if self._closed:
             self._closed = False
 
-    def cursor(self, cursor: Optional[type[Cursor]] = None, *, echo: bool = False) -> Cursor:
+    def cursor(self, cursor: type[Cursor] | None = None, *, echo: bool = False) -> Cursor:
         """Return the cursor object for the connection.
 
         When a parameter is interpreted as True,

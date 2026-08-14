@@ -1,0 +1,7 @@
+# Entries stubtest cannot check meaningfully. Keep this list short and
+# explained — it is the escape hatch, not the norm.
+
+# str-mixin enums: at runtime EnumType.__call__ takes `value`, while typeshed
+# models the members through str.__new__ (object/encoding/errors). Known noisy
+# false positive for every `class X(str, Enum)`.
+asynch.proto.models.enums\..*\.__new__

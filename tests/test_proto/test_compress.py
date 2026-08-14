@@ -2,6 +2,10 @@ import pytest
 
 from asynch.connection import Connection
 
+# Compression requires the optional clickhouse-cityhash extra, which does not
+# build on free-threaded CPython yet.
+pytest.importorskip("clickhouse_cityhash")
+
 
 @pytest.mark.asyncio
 async def test_compress_lz4(config):

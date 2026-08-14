@@ -1,5 +1,5 @@
 from asynch.proto.streams.buffered import BufferedWriter
-from asynch.proto.utils.compat import asbool
+from asynch.proto.utils.helpers import asbool
 
 
 class SettingType:

@@ -22,9 +22,7 @@ class OpenTelemetryTraceContext:
 
         if len(traceparent) != len(self.traceparent_tpl):
             raise ValueError(
-                "unexpected length {}, expected {}".format(
-                    len(traceparent), len(self.traceparent_tpl)
-                )
+                f"unexpected length {len(traceparent)}, expected {len(self.traceparent_tpl)}"
             )
 
         if traceparent.translate(self.translation) != self.traceparent_tpl:

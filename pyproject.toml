@@ -1,10 +1,10 @@
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core", "setuptools", "cython>=3.1"]
 build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "asynch"
-version = "0.3.1"
+version = "0.4.0"
 description = "An asyncio driver for ClickHouse with native TCP support"
 authors = [
     {name = "long2ice",email = "long2ice@gmail.com"}
@@ -30,61 +30,84 @@ classifiers = [
 ]
 requires-python = ">=3.9,<4.0"
 dependencies = [
-    "ciso8601 (>=2.3.2,<3.0.0)",
-    "leb128 (>=1.0.8,<2.0.0)",
-    "lz4 (>=4.4.3,<5.0.0)",
-    "pytz (>=2025.1,<2026.0)",
-    "tzlocal (>=5.3.1,<6.0.0)",
-    "zstd (>=1.5.6.6,<2.0.0.0)",
+    "ciso8601>=2.3.2",
+    "lz4>=4.4.3",
+    "tzlocal>=5.3.1",
+    "zstd>=1.5.6.6",
+    # zoneinfo needs the IANA database, which Windows does not ship.
+    "tzdata; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
-compression = ["clickhouse-cityhash (>=1.0.2.4,<2.0.0.0)"]
+compression = ["clickhouse-cityhash>=1.0.2.4"]
 
 [project.urls]
 homepage = "https://github.com/long2ice/asynch"
 repository = "https://github.com/long2ice/asynch.git"
 documentation = "https://github.com/long2ice/asynch"
 
-[tool.poetry]
-package-mode = true
-requires-poetry = ">=2.1"
-include = ["LICENSE", "README.md"]
-packages = [
-    { include = "asynch" },
-    { include = "asynch/py.typed" }
+[dependency-groups]
+dev = [
+    "cython>=3.1",
+    "mypy",
+    "ruff",
+    "stubgen-pyx>=0.2.18",
+    "clickhouse-driver",
+    "rich",
+    "uvloop; sys_platform != 'win32' and implementation_name == 'cpython'",
+]
+test = [
+    "pytest",
+    "pytest-asyncio>=0.25",
+    "pytest-random-order",
+    "pytest-mock",
+    "pytest-xdist",
 ]
 
-[tool.poetry.group.dev.dependencies]
-bandit = "^1.8.3"
-uvloop = "^0.21.0"
-clickhouse-driver = "^0.2.9"
+[tool.poetry]
+packages = [{ include = "asynch" }]
+include = [
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md",
+    # PEP 561: without these the type information silently doesn't ship.
+    { path = "asynch/py.typed", format = ["sdist", "wheel"] },
+    { path = "asynch/**/*.pyi", format = ["sdist", "wheel"] },
+]
 
-[tool.poetry.group.lint.dependencies]
-mypy = "^1.15.0"
-ruff = "^0.9.10"
+[tool.poetry.build]
+generate-setup-file = true
+script = "build_cython.py"
 
-[tool.poetry.group.test.dependencies]
-pytest = "^8.3.5"
-pytest-asyncio = "^0.25.3"
-pytest-random-order = "^1.1.1"
-pytest-mock = "^3.14.0"
-pytest-xdist = "^3.6.1"
+[tool.cibuildwheel]
+enable = ["cpython-freethreading"]
 
 [tool.mypy]
-check_untyped_defs = true
+ignore_missing_imports = true
 no_implicit_optional = true
-no_implicit_reexport = true
 warn_redundant_casts = true
-warn_return_any = true
-warn_unreachable = true
 warn_unused_configs = true
+# TODO: re-enable after type hints improve:
+# check_untyped_defs, no_implicit_reexport, warn_return_any, warn_unreachable
+
+# Compiled modules are seen by mypy through their generated .pyi stubs, which
+# stubtest already validates against the runtime. mypy's class-hierarchy
+# inference over generated stubs (e.g. `ch_type = None` in the base vs a str
+# in subclasses) is noise, not signal.
+[[tool.mypy.overrides]]
+module = [
+    "asynch.cursors",
+    "asynch.proto.connection",
+    "asynch.proto.block",
+    "asynch.proto.result",
+    "asynch.proto.progress",
+    "asynch.proto.streams.*",
+    "asynch.proto.columns.*",
+]
+ignore_errors = true
 
 [tool.pytest.ini_options]
 addopts = [
-    "-s",
-    "-vvv",
-    "--maxfail=1",
     "--random-order"
 ]
 asyncio_mode = "auto"
@@ -116,18 +139,21 @@ select = [
     "PIE",  # flake8-pie
     "S",  # flake8-bandit
     "T10",  # flake8-debugger
-    "T20"  # flake8-print
+    "T20",  # flake8-print
+    "FA",  # flake8-future-annotations
+    "UP",  # pyupgrade
+    "RUF100"  # unused noqa
 ]
 ignore = [
-    "E501",  # line too long  # added temporarily, must be resolved later
-]
-
-# Allow fix for all enabled rules (when `--fix`) is provided.
-fixable = [
-    "I"  # isort
+    "UP031",  # %-format is fine, and sometimes clearer than .format()
+    "UP032",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "asynch/proto/settings/types.py" = ["A005"]
-"benchmark/main.py" = ["ERA", "S", "T20"]
+"*.pyi" = ["F403", "F405", "UP006", "UP035", "UP045"]
+# `IterQueryResult.next` is public API predating the A003 rule; `__next__`/`__anext__`
+# alias it on purpose.
+"asynch/proto/result.py" = ["A003"]
+"benchmark/*.py" = ["ERA", "S", "T20"]
 "tests/*.py" = ["ERA", "S"]

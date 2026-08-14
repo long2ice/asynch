@@ -1,5 +1,53 @@
 # ChangeLog
 
+## 0.4
+
+### 0.4.0
+
+Major internal refactor: the protocol hot path is now compiled with Cython,
+modeled on the sister project [asyncmy](https://github.com/long2ice/asyncmy).
+The public API (`Connection`, `Cursor`, `DictCursor`, `Pool`, DSNs) is
+unchanged.
+
+#### Performance (200k-row SELECT benchmarks vs 0.3.x)
+
+- `String` columns: ~9x faster (bulk sync parsing of length-prefixed values)
+- `Array` columns: ~4x faster (batched offset reads, deque-based BFS)
+- Mixed workloads: ~5x faster; most column types now match or beat
+  `clickhouse-driver` (see the Performance section in the README)
+- New benchmark suite under `benchmark/` (SELECT per column type, batched
+  INSERT, concurrency via pool, pool overhead): `make benchmark`
+
+#### Packaging & toolchain
+
+- Wheels are now platform-specific binary wheels built by cibuildwheel
+  (Linux x86_64/arm64, Windows, macOS Intel/ARM, including free-threaded
+  CPython); platforms without a wheel compile from sdist and need a C
+  toolchain plus Cython
+- Dependency management moved from Poetry to uv (PEP 735 dependency groups);
+  contributors run `uv sync --all-groups --all-extras` (or `make deps`)
+- Type information ships as generated `.pyi` stubs validated by stubtest
+- CI matrix: Python 3.9–3.14 + 3.14t, ClickHouse latest + LTS lines; PyPI
+  publishing via trusted publishing (OIDC)
+- Free-threaded CPython supported: all compiled modules declare
+  `freethreading_compatible`; importing asynch no longer re-enables the GIL
+  (ciso8601 is imported lazily, only for str -> datetime inserts)
+
+#### Dependencies
+
+- Removed `leb128` (hand-rolled unsigned LEB128; also fixes non-canonical
+  varint encodings the signed encoder produced) and `pytz` (stdlib zoneinfo;
+  `tzdata` is pulled in on Windows only)
+
+#### Fixes
+
+- `str()`/`f"{...}"` of status/scheme enums returned e.g.
+  `ConnectionStatus.opened` instead of `opened` on Python 3.11+
+- `Cursor.fetchone` in streaming mode no longer swallows server errors
+  arriving mid-stream
+- The never-implemented `use_numpy` setting now emits a `DeprecationWarning`
+- Python 2 compat shim (`proto/utils/compat.py`) removed
+
 ## 0.3
 
 ### 0.3.2

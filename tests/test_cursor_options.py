@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 import pytest
 
@@ -48,7 +50,10 @@ stream_results_test_params = dict(
                 }
             ],
             1,
-            "INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES",
+            (
+                "INSERT INTO test.asynch"
+                "(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES"
+            ),
             DictCursor,
         ],
         [
@@ -68,7 +73,10 @@ stream_results_test_params = dict(
                 )
             ],
             1,
-            "INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES",
+            (
+                "INSERT INTO test.asynch"
+                "(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES"
+            ),
             DictCursor,
         ],
         [
@@ -100,7 +108,10 @@ stream_results_test_params = dict(
                 ),
             ],
             2,
-            "INSERT INTO test.asynch(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES",
+            (
+                "INSERT INTO test.asynch"
+                "(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES"
+            ),
             DictCursor,
         ],
     ],
@@ -116,7 +127,7 @@ stream_results_test_params = dict(
 
 
 async def _stream_results(
-    cursor: DictCursor, execute: Callable, method: str, insert_sql: Optional[str], data: Any
+    cursor: DictCursor, execute: Callable, method: str, insert_sql: str | None, data: Any
 ):
     if not insert_sql:
         await execute("SELECT 1")
@@ -128,11 +139,11 @@ async def _stream_results(
 @pytest.mark.parametrize(**stream_results_test_params)
 async def test_set_stream_results(
     conn: Connection,
-    method: Optional[str],
+    method: str | None,
     data: Any,
     expected: Any,
-    insert_sql: Optional[str],
-    cursor_type: Optional[DictCursor],
+    insert_sql: str | None,
+    cursor_type: DictCursor | None,
 ):
     async with conn.cursor(cursor=cursor_type) as cursor:
         cursor.set_stream_results(True, 1000)

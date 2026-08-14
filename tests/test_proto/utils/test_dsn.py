@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import ssl
+from contextlib import AbstractContextManager as ContextManager
 from contextlib import nullcontext as does_not_raise
-from typing import Any, ContextManager, Optional
+from typing import Any
 
 import pytest
 
@@ -70,7 +73,7 @@ from asynch.proto.utils.dsn import DSNError, parse_dsn
     ],
 )
 def test_dsn_basic_credentials(
-    dsn: str, ctx: ContextManager, answer: Optional[dict[str, Any]]
+    dsn: str, ctx: ContextManager, answer: dict[str, Any] | None
 ) -> None:
     with ctx:
         result = parse_dsn(dsn=dsn)
