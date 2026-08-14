@@ -9,14 +9,23 @@ modeled on the sister project [asyncmy](https://github.com/long2ice/asyncmy).
 The public API (`Connection`, `Cursor`, `DictCursor`, `Pool`, DSNs) is
 unchanged.
 
-#### Performance (200k-row SELECT benchmarks vs 0.3.x)
+**Upgrading:** Python 3.11 or newer is required, and asynch now ships
+platform-specific binary wheels rather than a pure-Python one. Everything
+else is backwards compatible; `pip install -U asynch` is enough.
 
-- `String` columns: ~9x faster (bulk sync parsing of length-prefixed values)
-- `Array` columns: ~4x faster (batched offset reads, deque-based BFS)
-- Mixed workloads: ~5x faster; most column types now match or beat
-  `clickhouse-driver` (see the Performance section in the README)
-- New benchmark suite under `benchmark/` (SELECT per column type, batched
-  INSERT, concurrency via pool, pool overhead): `make benchmark`
+#### Performance
+
+Measured against `clickhouse-driver`, the synchronous C-extension driver
+(500k rows, best of 3; reproduce with `make benchmark`):
+
+- Exporting 500k rows of a wide events table: 438 ms vs 728 ms (+66%)
+- 100 concurrent queries through a pool of 10: 2103 q/s vs 1310 q/s (+61%)
+- Per-column decode: `DateTime` 13.8M vs 2.3M rows/s, `String` 21.7M vs
+  15.2M, `Decimal` +44%, `UUID` +56%, `Array` +15%; `Int64`/`Float64` on par
+- Small filtered queries, aggregations and batch inserts are server-bound and
+  unchanged - both drivers sit at the wire limit
+- New benchmark suite under `benchmark/`: a realistic wide-table workload,
+  per-column-type micro-benchmarks, concurrency and pool overhead
 
 #### Packaging & toolchain
 
