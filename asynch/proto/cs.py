@@ -66,7 +66,9 @@ class ClientInfo:
 
         try:
             self.os_user = getpass.getuser()
-        except KeyError:
+        except (KeyError, OSError):
+            # Python 3.13+ raises OSError (not KeyError) when the user name
+            # cannot be determined, e.g. in a container with no passwd entry.
             self.os_user = ""
         self.client_hostname = socket.gethostname()
         self.client_name = client_name

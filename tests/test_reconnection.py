@@ -100,3 +100,52 @@ async def handle_proxy(
     await asyncio.gather(src_dst, dst_src)
 
     logger.info(f"{connstr} is closed.")
+
+
+@pytest.mark.asyncio
+async def test_alt_hosts_fallback(config):
+    """An unreachable first host must fall through to an alt_host."""
+    from asynch.proto.connection import Connection as ProtoConnection
+
+    conn = ProtoConnection(
+        host="127.0.0.1",
+        # Port 1 is reserved and refuses connections.
+        port=1,
+        alt_hosts=f"{config.host}:{config.port}",
+        user=config.user,
+        password=config.password,
+        database=config.database,
+    )
+    await conn.connect()
+    try:
+        assert conn.connected
+        assert (conn.host, conn.port) == (config.host, config.port)
+    finally:
+        await conn.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_all_hosts_unreachable_raises_network_error():
+    from asynch.errors import NetworkError
+    from asynch.proto.connection import Connection as ProtoConnection
+
+    conn = ProtoConnection(host="127.0.0.1", port=1, alt_hosts="127.0.0.1:2")
+    with pytest.raises(NetworkError, match="All hosts are unreachable"):
+        await conn.connect()
+
+
+@pytest.mark.asyncio
+async def test_auth_failure_is_not_retried_as_unreachable(config):
+    """A reachable server rejecting us must surface the real error."""
+    from asynch.errors import ServerException
+    from asynch.proto.connection import Connection as ProtoConnection
+
+    conn = ProtoConnection(
+        host=config.host,
+        port=config.port,
+        user="definitely-not-a-user",
+        password="wrong",
+        database=config.database,
+    )
+    with pytest.raises(ServerException):
+        await conn.connect()

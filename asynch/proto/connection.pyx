@@ -14,6 +14,8 @@ from types import GeneratorType
 from urllib.parse import urlparse
 
 from asynch.errors import (
+    NetworkError,
+    OperationalError,
     PartiallyConsumedQueryError,
     ServerException,
     UnexpectedPacketFromServerError,
@@ -344,6 +346,11 @@ class Connection:
                 "we believe that the connection is incorrect.",
                 exc_info=e,
             )
+        except OperationalError as e:
+            # read_varint raises this when the peer closed the connection
+            # mid-read; the at_eof() check above narrows but cannot close that
+            # window (the FIN may arrive after it).
+            logger.debug("The connection %s was closed by the remote", self, exc_info=e)
         except (ConnectionError, OSError, RuntimeError) as e:
             # If raised RuntimeError with "TCPTransport the handler is closed" -
             # just returning false,
@@ -598,9 +605,26 @@ class Connection:
         if self.connected:
             await self.disconnect()
         logger.debug("Connecting. Database: %s. User: %s", self.database, self.user)
+        last_error = None
         for host, port in self.hosts:
             logger.debug("Connecting to %s:%s", host, port)
-            return await self._init_connection(host, port)
+            try:
+                return await self._init_connection(host, port)
+            except (OSError, asyncio.TimeoutError) as e:
+                # Only unreachable hosts fall through to the next candidate.
+                # A server that answers and then rejects us (bad credentials,
+                # unknown database) raises ServerException, which must
+                # propagate as-is instead of being retried against every
+                # alt_host and reported as "all hosts unreachable".
+                last_error = e
+                logger.warning("Failed to connect to %s:%s: %s", host, port, e)
+                # `_init_connection` may have set connected/reader/writer
+                # before failing in the handshake; drop them so the next
+                # attempt does not leak a socket.
+                await self.disconnect()
+
+        hosts = ", ".join(f"{host}:{port}" for host, port in self.hosts)
+        raise NetworkError(f"All hosts are unreachable: {hosts}") from last_error
 
     async def execute(
         self,

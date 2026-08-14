@@ -154,12 +154,21 @@ class Pool:
             raise AsynchPoolError(f"no free connection in {self}")
         return self._free_connections.popleft()
 
+    async def _discard_connection(self, conn: Connection) -> None:
+        """Drop a dead connection, closing its socket."""
+
+        logger.debug("discarding the dead %s from %s", conn, self)
+        with suppress(Exception):
+            await conn.close()
+
     async def _get_fresh_connection(self) -> Connection | None:
         while self._free_connections:
             conn = self._pop_connection()
-            with suppress(ConnectionError):
-                await conn._refresh()
+            if await conn.is_live():
                 return conn
+            # A dead connection cannot be revived in place; drop it and let
+            # `_ensure_minsize_connections` refill the pool.
+            await self._discard_connection(conn)
         return None
 
     async def _acquire_connection(self) -> Connection:
@@ -177,11 +186,9 @@ class Pool:
             raise AsynchPoolError(f"the connection {conn} does not belong to {self}")
 
         self._acquired_connections.remove(conn)
-        try:
-            await conn._refresh()
-        except ConnectionError as e:
-            msg = f"the {conn} is invalidated"
-            raise AsynchPoolError(msg) from e
+        if not await conn.is_live():
+            await self._discard_connection(conn)
+            return
 
         self._free_connections.append(conn)
 

@@ -238,3 +238,26 @@ async def test_pool_broken_connection_handling():
 
         assert pool.free_connections == 1
         assert pool.acquired_connections == 0
+
+
+@pytest.mark.asyncio
+async def test_pool_discards_dead_free_connection():
+    """A connection that died while idle must not be handed out.
+
+    `_refresh` used to "reconnect" such a connection, but `connect()` returns
+    early while the connection still looks opened, so the dead one was handed
+    straight back to the caller.
+    """
+    async with Pool(minsize=1, maxsize=2) as pool:
+        # Kill the pooled connection behind the pool's back.
+        (dead,) = tuple(pool._free_connections)
+        await dead._connection.disconnect()
+
+        async with pool.connection() as conn:
+            assert conn is not dead
+            async with conn.cursor() as cursor:
+                await cursor.execute("SELECT 42")
+                assert await cursor.fetchone() == (42,)
+
+        assert dead not in pool._free_connections
+        assert dead not in pool._acquired_connections

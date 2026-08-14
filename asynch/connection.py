@@ -178,6 +178,24 @@ class Connection:
             msg = f"Ping has failed for {self}"
             raise ConnectionError(msg)
 
+    async def is_live(self) -> bool:
+        """Report whether the connection is still usable.
+
+        Unlike `_refresh`, this never reconnects and never raises: a caller
+        that holds a pool of connections wants to discard a dead one, not
+        resurrect it in place.
+
+        :return: True if the connection is opened and answers a ping
+        """
+
+        if self.status != ConnectionStatus.opened:
+            return False
+        try:
+            await self.ping()
+        except ConnectionError:
+            return False
+        return True
+
     async def _refresh(self) -> None:
         """Refresh the connection.
 
@@ -203,6 +221,11 @@ class Connection:
         try:
             await self.ping()
         except ConnectionError:
+            # `connect()` returns early while `_opened` is set, so the socket
+            # has to be torn down first - otherwise the reconnect is a no-op
+            # and the dead connection is handed back to the caller.
+            await self.close()
+            self._closed = False
             await self.connect()
 
     async def rollback(self):

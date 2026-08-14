@@ -42,6 +42,21 @@ unchanged.
   connection: the compressed writer's flush kept its buffer, re-compressing
   and re-sending every earlier byte. Reported in #149, fix based on #153 by
   @nils-borrmann-tacto
+- `alt_hosts` never worked as a fallback: the first host's failure aborted
+  the whole connect. Unreachable hosts are now skipped (with the socket torn
+  down between attempts) and `NetworkError` is raised only if all fail;
+  errors from a server that answers, such as bad credentials, propagate
+  unchanged. Based on #136 by @vlad-zverev
+- Pool connections that died while idle were handed back to callers:
+  `_refresh` "reconnected" them, but `connect()` returns early on an
+  apparently-open connection, so the reconnect was a no-op. Dead connections
+  are now discarded and replaced. Based on #145 by @nils-borrmann-tacto
+- `ping()` no longer lets `OperationalError` escape when the peer closes the
+  connection mid-read, which broke transparent pool reconnects. Based on #148
+  by @nils-borrmann-tacto
+- `getpass.getuser()` raises `OSError` instead of `KeyError` since Python
+  3.13, breaking the handshake where no user name can be determined (e.g. in
+  containers). Based on #156 by @shsailaubay
 - `DateTime64` was decoded as an unsigned integer: pre-1970 values were
   silently corrupted on read and failed on write; the wire value is a signed
   Int64 tick count
