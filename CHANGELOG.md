@@ -38,6 +38,10 @@ unchanged.
 
 #### Fixes
 
+- Compressed inserts corrupted the stream and the server dropped the
+  connection: the compressed writer's flush kept its buffer, re-compressing
+  and re-sending every earlier byte. Reported in #149, fix based on #153 by
+  @nils-borrmann-tacto
 - `DateTime64` was decoded as an unsigned integer: pre-1970 values were
   silently corrupted on read and failed on write; the wire value is a signed
   Int64 tick count

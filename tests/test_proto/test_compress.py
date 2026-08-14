@@ -29,3 +29,40 @@ async def test_compress_zstd(config):
         async with conn_zstd.cursor() as cursor:
             ret = await cursor.execute("SELECT 1")
             assert ret == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("compression", [True, "lz4hc", "zstd"])
+async def test_compressed_insert_roundtrip(config, compression):
+    """A compressed INSERT must not corrupt the stream.
+
+    The block writer is a connection-level singleton that flushes once per
+    block, so an insert already sends several blocks through it; a flush that
+    kept its buffer re-sent every earlier byte and the server dropped the
+    connection.
+    """
+    rows = [(i, f"name-{i}", [f"tag{i % 3}", "common"]) for i in range(20_000)]
+    async with Connection(dsn=config.dsn, compression=compression) as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("DROP TABLE IF EXISTS test.compressed_insert")
+            await cursor.execute(
+                "CREATE TABLE test.compressed_insert "
+                "(id UInt32, name String, tags Array(String)) "
+                "ENGINE = MergeTree ORDER BY id"
+            )
+            try:
+                await cursor.execute(
+                    "INSERT INTO test.compressed_insert (id, name, tags) VALUES", rows
+                )
+                await cursor.execute(
+                    "SELECT count(), sum(id), sum(length(name)), sum(length(tags)) "
+                    "FROM test.compressed_insert"
+                )
+                assert await cursor.fetchone() == (
+                    len(rows),
+                    sum(r[0] for r in rows),
+                    sum(len(r[1]) for r in rows),
+                    sum(len(r[2]) for r in rows),
+                )
+            finally:
+                await cursor.execute("DROP TABLE IF EXISTS test.compressed_insert")

@@ -69,9 +69,9 @@ class BufferedWriter:
 
     async def write_strings(self, data):
         # Hot path for String columns: append length-prefixed values in a sync
-        # loop and only await when the buffer needs flushing. `position` is
-        # tracked separately from len(buffer): the compressed writer's flush
-        # resets position without swapping the buffer.
+        # loop and only await when the buffer needs flushing. Both the buffer
+        # and the position are re-read after each flush, since flushing swaps
+        # in a fresh buffer.
         cdef bytearray buf = <bytearray> self.buffer
         cdef Py_ssize_t pos = self.position
         cdef Py_ssize_t max_size = self.max_buffer_size
@@ -399,6 +399,13 @@ class CompressedBufferedWriter(BufferedWriter):
 
     async def flush(self):
         await self.compressor.write(self.buffer)
+        # Hand the compressor a fresh buffer: `compressor.write` copies what it
+        # is given, so keeping the old one would re-compress and re-send every
+        # byte written since the connection was opened. The block writer is a
+        # connection-level singleton and flushes once per block, so a single
+        # insert (external-tables block, data block, terminating empty block)
+        # already corrupts the stream without this.
+        self.buffer = bytearray()
         self.position = 0
 
 
