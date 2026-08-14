@@ -251,7 +251,12 @@ class Cursor:
         if self._stream_results:
             execute = self._connection._connection.execute_iter
             self._max_row_buffer = execution_options.get("max_block_size", self._max_row_buffer)
-            settings["max_block_size"] = self._max_row_buffer
+            # Only send the setting when a buffer size was actually asked for.
+            # Sending it unconditionally made streaming impossible for
+            # readonly=1 users ("Cannot modify 'max_block_size' in readonly
+            # mode"), and the default of 0 was rejected outright by the server.
+            if self._max_row_buffer:
+                settings["max_block_size"] = self._max_row_buffer
 
         self._settings = settings
 

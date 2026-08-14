@@ -85,7 +85,7 @@ async def test_pool_connection_attributes(config):
 
 
 @pytest.mark.asyncio
-async def test_pool_connection_management(get_tcp_connections):
+async def test_pool_connection_management(get_tcp_connections, assert_tcp_connections_settle):
     """Tests connection cleanup when leaving a pool context.
 
     No dangling/unclosed connections must leave behind.
@@ -150,12 +150,13 @@ async def test_pool_connection_management(get_tcp_connections):
         assert pool.free_connections == 2
         assert pool.acquired_connections == 0
 
-    async with Connection() as conn:
-        assert init_tcps == await get_tcp_connections(conn)
+    await assert_tcp_connections_settle(init_tcps)
 
 
 @pytest.mark.asyncio
-async def test_pool_concurrent_connection_management(get_tcp_connections):
+async def test_pool_concurrent_connection_management(
+    get_tcp_connections, assert_tcp_connections_settle
+):
     """Tests pool connection managements on concurrent connections.
 
     A pool must not be broken when connections are acquired from concurrent tasks.
@@ -184,9 +185,7 @@ async def test_pool_concurrent_connection_management(get_tcp_connections):
         ]
         answers = await asyncio.gather(*tasks)
 
-    async with Connection() as conn:
-        noc = await get_tcp_connections(conn)
-        assert noc == init_tcps
+    await assert_tcp_connections_settle(init_tcps)
 
     assert selectees == answers
 

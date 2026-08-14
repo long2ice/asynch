@@ -385,3 +385,53 @@ async def test_set_external_tables(conn, structure, data, expected, expected_exc
             return
 
     assert await cursor.fetchall() == expected
+
+
+@pytest.mark.asyncio
+async def test_stream_results_without_buffer_size_sends_no_setting(conn):
+    """Streaming must not inject `max_block_size` unless one was requested.
+
+    Sending it unconditionally makes streaming impossible for `readonly=1`
+    users, and the default of 0 is rejected by the server outright.
+    """
+    async with conn.cursor() as cursor:
+        cursor.set_stream_results(stream_results=True, max_row_buffer=0)
+        await cursor.execute("SELECT number FROM system.numbers LIMIT 5000")
+        assert "max_block_size" not in cursor._settings
+        assert len([row async for row in cursor]) == 5000
+
+
+@pytest.mark.asyncio
+async def test_stream_results_with_buffer_size_sends_setting(conn):
+    async with conn.cursor() as cursor:
+        cursor.set_stream_results(stream_results=True, max_row_buffer=1000)
+        await cursor.execute("SELECT number FROM system.numbers LIMIT 5000")
+        assert cursor._settings["max_block_size"] == 1000
+        assert len([row async for row in cursor]) == 5000
+
+
+@pytest.mark.asyncio
+async def test_stream_results_for_readonly_user(conn, config):
+    """A readonly=1 user cannot modify settings, so none must be forced."""
+    user = "asynch_readonly_test"
+    async with conn.cursor() as cursor:
+        await cursor.execute(f"DROP USER IF EXISTS {user}")
+        await cursor.execute(
+            f"CREATE USER {user} IDENTIFIED WITH no_password SETTINGS readonly = 1"
+        )
+        await cursor.execute(f"GRANT SELECT ON *.* TO {user}")
+    try:
+        ro_conn = Connection(
+            host=config.host, port=config.port, user=user, database=config.database
+        )
+        await ro_conn.connect()
+        try:
+            async with ro_conn.cursor() as cursor:
+                cursor.set_stream_results(stream_results=True, max_row_buffer=0)
+                await cursor.execute("SELECT number FROM system.numbers LIMIT 5000")
+                assert len([row async for row in cursor]) == 5000
+        finally:
+            await ro_conn.close()
+    finally:
+        async with conn.cursor() as cursor:
+            await cursor.execute(f"DROP USER IF EXISTS {user}")

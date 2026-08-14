@@ -10,8 +10,7 @@ import pytest
 from asynch import Pool
 from tests.conftest import CONNECTION_DSN
 
-HOST = "localhost"
-PORT = 9001
+HOST = "127.0.0.1"
 TIMEOUT = 1  # in seconds
 
 logger = logging.getLogger(__name__)
@@ -27,12 +26,16 @@ async def proxy(request):
     """
 
     handler = functools.partial(handle_proxy, 9000, request.param == "graceful")
-    server = await asyncio.start_server(handler, host=HOST, port=PORT)
+    # Port 0: let the OS pick a free one. A fixed port made the whole module
+    # error out with "address already in use" whenever a previous run had not
+    # released it yet.
+    server = await asyncio.start_server(handler, host=HOST, port=0)
+    port = server.sockets[0].getsockname()[1]
     async with server:
-        logger.info(f"Proxy {server} started")
+        logger.info(f"Proxy {server} started on port {port}")
         try:
             server = asyncio.create_task(server.serve_forever())
-            yield
+            yield port
         finally:
             server.cancel()
     await asyncio.sleep(0.1)  # Avoids error "Task was destroyed but it is pending!"
@@ -40,7 +43,8 @@ async def proxy(request):
 
 @pytest.fixture()
 async def proxy_pool(proxy):
-    async with Pool(minsize=1, maxsize=1, dsn=CONNECTION_DSN.replace("9000", "9001")) as pool:
+    dsn = CONNECTION_DSN.replace("9000", str(proxy))
+    async with Pool(minsize=1, maxsize=1, dsn=dsn) as pool:
         yield pool
 
 

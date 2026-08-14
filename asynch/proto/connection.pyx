@@ -618,18 +618,22 @@ class Connection:
             logger.debug("Connecting to %s:%s", host, port)
             try:
                 return await self._init_connection(host, port)
-            except (OSError, asyncio.TimeoutError) as e:
-                # Only unreachable hosts fall through to the next candidate.
-                # A server that answers and then rejects us (bad credentials,
-                # unknown database) raises ServerException, which must
-                # propagate as-is instead of being retried against every
-                # alt_host and reported as "all hosts unreachable".
+            except BaseException as e:
+                # `_init_connection` may have set connected/reader/writer
+                # before failing in the handshake, so the socket has to go
+                # whatever the reason - including an auth rejection, which
+                # would otherwise leak it.
+                await self.disconnect()
+                if not isinstance(e, (OSError, asyncio.TimeoutError)):
+                    # Only unreachable hosts fall through to the next
+                    # candidate. A server that answers and then rejects us
+                    # (bad credentials, unknown database) raises
+                    # ServerException, which must propagate as-is rather than
+                    # be retried against every alt_host and reported as
+                    # "all hosts unreachable".
+                    raise
                 last_error = e
                 logger.warning("Failed to connect to %s:%s: %s", host, port, e)
-                # `_init_connection` may have set connected/reader/writer
-                # before failing in the handshake; drop them so the next
-                # attempt does not leak a socket.
-                await self.disconnect()
 
         hosts = ", ".join(f"{host}:{port}" for host, port in self.hosts)
         raise NetworkError(f"All hosts are unreachable: {hosts}") from last_error

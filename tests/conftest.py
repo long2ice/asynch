@@ -1,4 +1,5 @@
 import asyncio
+import time
 from collections.abc import AsyncIterator, Callable, Coroutine
 from dataclasses import dataclass
 from os import environ
@@ -115,3 +116,26 @@ async def get_tcp_connections() -> Callable[[Connection], Coroutine[Any, Any, in
             return int(result[0][1])
 
     return _get_tcp_connections
+
+
+@pytest.fixture()
+async def assert_tcp_connections_settle(get_tcp_connections):
+    """Assert the server's TCP connection count returns to `expected`.
+
+    ClickHouse does not reap a closed connection the instant the client goes
+    away, so comparing the metric immediately after a pool shuts down is
+    racy; poll for a short while before failing.
+    """
+
+    async def _assert(expected: int, settle_seconds: float = 5.0) -> None:
+        deadline = time.monotonic() + settle_seconds
+        async with Connection() as connection:
+            while True:
+                current = await get_tcp_connections(connection)
+                if current == expected:
+                    return
+                if time.monotonic() >= deadline:
+                    raise AssertionError(f"TCP connections did not settle: {current} != {expected}")
+                await asyncio.sleep(0.1)
+
+    return _assert
