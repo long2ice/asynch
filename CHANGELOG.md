@@ -32,6 +32,9 @@ unchanged.
 
 #### API
 
+- `Connection.cancel()` / `Cursor.cancel()` stop a running query from another
+  task. Only the cancel packet is sent - the task awaiting the query owns the
+  read side and drains the stream, so the connection stays usable (#104)
 - `Connection.last_query` exposes the statistics the server reported for the
   most recent query (elapsed, rows/bytes progress, profile info); previously
   reachable only as `conn._connection.last_query` (#85)

@@ -71,6 +71,21 @@ class Cursor:
     def setoutputsizes(self, *args):
         """Does nothing, required by DB API."""
 
+    async def cancel(self):
+        """Ask the server to stop the query this cursor is running.
+
+        Call it from another task than the one awaiting `execute`; the
+        connection is drained and remains usable.
+
+        :return: True if a query was cancelled
+        """
+
+        cancelled = await self._connection.cancel()
+        if cancelled:
+            self._state = CursorStatus.finished
+            self._rows = []
+        return cancelled
+
     async def close(self):
         self._state = CursorStatus.closed
 

@@ -194,6 +194,20 @@ class Connection:
             msg = f"Ping has failed for {self}"
             raise ConnectionError(msg)
 
+    async def cancel(self) -> bool:
+        """Ask the server to stop the query running on this connection.
+
+        Meant to be called from a different task than the one awaiting the
+        query: that task then finishes early. The connection is drained to the
+        end of the stream and stays usable afterwards.
+
+        Does nothing if no query is running.
+
+        :return: True if a query was cancelled
+        """
+
+        return await self._connection.cancel()
+
     async def is_live(self) -> bool:
         """Report whether the connection is still usable.
 

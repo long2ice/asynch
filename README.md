@@ -210,6 +210,20 @@ async def stream_rows(conn: Connection):
             process(row)
 ```
 
+### Cancelling a query
+
+A long-running query can be stopped from another task; the connection is left
+usable.
+
+```python
+async def cancel_slow_query(conn: Connection):
+    async with conn.cursor() as cursor:
+        task = asyncio.create_task(cursor.execute("SELECT count() FROM numbers(20000000000)"))
+        await asyncio.sleep(1)
+        await conn.cancel()   # or cursor.cancel()
+        await task            # returns with whatever the server had sent
+```
+
 ### Connection Pool
 
 ```python
@@ -236,6 +250,29 @@ async def use_pool():
     # some logic
 
     await pool.shutdown()
+```
+
+By default the pool keeps every connection it opens. Pass `idle_timeout` to
+have it release connections that have been idle for too long, down to
+`minsize`:
+
+```python
+Pool(dsn="clickhouse://127.0.0.1:9000", minsize=2, maxsize=20, idle_timeout=60)
+```
+
+### Query statistics
+
+`Connection.last_query` reports what the server said about the most recent
+query:
+
+```python
+async def show_stats(conn: Connection):
+    async with conn.cursor() as cursor:
+        await cursor.execute("SELECT number FROM system.numbers LIMIT 100000")
+        await cursor.fetchall()
+
+    stats = conn.last_query
+    print(stats.elapsed, stats.progress.rows, stats.progress.bytes)
 ```
 
 ## Performance

@@ -550,6 +550,26 @@ class Connection:
         await self.writer.write_varint(ClientPacket.CANCEL)
         await self.writer.flush()
 
+    async def cancel(self):
+        """Ask the server to stop the running query.
+
+        Only the cancel packet is sent: the task awaiting the query owns the
+        read side of the socket, and reading from here too would interleave
+        two readers on one stream. The server answers a cancel by ending the
+        stream, so that task drains the packets already in flight and returns
+        the rows it received - the connection is left at a packet boundary and
+        stays usable.
+
+        Safe to call when no query is running; it then does nothing.
+
+        :return: True if a cancel was sent
+        """
+
+        if not self.is_query_executing or not self.connected:
+            return False
+        await self.send_cancel()
+        return True
+
     async def send_query(self, query, query_id=""):
         await self.writer.write_varint(ClientPacket.QUERY)
         await self.writer.write_str(query_id)

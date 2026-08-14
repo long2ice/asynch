@@ -34,6 +34,14 @@ class Cursor:
         """Does nothing, required by DB API."""
     def setoutputsizes(self, *args):
         """Does nothing, required by DB API."""
+    async def cancel(self):
+        """Ask the server to stop the query this cursor is running.
+
+        Call it from another task than the one awaiting `execute`; the
+        connection is drained and remains usable.
+
+        :return: True if a query was cancelled
+        """
     async def close(self) -> None: ...
     async def execute(self, query: str, args=None, context=None) -> int: ...
     async def executemany(self, query, args=None, context=None) -> int: ...

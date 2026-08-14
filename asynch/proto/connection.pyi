@@ -73,6 +73,20 @@ class Connection:
     async def receive_result(self, with_column_types=False, progress=False, columnar=False): ...
     async def receive_progress(self): ...
     async def send_cancel(self): ...
+    async def cancel(self):
+        """Ask the server to stop the running query.
+
+        Only the cancel packet is sent: the task awaiting the query owns the
+        read side of the socket, and reading from here too would interleave
+        two readers on one stream. The server answers a cancel by ending the
+        stream, so that task drains the packets already in flight and returns
+        the rows it received - the connection is left at a packet boundary and
+        stays usable.
+
+        Safe to call when no query is running; it then does nothing.
+
+        :return: True if a cancel was sent
+        """
     async def send_query(self, query, query_id=""): ...
     def reset_state(self): ...
     async def disconnect(self) -> None: ...

@@ -1,3 +1,5 @@
+import asyncio
+from contextlib import suppress
 from typing import Any
 
 import pytest
@@ -318,3 +320,64 @@ async def test_null_as_default_still_accepts_none(config):
             await cursor.execute("DROP TABLE IF EXISTS test.null_as_default")
     finally:
         await conn.close()
+
+
+@pytest.mark.asyncio
+async def test_cancel_running_query(conn: Connection):
+    """Cancelling ends the query early and leaves the connection usable."""
+    async with conn.cursor() as cursor:
+        task = asyncio.create_task(cursor.execute("SELECT count() FROM numbers(20000000000)"))
+        await asyncio.sleep(0.3)
+        assert await conn.cancel() is True
+        with suppress(Exception):
+            await task
+
+    async with conn.cursor() as cursor:
+        await cursor.execute("SELECT 42")
+        assert await cursor.fetchone() == (42,)
+
+
+@pytest.mark.asyncio
+async def test_cancel_without_running_query(conn: Connection):
+    """Cancelling when nothing is running is a no-op, not an error."""
+    assert await conn.cancel() is False
+    async with conn.cursor() as cursor:
+        await cursor.execute("SELECT 1")
+        assert await cursor.fetchone() == (1,)
+    assert await conn.cancel() is False
+
+
+@pytest.mark.asyncio
+async def test_cancel_from_cursor(conn: Connection):
+    async with conn.cursor() as cursor:
+        task = asyncio.create_task(cursor.execute("SELECT count() FROM numbers(20000000000)"))
+        await asyncio.sleep(0.3)
+        assert await cursor.cancel() is True
+        with suppress(Exception):
+            await task
+
+    async with conn.cursor() as cursor:
+        await cursor.execute("SELECT 7")
+        assert await cursor.fetchone() == (7,)
+
+
+@pytest.mark.asyncio
+async def test_cancel_in_pool_returns_usable_connection(config):
+    """A cancelled query must not poison the pooled connection."""
+    from asynch import Pool
+
+    async with Pool(dsn=config.dsn, minsize=1, maxsize=1) as pool:
+        async with pool.connection() as conn:
+            async with conn.cursor() as cursor:
+                task = asyncio.create_task(
+                    cursor.execute("SELECT count() FROM numbers(20000000000)")
+                )
+                await asyncio.sleep(0.3)
+                await conn.cancel()
+                with suppress(Exception):
+                    await task
+
+        async with pool.connection() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute("SELECT 99")
+                assert await cursor.fetchone() == (99,)
