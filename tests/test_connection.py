@@ -198,7 +198,7 @@ async def test_connection_ping():
 
 
 @pytest.mark.asyncio
-async def test_connection_cleanup(get_tcp_connections):
+async def test_connection_cleanup(get_tcp_connections, assert_tcp_connections_settle):
     """Test a connection to be properly closed.
 
     A connection is properly closed if it releases resources,
@@ -225,11 +225,9 @@ async def test_connection_cleanup(get_tcp_connections):
                 ret = await cur.fetchone()
                 assert ret == (1,)
 
-    final_tcps = 0
-    async with conn as cn:
-        final_tcps = await get_tcp_connections(cn)
-
-    assert final_tcps == init_tcps
+    # Upper bound, polled: the metric is server-global, so an unrelated
+    # connection appearing or going away must not decide this test.
+    await assert_tcp_connections_settle(init_tcps)
 
 
 @pytest.mark.asyncio
