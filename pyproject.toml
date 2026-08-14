@@ -84,6 +84,13 @@ include = [
 generate-setup-file = true
 script = "build_cython.py"
 
+[tool.cibuildwheel]
+# cibuildwheel 4 builds free-threaded wheels for 3.14+ by default. asynch does
+# not ship them yet - the compiled modules declare freethreading_compatible,
+# but clickhouse-cityhash (the compression extra) has no free-threaded build,
+# so the wheels would be only partly usable.
+skip = ["cp*t-*"]
+
 [tool.mypy]
 ignore_missing_imports = true
 no_implicit_optional = true

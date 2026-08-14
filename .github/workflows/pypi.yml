@@ -3,6 +3,9 @@ name: pypi
 on:
   release:
     types: [published]
+  # Lets the wheel build be exercised without cutting a release; the upload
+  # job stays gated on a real release.
+  workflow_dispatch:
 
 jobs:
   build_wheels:
@@ -17,11 +20,11 @@ jobs:
           - macos-15-intel
           - macos-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: pypa/cibuildwheel@v3.3.1
-      - uses: actions/upload-artifact@v5
+      - uses: pypa/cibuildwheel@v4.2.0
+      - uses: actions/upload-artifact@v7
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: wheelhouse/*.whl
@@ -29,12 +32,12 @@ jobs:
   build_sdist:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v10
       - run: uv build --sdist
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: cibw-sdist
           path: dist/*.tar.gz
@@ -42,12 +45,13 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     needs: [build_wheels, build_sdist]
+    if: github.event_name == 'release'
     environment: pypi
     permissions:
       # Required for PyPI trusted publishing (OIDC).
       id-token: write
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           pattern: cibw-*
           path: dist
