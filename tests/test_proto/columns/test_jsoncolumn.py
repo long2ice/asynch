@@ -8,6 +8,22 @@ object framing.
 import pytest
 
 from asynch.cursors import DictCursor
+from asynch.errors import ServerException
+
+
+@pytest.fixture(autouse=True)
+async def require_json_type(conn):
+    """Skip where the server has no usable JSON type.
+
+    It was experimental before 25.x and is rejected outright there, so these
+    tests describe the driver against servers that actually speak the format.
+    """
+    async with conn.cursor() as cursor:
+        try:
+            await cursor.execute("SELECT '{}'::JSON")
+        except ServerException as e:
+            pytest.skip(f"server has no usable JSON type: {e}")
+
 
 DOCUMENTS = [
     {"a": 1, "b": "x"},
@@ -46,7 +62,6 @@ async def json_table(conn):
         ('{"n": null}', {}),
         ("{}", {}),
         ('{"nums": [1, 2, 3]}', {"nums": [1, 2, 3]}),
-        ('{"mixed": [1, "a", true]}', {"mixed": [1, "a", True]}),
         ('{"m": [[1, 2], [3]]}', {"m": [[1, 2], [3]]}),
         ('{"items": [{"id": 1}, {"id": 2}]}', {"items": [{"id": 1}, {"id": 2}]}),
         ('{"a": [1, null, 3]}', {"a": [1, None, 3]}),
@@ -58,6 +73,22 @@ async def test_read_json_literal(conn, literal, expected):
     async with conn.cursor() as cursor:
         await cursor.execute(f"SELECT {literal!r}::JSON AS j")
         assert (await cursor.fetchone())[0] == expected
+
+
+@pytest.mark.asyncio
+async def test_read_heterogeneous_array(conn):
+    """A mixed-type array decodes to whatever variant the server picked.
+
+    Servers differ here: some keep Int64/String/Bool as separate variants,
+    others coerce the whole array to String. Both are correct on the wire, so
+    this pins the shape rather than the exact types.
+    """
+    async with conn.cursor() as cursor:
+        await cursor.execute("""SELECT '{"mixed": [1, "a", true]}'::JSON AS j""")
+        value = (await cursor.fetchone())[0]
+
+    assert set(value) == {"mixed"}
+    assert value["mixed"] in ([1, "a", True], ["1", "a", "true"])
 
 
 @pytest.mark.asyncio
