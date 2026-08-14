@@ -3,6 +3,7 @@ import ssl
 import pytest
 
 from asynch.connection import Connection
+from asynch.proto import constants
 
 HOST = "192.168.15.103"
 PORT = 10000
@@ -246,3 +247,53 @@ async def test_connection_close():
 
         assert not conn.opened
         assert conn.closed
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "expected_port"),
+    [
+        ({}, constants.DEFAULT_PORT),
+        ({"secure": True}, constants.DEFAULT_SECURE_PORT),
+        ({"port": 9001}, 9001),
+        ({"secure": True, "port": 9500}, 9500),
+        ({"dsn": "clickhouse://host/db"}, constants.DEFAULT_PORT),
+        ({"dsn": "clickhouses://host/db"}, constants.DEFAULT_SECURE_PORT),
+        ({"dsn": "clickhouses://host:9999/db"}, 9999),
+    ],
+)
+def test_secure_default_port(kwargs, expected_port):
+    """A secure connection without an explicit port must use 9440, not 9000."""
+    conn = Connection(**kwargs)
+    assert conn.port == expected_port
+    assert conn._connection.hosts[0][1] == expected_port
+
+
+@pytest.mark.asyncio
+async def test_connection_survives_server_exception(conn):
+    """A rejected query must not cost the connection.
+
+    Otherwise every SQL error in a pooled application discards a connection.
+    """
+    from asynch.errors import ServerException
+
+    async with conn.cursor() as cursor:
+        with pytest.raises(ServerException):
+            await cursor.execute("SELECT this_is_not_a_function(1)")
+
+    assert conn.opened
+    async with conn.cursor() as cursor:
+        await cursor.execute("SELECT 42")
+        assert await cursor.fetchone() == (42,)
+
+
+@pytest.mark.asyncio
+async def test_failed_use_does_not_change_tracked_database(conn):
+    """A failed `USE` must not move the client's idea of the database."""
+    from asynch.errors import ServerException
+
+    before = conn._connection.database
+    async with conn.cursor() as cursor:
+        with pytest.raises(ServerException):
+            await cursor.execute("USE database_that_does_not_exist")
+
+    assert conn._connection.database == before

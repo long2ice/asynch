@@ -266,3 +266,55 @@ async def test_cursror_iter(conn, size, expected_size, with_select):
             index += 1
 
         assert expected_size == index
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("column", ["string", "date", "uuid", "id"])
+async def test_none_in_non_nullable_column_reports_clearly(conn: Connection, column):
+    """A None in a non-Nullable column must name the column and the type.
+
+    Serializers otherwise fail with whatever their own primitives raise
+    (bare TypeError from bytes(), AttributeError from .year, ...).
+    """
+    from asynch.errors import TypeMismatchError
+
+    row = {
+        "id": 1,
+        "decimal": 1,
+        "date": "2020-08-08",
+        "datetime": "2020-08-08 00:00:00",
+        "float": 1,
+        "uuid": "59e182c4-545d-4f30-8b32-cefea2d0d5ba",
+        "string": "1",
+        "ipv4": "0.0.0.0",
+        "ipv6": "::",
+        "bool": True,
+    }
+    row[column] = None
+
+    async with conn.cursor(cursor=DictCursor) as cursor:
+        with pytest.raises(TypeMismatchError, match="Type mismatch in VALUES section"):
+            await cursor.execute(
+                "INSERT INTO test.asynch"
+                "(id,decimal,date,datetime,float,uuid,string,ipv4,ipv6,bool) VALUES",
+                [row],
+            )
+
+
+@pytest.mark.asyncio
+async def test_null_as_default_still_accepts_none(config):
+    """`input_format_null_as_default` must keep converting None to the default."""
+    conn = Connection(dsn=config.dsn, settings={"input_format_null_as_default": True})
+    await conn.connect()
+    try:
+        async with conn.cursor() as cursor:
+            await cursor.execute("DROP TABLE IF EXISTS test.null_as_default")
+            await cursor.execute(
+                "CREATE TABLE test.null_as_default (s String, i Int32) ENGINE = Memory"
+            )
+            await cursor.execute("INSERT INTO test.null_as_default (s, i) VALUES", [(None, None)])
+            await cursor.execute("SELECT s, i FROM test.null_as_default")
+            assert await cursor.fetchone() == ("", 0)
+            await cursor.execute("DROP TABLE IF EXISTS test.null_as_default")
+    finally:
+        await conn.close()

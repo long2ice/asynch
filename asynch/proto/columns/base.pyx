@@ -77,6 +77,11 @@ class Column:
                     x = null_value
                 elif null_as_default:
                     x = null_value
+                else:
+                    # Reported here rather than left to the serializer, which
+                    # fails with whatever its own primitives raise (bare
+                    # TypeError from bytes(), AttributeError from .year, ...).
+                    raise ColumnTypeMismatchException(x)
 
             else:
                 if check_item_type:

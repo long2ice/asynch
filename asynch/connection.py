@@ -15,7 +15,7 @@ class Connection:
         user: str = constants.DEFAULT_USER,
         password: str = constants.DEFAULT_PASSWORD,
         host: str = constants.DEFAULT_HOST,
-        port: int = constants.DEFAULT_PORT,
+        port: int | None = None,
         database: str = constants.DEFAULT_DATABASE,
         cursor_cls=Cursor,
         echo: bool = False,
@@ -28,7 +28,6 @@ class Connection:
             user = config.get("user", None) or user
             password = config.get("password", None) or password
             host = config.get("host", None) or host
-            port = config.get("port", None) or port
             database = config.get("database", None) or database
         else:
             self._connection = ProtoConnection(
@@ -40,6 +39,10 @@ class Connection:
                 stack_track=stack_track,
                 **kwargs,
             )
+        # The proto connection resolves an unspecified port from the scheme
+        # (9440 when secure, 9000 otherwise), so read the effective one back
+        # instead of second-guessing it here.
+        port = self._connection.hosts[0][1]
         self._dsn = dsn
         # dsn parts
         self._user = user

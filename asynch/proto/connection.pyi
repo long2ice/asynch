@@ -17,6 +17,9 @@ class Packet:
     def __init__(self): ...
 
 class Connection:
+    # Resolved (host, port) candidates, including alt_hosts; the port
+    # is filled in from the scheme when the caller did not give one.
+    hosts: list[tuple[str, int]]
     log_priorities = (
         "Unknown",
         "Fatal",
@@ -34,7 +37,7 @@ class Connection:
         user=constants.DEFAULT_USER,
         password=constants.DEFAULT_PASSWORD,
         host=constants.DEFAULT_HOST,
-        port=constants.DEFAULT_PORT,
+        port=None,
         database=constants.DEFAULT_DATABASE,
         client_name=constants.CLIENT_NAME,
         connect_timeout=constants.DBMS_DEFAULT_CONNECT_TIMEOUT_SEC,
@@ -243,3 +246,6 @@ class Connection:
                             Causes additional overhead. Defaults to ``False``.
         :return: :ref:`iter-query-result` proxy.
         """
+
+def get_default_port(secure=False):
+    """Return the port a ClickHouse server listens on by default."""

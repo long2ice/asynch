@@ -49,6 +49,11 @@ from asynch.proto.utils.helpers import chunks, column_chunks
 logger = logging.getLogger(__name__)
 
 
+def get_default_port(secure=False):
+    """Return the port a ClickHouse server listens on by default."""
+    return constants.DEFAULT_SECURE_PORT if secure else constants.DEFAULT_PORT
+
+
 class QueryProcessingStage:
     """Determines till which state SELECT query should be executed."""
 
@@ -85,7 +90,7 @@ class Connection:
         user=constants.DEFAULT_USER,
         password=constants.DEFAULT_PASSWORD,
         host=constants.DEFAULT_HOST,
-        port=constants.DEFAULT_PORT,
+        port=None,
         database=constants.DEFAULT_DATABASE,
         client_name=constants.CLIENT_NAME,
         connect_timeout=constants.DBMS_DEFAULT_CONNECT_TIMEOUT_SEC,
@@ -105,10 +110,9 @@ class Connection:
         **kwargs,
     ):
         self.stack_track = stack_track
-        if secure:
-            default_port = constants.DEFAULT_SECURE_PORT
-        else:
-            default_port = constants.DEFAULT_PORT
+        # `port=None` means "not specified": only then does the scheme decide,
+        # so that clickhouses:// without an explicit port reaches 9440.
+        default_port = get_default_port(secure=secure)
         self.hosts = [(host, port or default_port)]
         if alt_hosts:
             for host in alt_hosts.split(","):
@@ -465,6 +469,10 @@ class Connection:
 
         elif packet_type == ServerPacket.EXCEPTION:
             packet.exception = await self.receive_exception()
+            # The server is done with this query: the stream is back at a
+            # packet boundary and the connection stays usable, so clear the
+            # guard that would otherwise reject the next query.
+            self.is_query_executing = False
 
         elif packet.type == ServerPacket.PROGRESS:
             packet.progress = await self.receive_progress()

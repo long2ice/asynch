@@ -120,6 +120,21 @@ PATCHES: list[tuple[str, str, str, str]] = [
         "computed from int flags at class-body time; stubgen-pyx cannot evaluate the expression",
     ),
     (
+        "proto/connection.pyi",
+        "class Connection:\n",
+        (
+            "class Connection:\n"
+            "    # Resolved (host, port) candidates, including alt_hosts; the port\n"
+            "    # is filled in from the scheme when the caller did not give one.\n"
+            "    hosts: list[tuple[str, int]]\n"
+        ),
+        (
+            "stubgen-pyx does not emit instance attributes assigned in a "
+            "plain-class __init__; the facade Connection reads this one back "
+            "to report its effective port"
+        ),
+    ),
+    (
         "proto/columns/datecolumn.pyi",
         ("lazy_date_lut = LazyLUT(_factory=...)\nlazy_date_lut_reverse = LazyLUT(_factory=...)"),
         ("lazy_date_lut: LazyLUT\nlazy_date_lut_reverse: LazyLUT"),

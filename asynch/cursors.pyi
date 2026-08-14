@@ -25,6 +25,11 @@ class Cursor:
         :return: the Cursor object status
         :rtype: str (CursorStatus StrEnum)
         """
+    @property
+    def arraysize(self):
+        """Number of rows `fetchmany` returns when called without a size."""
+    @arraysize.setter
+    def arraysize(self, value): ...
     def setinputsizes(self, *args):
         """Does nothing, required by DB API."""
     def setoutputsizes(self, *args):

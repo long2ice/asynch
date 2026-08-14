@@ -30,6 +30,13 @@ unchanged.
 - CI matrix: Python 3.11–3.14, ClickHouse latest + LTS lines; PyPI
   publishing via trusted publishing (OIDC)
 
+#### API
+
+- PEP 249 module surface: `apilevel`, `threadsafety`, `paramstyle`,
+  `connect()` and the exception hierarchy are now importable from `asynch`;
+  `Cursor.arraysize` is a read/write attribute. Additive only - no existing
+  behaviour changes. Based on #159 by @turquoisehealth
+
 #### Dependencies
 
 - Removed `leb128` (hand-rolled unsigned LEB128; also fixes non-canonical
@@ -42,6 +49,18 @@ unchanged.
   connection: the compressed writer's flush kept its buffer, re-compressing
   and re-sending every earlier byte. Reported in #149, fix based on #153 by
   @nils-borrmann-tacto
+- A secure connection without an explicit port used 9000 instead of 9440:
+  the port default was applied before the scheme was known, so
+  `clickhouses://host/db` and `Connection(secure=True)` both went to the
+  plaintext port. Based on #162 by @stankudrow
+- A server-side error (a bad query) disconnected the connection, so every SQL
+  error cost a pooled connection even though the stream is left at a packet
+  boundary and stays usable. Based on #150 by @nils-borrmann-tacto
+- Inserting `None` into a non-Nullable column raised whatever the serializer
+  happened to fail on (`TypeError: cannot convert 'NoneType' object to
+  bytes`, `AttributeError: 'NoneType' object has no attribute 'year'`);
+  it now reports the column and expected type. `input_format_null_as_default`
+  keeps working. Based on #146 by @vizor-games
 - `alt_hosts` never worked as a fallback: the first host's failure aborted
   the whole connect. Unreachable hosts are now skipped (with the socket torn
   down between attempts) and `NetworkError` is raised only if all fail;

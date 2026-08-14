@@ -201,3 +201,15 @@ async def write_column(
             "Repeat query with types_check=True for detailed info. "
             f"Column {column_name}: {str(error)}"
         )
+
+    except (TypeError, AttributeError) as e:
+        # Columns without a before_write hook (String, FixedString, ...) hand
+        # values straight to the serializer, so a None in a non-Nullable
+        # column surfaces as whatever primitive failed first.
+        if None in items:
+            raise TypeMismatchError(
+                "Type mismatch in VALUES section. "
+                f"Expected {column_spec} got NoneType: None for column "
+                f'"{column_name}". The column is not Nullable.'
+            ) from e
+        raise

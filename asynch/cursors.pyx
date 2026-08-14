@@ -56,6 +56,15 @@ class Cursor:
 
         return self._state
 
+    @property
+    def arraysize(self):
+        """Number of rows `fetchmany` returns when called without a size."""
+        return self._arraysize
+
+    @arraysize.setter
+    def arraysize(self, value):
+        self._arraysize = value
+
     def setinputsizes(self, *args):
         """Does nothing, required by DB API."""
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from asynch.errors import ServerException
 from asynch.proto.result import QueryInfo
 
 if TYPE_CHECKING:
@@ -57,6 +58,13 @@ class ExecuteContext:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
+            if issubclass(exc_type, ServerException):
+                # The server rejected the query but the connection itself is
+                # fine (the exception packet leaves the stream at a boundary).
+                # Dropping it here would make every SQL error cost a pooled
+                # connection. The query failed, so the database is NOT tracked:
+                # a failed `USE db` must not move the client's idea of it.
+                raise exc_val
             if issubclass(exc_type, (Exception, KeyboardInterrupt)):
                 await self._connection.disconnect()
                 raise exc_val
