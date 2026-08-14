@@ -13,7 +13,6 @@
 - **asyncio-native**: `async`/`await` everywhere, with a built-in connection pool and streaming result sets
 - **PEP 249 API**: `Connection`, `Cursor`/`DictCursor`, familiar `execute`/`fetch*` semantics
 - **Typed**: ships `.pyi` stubs for the compiled modules (PEP 561)
-- **Free-threading ready**: all compiled modules declare `freethreading_compatible`; importing asynch does not re-enable the GIL on free-threaded CPython
 
 ## Installation
 
@@ -21,7 +20,7 @@
 > pip install asynch
 ```
 
-Binary wheels are published for Linux (x86_64/arm64), Windows and macOS (Intel/ARM) on Python 3.9–3.14, including free-threaded builds — no compiler needed. On platforms without a wheel, the sdist compiles from source and requires a C toolchain.
+Binary wheels are published for Linux (x86_64/arm64), Windows and macOS (Intel/ARM) on Python 3.11–3.14 — no compiler needed. On platforms without a wheel, the sdist compiles from source and requires a C toolchain.
 
 If you want to install [`clickhouse-cityhash`](https://pypi.org/project/clickhouse-cityhash/) to enable transport compression
 

@@ -5,7 +5,7 @@ column timezone; these cases pin the fold/DST semantics that used to come from
 `pytz.localize`.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -35,7 +35,7 @@ def test_write_naive_datetime_across_dst(naive, expected_utc):
     column = make_column(ZoneInfo("Europe/Berlin"))
     items = [naive]
     column.before_write_items(items)
-    assert items[0] == int(expected_utc.replace(tzinfo=timezone.utc).timestamp())
+    assert items[0] == int(expected_utc.replace(tzinfo=UTC).timestamp())
 
 
 def test_write_accepts_pytz_timezone():
@@ -43,14 +43,14 @@ def test_write_accepts_pytz_timezone():
     column = make_column(pytz.timezone("Europe/Berlin"))
     items = [datetime(2024, 1, 15, 12, 0, 0)]
     column.before_write_items(items)
-    expected = datetime(2024, 1, 15, 11, 0, 0, tzinfo=timezone.utc)
+    expected = datetime(2024, 1, 15, 11, 0, 0, tzinfo=UTC)
     assert items[0] == int(expected.timestamp())
 
 
 def test_read_converts_to_column_timezone():
     column = make_column(ZoneInfo("Europe/Berlin"))
     # 2024-07-15 10:00 UTC == 12:00 CEST; offset_naive strips tzinfo after conversion.
-    ts = int(datetime(2024, 7, 15, 10, 0, 0, tzinfo=timezone.utc).timestamp())
+    ts = int(datetime(2024, 7, 15, 10, 0, 0, tzinfo=UTC).timestamp())
     assert column.after_read_items([ts]) == (datetime(2024, 7, 15, 12, 0, 0),)
 
 
@@ -58,8 +58,8 @@ def test_read_converts_to_column_timezone():
     "transition_utc",
     [
         # Europe/Berlin spring forward (01:00 UTC) and fall back (01:00 UTC), 2024
-        datetime(2024, 3, 31, 1, 0, 0, tzinfo=timezone.utc),
-        datetime(2024, 10, 27, 1, 0, 0, tzinfo=timezone.utc),
+        datetime(2024, 3, 31, 1, 0, 0, tzinfo=UTC),
+        datetime(2024, 10, 27, 1, 0, 0, tzinfo=UTC),
     ],
 )
 def test_read_matches_fromtimestamp_across_dst(transition_utc):
@@ -77,7 +77,7 @@ def test_read_matches_fromtimestamp_across_dst(transition_utc):
 def test_read_nulls_map():
     tz = ZoneInfo("Europe/Berlin")
     column = make_column(tz)
-    ts = int(datetime(2024, 7, 15, 10, 0, 0, tzinfo=timezone.utc).timestamp())
+    ts = int(datetime(2024, 7, 15, 10, 0, 0, tzinfo=UTC).timestamp())
     result = column.after_read_items([ts, ts], nulls_map=[False, True])
     assert result == (datetime(2024, 7, 15, 12, 0, 0), None)
 
@@ -90,7 +90,7 @@ def make_column64(tz, scale):
 def test_datetime64_read_matches_fromtimestamp(scale):
     tz = ZoneInfo("Europe/Berlin")
     column = make_column64(tz, scale)
-    base = int(datetime(2024, 7, 15, 10, 0, 0, tzinfo=timezone.utc).timestamp())
+    base = int(datetime(2024, 7, 15, 10, 0, 0, tzinfo=UTC).timestamp())
     ticks = 10**scale
     items = [base * ticks, base * ticks + (123456789 % ticks if ticks > 1 else 0)]
     result = column.after_read_items(items)
@@ -106,7 +106,7 @@ def test_datetime64_read_pre_epoch():
     tz = ZoneInfo("Europe/Berlin")
     column = make_column64(tz, 3)
     # 1955-05-15 10:30:00.250 UTC
-    target = datetime(1955, 5, 15, 10, 30, 0, tzinfo=timezone.utc)
+    target = datetime(1955, 5, 15, 10, 30, 0, tzinfo=UTC)
     ts = int(target.timestamp())
     items = [ts * 1000 + 250]
     (got,) = column.after_read_items(items)
@@ -131,7 +131,7 @@ async def test_datetime64_server_roundtrip(conn):
 def test_datetime64_read_across_dst():
     tz = ZoneInfo("Europe/Berlin")
     column = make_column64(tz, 3)
-    base = int(datetime(2024, 3, 31, 1, 0, 0, tzinfo=timezone.utc).timestamp())
+    base = int(datetime(2024, 3, 31, 1, 0, 0, tzinfo=UTC).timestamp())
     items = [(base + delta) * 1000 + 500 for delta in range(-90, 90)]
     result = column.after_read_items(items)
     expected = tuple(

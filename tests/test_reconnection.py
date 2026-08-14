@@ -74,7 +74,7 @@ async def reader_to_writer(name: str, graceful: bool, reader: StreamReader, writ
                 break
             writer.write(data)
             await writer.drain()
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.info("Timeout")
             break
 

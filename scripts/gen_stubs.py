@@ -48,7 +48,7 @@ RETURN_TYPES: dict[str, dict[str, str]] = {
 
 # Imports the annotations above need, appended after the generated imports.
 EXTRA_IMPORTS: dict[str, str] = {
-    "cursors.pyi": ("from typing import Any\n\nfrom typing_extensions import Self\n"),
+    "cursors.pyi": "from typing import Any, Self\n",
     "proto/connection.pyi": "from typing import Any\n",
 }
 

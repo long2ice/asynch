@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable
+from typing import Any
 
 import pytest
 
@@ -205,9 +206,9 @@ settings_test_params = dict(
         [
             "rv",
             "SELECT name, value, changed FROM system.settings WHERE name = 'max_threads'",
-            [("max_threads", "1234", 1)],
+            [("max_threads", "12", 1)],
             None,
-            dict(max_threads=1234),
+            dict(max_threads=12),
         ],
         [
             "rv",

@@ -1,16 +1,4 @@
-from enum import Enum
-
-
-class _StrEnum(str, Enum):
-    """A `str`-mixin enum whose members format as their values on every Python version.
-
-    Python 3.11 changed `str()`/`format()` of mixin enums to return e.g.
-    "ConnectionStatus.opened" instead of "opened"; this pins the pre-3.11
-    (and `enum.StrEnum`) behavior while the project still supports 3.9/3.10.
-    """
-
-    __str__ = str.__str__
-    __format__ = str.__format__  # type: ignore[assignment]
+from enum import StrEnum as _StrEnum
 
 
 class CompressionAlgorithm(_StrEnum):

@@ -20,18 +20,15 @@ unchanged.
 
 #### Packaging & toolchain
 
+- Python 3.11+ required (3.9/3.10 support dropped)
 - Wheels are now platform-specific binary wheels built by cibuildwheel
-  (Linux x86_64/arm64, Windows, macOS Intel/ARM, including free-threaded
-  CPython); platforms without a wheel compile from sdist and need a C
-  toolchain plus Cython
+  (Linux x86_64/arm64, Windows, macOS Intel/ARM); platforms without a wheel
+  compile from sdist and need a C toolchain plus Cython
 - Dependency management moved from Poetry to uv (PEP 735 dependency groups);
   contributors run `uv sync --all-groups --all-extras` (or `make deps`)
 - Type information ships as generated `.pyi` stubs validated by stubtest
-- CI matrix: Python 3.9–3.14 + 3.14t, ClickHouse latest + LTS lines; PyPI
+- CI matrix: Python 3.11–3.14, ClickHouse latest + LTS lines; PyPI
   publishing via trusted publishing (OIDC)
-- Free-threaded CPython supported: all compiled modules declare
-  `freethreading_compatible`; importing asynch no longer re-enables the GIL
-  (ciso8601 is imported lazily, only for str -> datetime inserts)
 
 #### Dependencies
 
@@ -41,6 +38,9 @@ unchanged.
 
 #### Fixes
 
+- `DateTime64` was decoded as an unsigned integer: pre-1970 values were
+  silently corrupted on read and failed on write; the wire value is a signed
+  Int64 tick count
 - `str()`/`f"{...}"` of status/scheme enums returned e.g.
   `ConnectionStatus.opened` instead of `opened` on Python 3.11+
 - `Cursor.fetchone` in streaming mode no longer swallows server errors

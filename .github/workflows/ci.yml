@@ -42,20 +42,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.14t"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "${{ matrix.python-version }}"
       - uses: astral-sh/setup-uv@v7
-      # clickhouse-cityhash (the optional compression extra) does not build on
-      # free-threaded CPython yet, so 3.14t installs without extras.
-      - run: uv sync --all-groups ${{ matrix.python-version != '3.14t' && '--all-extras' || '' }}
-      - run: uv run --no-sync make _test
+      - run: uv run make test
 
   # ClickHouse server versions are orthogonal to Python versions, so LTS server
-  # lines are only exercised against the oldest and newest supported Pythons.
+  # lines are only exercised against the newest Python.
   ci_clickhouse_lts:
     runs-on: ubuntu-latest
     services:
@@ -74,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.14"]
+        python-version: ["3.14"]
         clickhouse-version: ["24.8", "25.3"]
     steps:
       - uses: actions/checkout@v6
