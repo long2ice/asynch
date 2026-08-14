@@ -120,11 +120,13 @@ async def get_tcp_connections() -> Callable[[Connection], Coroutine[Any, Any, in
 
 @pytest.fixture()
 async def assert_tcp_connections_settle(get_tcp_connections):
-    """Assert the server's TCP connection count returns to `expected`.
+    """Assert the server's TCP connection count falls back to `expected`.
 
-    ClickHouse does not reap a closed connection the instant the client goes
-    away, so comparing the metric immediately after a pool shuts down is
-    racy; poll for a short while before failing.
+    The metric is server-global, so it is checked as an upper bound: what
+    matters is that the code under test leaked nothing, while a *lower* count
+    only means an unrelated connection went away. ClickHouse also does not
+    reap a closed connection the instant the client goes away, so poll for a
+    short while rather than sampling once.
     """
 
     async def _assert(expected: int, settle_seconds: float = 5.0) -> None:
@@ -132,10 +134,10 @@ async def assert_tcp_connections_settle(get_tcp_connections):
         async with Connection() as connection:
             while True:
                 current = await get_tcp_connections(connection)
-                if current == expected:
+                if current <= expected:
                     return
                 if time.monotonic() >= deadline:
-                    raise AssertionError(f"TCP connections did not settle: {current} != {expected}")
+                    raise AssertionError(f"TCP connections did not settle: {current} > {expected}")
                 await asyncio.sleep(0.1)
 
     return _assert

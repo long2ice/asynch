@@ -326,6 +326,13 @@ class Connection:
 
     async def ping(self):
         try:
+            return await asyncio.wait_for(self._ping(), timeout=self.sync_request_timeout)
+        except (asyncio.TimeoutError, TimeoutError) as e:
+            logger.debug("Ping timed out for %s", self, exc_info=e)
+            return False
+
+    async def _ping(self):
+        try:
             if self.reader.reader.at_eof():
                 logger.debug("%s at EOF", self.reader)
                 await self.disconnect()
@@ -573,8 +580,13 @@ class Connection:
         self.host, self.port = host, port
         # A larger StreamReader limit lets each refill hand the parser up to a
         # full BUFFER_SIZE chunk instead of the 64 KiB default.
-        reader, writer = await asyncio.open_connection(
-            host, port, limit=constants.BUFFER_SIZE, ssl=self._get_ssl_context()
+        # `connect_timeout` bounds this per host: without it a black-holed
+        # host stalls on the OS connect timeout and alt_hosts failover with it.
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(
+                host, port, limit=constants.BUFFER_SIZE, ssl=self._get_ssl_context()
+            ),
+            timeout=self.connect_timeout,
         )
         self.writer = BufferedWriter(writer)
         self.reader = BufferedReader(reader)
@@ -583,8 +595,8 @@ class Connection:
         self.block_writer = self.get_block_writer()
 
         self.connected = True
-        await self.send_hello()
-        await self.receive_hello()
+        await asyncio.wait_for(self.send_hello(), timeout=self.connect_timeout)
+        await asyncio.wait_for(self.receive_hello(), timeout=self.connect_timeout)
 
     def reset_state(self):
         self.writer = None

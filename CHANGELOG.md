@@ -49,6 +49,18 @@ unchanged.
   connection: the compressed writer's flush kept its buffer, re-compressing
   and re-sending every earlier byte. Reported in #149, fix based on #153 by
   @nils-borrmann-tacto
+- A cancelled query left the connection permanently unusable: every later
+  query raised "some records have not been fetched". `asyncio.CancelledError`
+  is a `BaseException`, so the teardown branch was skipped and
+  `is_query_executing` stayed set - which any `asyncio.timeout` around a
+  query, or a web framework cancelling a request task, would trigger (#93)
+- `connect_timeout` and `sync_request_timeout` were accepted but never used:
+  a black-holed host hung on the OS connect timeout (taking `alt_hosts`
+  failover with it), and a `ping()` against an accepted-but-silent server
+  could stall a pool checkout indefinitely (#114)
+- Streaming forced `max_block_size`, so a `readonly=1` user could not stream
+  at all, and the default buffer of 0 was rejected by the server outright.
+  The setting is only sent when a buffer size was requested (#67)
 - A secure connection without an explicit port used 9000 instead of 9440:
   the port default was applied before the scheme was known, so
   `clickhouses://host/db` and `Connection(secure=True)` both went to the

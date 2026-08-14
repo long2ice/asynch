@@ -1,4 +1,6 @@
+import asyncio
 import ssl
+import time
 
 import pytest
 
@@ -297,3 +299,62 @@ async def test_failed_use_does_not_change_tracked_database(conn):
             await cursor.execute("USE database_that_does_not_exist")
 
     assert conn._connection.database == before
+
+
+@pytest.mark.asyncio
+async def test_cancelled_query_does_not_wedge_connection(config):
+    """A cancelled query must leave the connection usable (or closed), not stuck.
+
+    `asyncio.CancelledError` is a `BaseException`, so it used to skip the
+    teardown branch and leave `is_query_executing` set forever — every later
+    query then failed with "some records have not been fetched".
+    """
+    conn = Connection(dsn=config.dsn)
+    await conn.connect()
+    try:
+        async with conn.cursor() as cursor:
+            with pytest.raises((asyncio.TimeoutError, TimeoutError)):
+                await asyncio.wait_for(cursor.execute("SELECT sleep(3)"), timeout=0.3)
+
+        assert conn._connection.is_query_executing is False
+
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT 42")
+            assert await cursor.fetchone() == (42,)
+    finally:
+        await conn.close()
+
+
+@pytest.mark.asyncio
+async def test_cancelled_query_recovers_in_pool(config):
+    """The same, through a pool: the connection must not poison the pool."""
+    from asynch import Pool
+
+    async with Pool(dsn=config.dsn, minsize=1, maxsize=1) as pool:
+        async with pool.connection() as conn:
+            async with conn.cursor() as cursor:
+                with pytest.raises((asyncio.TimeoutError, TimeoutError)):
+                    await asyncio.wait_for(cursor.execute("SELECT sleep(3)"), timeout=0.3)
+
+        async with pool.connection() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute("SELECT 42")
+                assert await cursor.fetchone() == (42,)
+
+
+@pytest.mark.asyncio
+async def test_connect_timeout_is_enforced():
+    """`connect_timeout` used to be stored and never read.
+
+    A black-holed address would then hang for the OS connect timeout, taking
+    alt_hosts failover with it.
+    """
+    from asynch.errors import NetworkError
+    from asynch.proto.connection import Connection as ProtoConnection
+
+    # RFC 5737 TEST-NET-1: guaranteed not to be routed.
+    conn = ProtoConnection(host="192.0.2.1", port=9000, connect_timeout=1)
+    started = time.monotonic()
+    with pytest.raises(NetworkError):
+        await asyncio.wait_for(conn.connect(), timeout=15)
+    assert time.monotonic() - started < 10

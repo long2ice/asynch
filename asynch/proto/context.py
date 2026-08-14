@@ -52,7 +52,7 @@ class ExecuteContext:
         try:
             await self._connection.force_connect()
             self._connection.last_query = QueryInfo(self._connection.reader)
-        except (Exception, KeyboardInterrupt):
+        except BaseException:
             await self._connection.disconnect()
             raise
 
@@ -65,7 +65,13 @@ class ExecuteContext:
                 # connection. The query failed, so the database is NOT tracked:
                 # a failed `USE db` must not move the client's idea of it.
                 raise exc_val
-            if issubclass(exc_type, (Exception, KeyboardInterrupt)):
-                await self._connection.disconnect()
-                raise exc_val
+            # Any other failure leaves the query half-read, so the connection
+            # has to go. This must catch BaseException, not Exception:
+            # asyncio.CancelledError is a BaseException, and skipping it here
+            # left `is_query_executing` set forever, so every later query on
+            # that connection failed with "some records have not been
+            # fetched". Cancelling a query - an `asyncio.timeout`, or a web
+            # framework cancelling a request task - is routine.
+            await self._connection.disconnect()
+            raise exc_val
         self._connection.track_current_database(self._query)
