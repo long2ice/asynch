@@ -41,6 +41,7 @@ from .intervalcolumn import (
     IntervalYearColumn,
 )
 from .ipcolumn import IPv4Column, IPv6Column
+from .dynamiccolumn import create_dynamic_column
 from .jsoncolumn import create_json_column
 from .lowcardinalitycolumn import create_low_cardinality_column
 from .mapcolumn import create_map_column
@@ -135,7 +136,12 @@ def get_column_by_spec(spec, column_options):
 
     elif spec.startswith("Map"):
         return create_map_column(spec, create_column_with_options, column_options)
-    elif spec.startswith("Object('json')"):
+    elif spec == "Dynamic" or spec.startswith("Dynamic("):
+        return create_dynamic_column(spec, create_column_with_options, column_options)
+
+    elif spec.startswith("Object('json')") or spec == "JSON" or spec.startswith("JSON("):
+        # `Object('json')` is the pre-24.8 spelling; modern servers only know
+        # `JSON`, optionally with parameters that do not change the layout.
         return create_json_column(spec, create_column_with_options, column_options)
     else:
         for alias, primitive in aliases:
@@ -183,7 +189,12 @@ async def write_column(
     column = get_column_by_spec(column_spec, column_options)
 
     try:
-        await column.write_state_prefix()
+        if getattr(column, "prefix_needs_items", False):
+            # A JSON column's prefix lists the paths it is about to write, so
+            # it can only be produced from the block's items.
+            await column.write_state_prefix(items)
+        else:
+            await column.write_state_prefix()
         await column.write_data(items)
 
     except ColumnTypeMismatchException as e:

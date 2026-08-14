@@ -32,6 +32,12 @@ unchanged.
 
 #### API
 
+- Support for the modern `JSON` type (ClickHouse 24.8+). Reading composes a
+  `Dynamic`/`Variant` reader per path with the shared-data sub-column and
+  returns nested dicts; writing accepts dicts or JSON text and emits the V2
+  object framing. `Dynamic` is readable as a column type in its own right.
+  The pre-24.8 `Object('json')` spelling keeps its own reader, since modern
+  servers reject the type outright (#142)
 - `Connection.cancel()` / `Cursor.cancel()` stop a running query from another
   task. Only the cancel packet is sent - the task awaiting the query owns the
   read side and drains the stream, so the connection stays usable (#104)

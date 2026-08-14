@@ -210,6 +210,29 @@ async def stream_rows(conn: Connection):
             process(row)
 ```
 
+### JSON columns
+
+`JSON` columns (ClickHouse 24.8+) read as nested dicts and accept dicts or
+JSON text on insert.
+
+```python
+async def use_json(conn: Connection):
+    async with conn.cursor() as cursor:
+        await cursor.execute(
+            "CREATE TABLE test.events (id UInt32, doc JSON) ENGINE = MergeTree ORDER BY id"
+        )
+        await cursor.execute(
+            "INSERT INTO test.events (id, doc) VALUES",
+            [
+                (1, {"user": {"name": "ada"}, "tags": ["a", "b"]}),
+                (2, '{"user": {"name": "bob"}}'),   # JSON text works too
+            ],
+        )
+
+        await cursor.execute("SELECT doc FROM test.events ORDER BY id")
+        assert await cursor.fetchone() == ({"user": {"name": "ada"}, "tags": ["a", "b"]},)
+```
+
 ### Cancelling a query
 
 A long-running query can be stopped from another task; the connection is left
