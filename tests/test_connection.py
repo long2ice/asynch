@@ -358,3 +358,33 @@ async def test_connect_timeout_is_enforced():
     with pytest.raises(NetworkError):
         await asyncio.wait_for(conn.connect(), timeout=15)
     assert time.monotonic() - started < 10
+
+
+@pytest.mark.asyncio
+async def test_send_receive_timeout_is_enforced():
+    """`send_receive_timeout` used to be stored and never read."""
+    from asynch.errors import NetworkError
+    from asynch.proto.connection import Connection as ProtoConnection
+
+    # The handler must be releasable: `wait_closed()` waits for handlers to
+    # finish, so a plain `sleep(300)` here would stall teardown for 300s.
+    release = asyncio.Event()
+
+    async def silent(reader, writer):
+        await release.wait()
+        writer.close()
+
+    server = await asyncio.start_server(silent, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    try:
+        conn = ProtoConnection(
+            host="127.0.0.1", port=port, connect_timeout=30, send_receive_timeout=1
+        )
+        started = time.monotonic()
+        with pytest.raises(NetworkError):
+            await asyncio.wait_for(conn.connect(), timeout=15)
+        assert time.monotonic() - started < 10
+    finally:
+        release.set()
+        server.close()
+        await server.wait_closed()

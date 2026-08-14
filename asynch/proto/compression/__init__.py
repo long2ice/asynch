@@ -10,13 +10,20 @@ if TYPE_CHECKING:
     from asynch.proto.streams.buffered import BufferedReader, BufferedWriter
 
 
+_CODEC_PACKAGES = {"lz4": "lz4", "lz4hc": "lz4", "zstd": "zstd"}
+
+
 def get_compressor_cls(alg) -> type[BaseCompressor]:
     try:
         module = importlib.import_module("." + alg, __name__)
-        return module.Compressor
-
-    except ImportError:
-        raise UnknownCompressionMethod(f"Unknown compression method: '{alg}'")
+    except ImportError as e:
+        # Distinguish "no such algorithm" from "the codec package is not
+        # installed". Both used to surface as UnknownCompressionMethod, which
+        # sent people looking for a typo in a perfectly valid method name.
+        if getattr(e, "name", None) == _CODEC_PACKAGES.get(alg):
+            raise ImportError(f"Please install asynch[compression] to use {alg} compression") from e
+        raise UnknownCompressionMethod(f"Unknown compression method: '{alg}'") from e
+    return module.Compressor
 
 
 def get_decompressor_cls(method_type) -> type[BaseDecompressor]:

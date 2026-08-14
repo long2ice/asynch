@@ -29,15 +29,22 @@ classifiers = [
 requires-python = ">=3.11,<4.0"
 dependencies = [
     "ciso8601>=2.3.2",
-    "lz4>=4.4.3",
     "tzlocal>=5.3.1",
-    "zstd>=1.5.6.6",
     # zoneinfo needs the IANA database, which Windows does not ship.
     "tzdata; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
-compression = ["clickhouse-cityhash>=1.0.2.4"]
+# Transport compression needs all of these: cityhash for the block checksums
+# plus the codecs themselves. They used to be mandatory even though
+# compression could not work without the (optional) cityhash, so every user
+# installed two codec libraries they could not use.
+# zstd is only needed below 3.14, which has it in the standard library.
+compression = [
+    "clickhouse-cityhash>=1.0.2.4",
+    "lz4>=4.4.3",
+    "zstd>=1.5.6.6; python_version < '3.14'",
+]
 
 [project.urls]
 homepage = "https://github.com/long2ice/asynch"

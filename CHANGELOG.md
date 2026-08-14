@@ -32,6 +32,21 @@ unchanged.
 
 #### API
 
+- `Connection.last_query` exposes the statistics the server reported for the
+  most recent query (elapsed, rows/bytes progress, profile info); previously
+  reachable only as `conn._connection.last_query` (#85)
+- `Pool(idle_timeout=...)` reaps connections that have been idle for longer
+  than the timeout, down to `minsize`. Without it the pool grows to its
+  high-water mark and keeps every connection for the process lifetime, which
+  is still the default (#137)
+- Pool checkouts cost one liveness ping instead of two: a connection verified
+  on release is not re-pinged when acquired again within `liveness_grace`
+  seconds (1.0 by default)
+- `lz4` and `zstd` moved into the `compression` extra. They were mandatory
+  even though compression cannot work without the optional
+  `clickhouse-cityhash`, so every install carried two unusable codec
+  libraries. On Python 3.14+ the stdlib `compression.zstd` is used and no
+  third-party zstd package is needed at all (#143)
 - PEP 249 module surface: `apilevel`, `threadsafety`, `paramstyle`,
   `connect()` and the exception hierarchy are now importable from `asynch`;
   `Cursor.arraysize` is a read/write attribute. Additive only - no existing
@@ -58,6 +73,12 @@ unchanged.
   a black-holed host hung on the OS connect timeout (taking `alt_hosts`
   failover with it), and a `ping()` against an accepted-but-silent server
   could stall a pool checkout indefinitely (#114)
+- `send_receive_timeout` is now enforced on socket reads and writes; a server
+  that accepts a connection and then goes silent no longer hangs the client
+  indefinitely (#114)
+- A missing codec package reported `UnknownCompressionMethod: Unknown
+  compression method: 'lz4'`, which reads as a typo in a valid method name;
+  it now says to install `asynch[compression]`
 - Streaming forced `max_block_size`, so a `readonly=1` user could not stream
   at all, and the default buffer of 0 was rejected by the server outright.
   The setting is only sent when a buffer size was requested (#67)

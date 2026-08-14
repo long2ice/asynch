@@ -260,3 +260,87 @@ async def test_pool_discards_dead_free_connection():
 
         assert dead not in pool._free_connections
         assert dead not in pool._acquired_connections
+
+
+@pytest.mark.asyncio
+async def test_pool_reaps_idle_connections():
+    """With `idle_timeout`, the pool shrinks back towards minsize.
+
+    Without it the pool grows to its high-water mark and keeps every
+    connection for the process lifetime.
+    """
+    async with Pool(minsize=1, maxsize=4, idle_timeout=0.2) as pool:
+        barrier = asyncio.Barrier(5)
+
+        async def hold():
+            async with pool.connection():
+                await barrier.wait()
+
+        tasks = [asyncio.create_task(hold()) for _ in range(4)]
+        await asyncio.sleep(0.1)
+        assert _get_pool_size(pool) == 4
+        await barrier.wait()
+        await asyncio.gather(*tasks)
+        assert _get_pool_size(pool) == 4
+
+        await asyncio.sleep(0.3)
+        # Any checkout runs the reaper on release.
+        async with pool.connection():
+            pass
+        assert _get_pool_size(pool) == 1
+
+
+@pytest.mark.asyncio
+async def test_pool_keeps_connections_without_idle_timeout():
+    """The default must stay as it was: no reaping."""
+    async with Pool(minsize=1, maxsize=3) as pool:
+        barrier = asyncio.Barrier(4)
+
+        async def hold():
+            async with pool.connection():
+                await barrier.wait()
+
+        tasks = [asyncio.create_task(hold()) for _ in range(3)]
+        await asyncio.sleep(0.1)
+        await barrier.wait()
+        await asyncio.gather(*tasks)
+
+        await asyncio.sleep(0.2)
+        async with pool.connection():
+            pass
+        assert _get_pool_size(pool) == 3
+
+
+@pytest.mark.asyncio
+async def test_pool_liveness_grace_halves_pings():
+    """A connection verified on release is not re-pinged on the next acquire."""
+    calls = {"n": 0}
+    original = Connection.is_live
+
+    async def counting(self):
+        calls["n"] += 1
+        return await original(self)
+
+    Connection.is_live = counting
+    try:
+        async with Pool(minsize=1, maxsize=1, liveness_grace=10) as pool:
+            for _ in range(10):
+                async with pool.connection():
+                    pass
+        with_grace = calls["n"]
+
+        calls["n"] = 0
+        async with Pool(minsize=1, maxsize=1, liveness_grace=0) as pool:
+            for _ in range(10):
+                async with pool.connection():
+                    pass
+        without_grace = calls["n"]
+    finally:
+        Connection.is_live = original
+
+    assert without_grace >= 2 * with_grace - 2
+
+
+def test_pool_rejects_invalid_idle_timeout():
+    with pytest.raises(ValueError):
+        Pool(idle_timeout=0)

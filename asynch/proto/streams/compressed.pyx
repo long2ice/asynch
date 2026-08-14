@@ -19,7 +19,9 @@ class CompressedBlockWriter(BlockWriter):
         self.compressor = compressor
         self.compress_block_size = compress_block_size
         self.raw_writer = writer
-        self.writer = CompressedBufferedWriter(compressor, writer.writer, constants.BUFFER_SIZE)
+        self.writer = CompressedBufferedWriter(
+            compressor, writer.writer, constants.BUFFER_SIZE, timeout=writer.timeout
+        )
         super().__init__(reader, self.writer, context)
 
     async def finalize(self):
@@ -60,6 +62,6 @@ class CompressedBlockReader(BlockReader):
     def __init__(self, reader, writer, context):
         self.raw_reader = reader
         self.reader = CompressedBufferedReader(
-            self.raw_reader, reader.reader, constants.BUFFER_SIZE
+            self.raw_reader, reader.reader, constants.BUFFER_SIZE, timeout=reader.timeout
         )
         super().__init__(self.reader, writer, context)

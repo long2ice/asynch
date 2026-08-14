@@ -4,6 +4,7 @@
 # read-only afterwards, which is what makes the module safe to import and use
 # from multiple threads under free-threaded CPython. This does NOT make a
 # single BufferedReader/BufferedWriter safe to share between threads.
+import asyncio
 import struct
 
 from cpython.bytes cimport PyBytes_FromStringAndSize
@@ -39,11 +40,13 @@ def encode_varint(value):
 
 
 class BufferedWriter:
-    def __init__(self, writer=None, max_buffer_size=constants.BUFFER_SIZE):
+    def __init__(self, writer=None, max_buffer_size=constants.BUFFER_SIZE, timeout=None):
         self.max_buffer_size = max_buffer_size
         self.writer = writer
         self.buffer = bytearray()
         self.position = 0
+        # `send_receive_timeout`: None disables it.
+        self.timeout = timeout
 
     async def flush(self):
         if not self.writer:
@@ -51,7 +54,13 @@ class BufferedWriter:
         self.writer.write(self.buffer)
         self.buffer = bytearray()
         self.position = 0
-        await self.writer.drain()
+        # `drain()` is the only part of a write that waits on the peer: it
+        # blocks once the transport's send buffer is full and the peer stops
+        # reading.
+        if self.timeout is None:
+            await self.writer.drain()
+        else:
+            await asyncio.wait_for(self.writer.drain(), timeout=self.timeout)
 
     async def write_bytes(self, data):
         self.buffer.extend(data)
@@ -153,12 +162,14 @@ class BufferedWriter:
 
 
 class BufferedReader:
-    def __init__(self, reader, buffer_max_size=constants.BUFFER_SIZE):
+    def __init__(self, reader, buffer_max_size=constants.BUFFER_SIZE, timeout=None):
         self.buffer_max_size = buffer_max_size
         self.reader = reader
         self.buffer = bytearray()
         self.current_buffer_size = 0
         self.position = 0
+        # `send_receive_timeout`: None disables it.
+        self.timeout = timeout
 
     async def _refill_buffer(self):
         if self.position == self.current_buffer_size:
@@ -179,7 +190,12 @@ class BufferedReader:
         self.buffer = bytearray()
 
     async def _read_into_buffer(self):
-        packet = await self.reader.read(self.buffer_max_size)
+        if self.timeout is None:
+            packet = await self.reader.read(self.buffer_max_size)
+        else:
+            packet = await asyncio.wait_for(
+                self.reader.read(self.buffer_max_size), timeout=self.timeout
+            )
         self.buffer.extend(packet)
         self.current_buffer_size = len(self.buffer)
 
@@ -393,9 +409,10 @@ class BufferedReader:
 
 
 class CompressedBufferedWriter(BufferedWriter):
-    def __init__(self, compressor, writer=None, max_buffer_size=constants.BUFFER_SIZE):
+    def __init__(self, compressor, writer=None, max_buffer_size=constants.BUFFER_SIZE,
+                 timeout=None):
         self.compressor = compressor
-        super().__init__(writer, max_buffer_size)
+        super().__init__(writer, max_buffer_size, timeout=timeout)
 
     async def flush(self):
         await self.compressor.write(self.buffer)
@@ -410,9 +427,9 @@ class CompressedBufferedWriter(BufferedWriter):
 
 
 class CompressedBufferedReader(BufferedReader):
-    def __init__(self, raw_reader, reader, buffer_max_size=constants.BUFFER_SIZE):
+    def __init__(self, raw_reader, reader, buffer_max_size=constants.BUFFER_SIZE, timeout=None):
         self.raw_reader = raw_reader
-        super().__init__(reader, buffer_max_size)
+        super().__init__(reader, buffer_max_size, timeout=timeout)
 
     async def _read_compressed_data(self):
         compressed_hash = await self.raw_reader.read_uint128()

@@ -76,15 +76,15 @@ version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "ciso8601" },
-    { name = "lz4" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
     { name = "tzlocal" },
-    { name = "zstd" },
 ]
 
 [package.optional-dependencies]
 compression = [
     { name = "clickhouse-cityhash" },
+    { name = "lz4" },
+    { name = "zstd", marker = "python_full_version < '3.14'" },
 ]
 
 [package.dev-dependencies]
@@ -109,10 +109,10 @@ test = [
 requires-dist = [
     { name = "ciso8601", specifier = ">=2.3.2" },
     { name = "clickhouse-cityhash", marker = "extra == 'compression'", specifier = ">=1.0.2.4" },
-    { name = "lz4", specifier = ">=4.4.3" },
+    { name = "lz4", marker = "extra == 'compression'", specifier = ">=4.4.3" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
     { name = "tzlocal", specifier = ">=5.3.1" },
-    { name = "zstd", specifier = ">=1.5.6.6" },
+    { name = "zstd", marker = "python_full_version < '3.14' and extra == 'compression'", specifier = ">=1.5.6.6" },
 ]
 provides-extras = ["compression"]
 

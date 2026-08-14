@@ -588,8 +588,8 @@ class Connection:
             ),
             timeout=self.connect_timeout,
         )
-        self.writer = BufferedWriter(writer)
-        self.reader = BufferedReader(reader)
+        self.writer = BufferedWriter(writer, timeout=self.send_receive_timeout)
+        self.reader = BufferedReader(reader, timeout=self.send_receive_timeout)
         self.block_reader = self.get_block_reader()
         self.block_reader_raw = BlockReader(self.reader, self.writer, self.context)
         self.block_writer = self.get_block_writer()

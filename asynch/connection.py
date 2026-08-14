@@ -80,6 +80,19 @@ class Connection:
         return self._opened
 
     @property
+    def last_query(self):
+        """Statistics for the most recent query on this connection.
+
+        Exposes what the server reported while the query ran: `elapsed`
+        seconds, a `progress` counter (rows/bytes read) and `profile_info`
+        (including `rows_before_limit`). None before the first query.
+
+        :return: the QueryInfo of the last executed query, if any
+        """
+
+        return self._connection.last_query
+
+    @property
     def closed(self) -> bool:
         """Return True if the connection is closed.
 
