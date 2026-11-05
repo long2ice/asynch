@@ -22,6 +22,8 @@ class Pool:
         maxsize: int = constants.POOL_MAX_SIZE,
         idle_timeout: float | None = None,
         liveness_grace: float = 1.0,
+        close_timeout: float | None = 5.0,
+        invalidate_conn_for_mid_query_releases: bool = False,
         **kwargs,
     ):
         if maxsize < 1:
@@ -32,6 +34,8 @@ class Pool:
             raise ValueError("minsize is greater than maxsize")
         if idle_timeout is not None and idle_timeout <= 0:
             raise ValueError("idle_timeout is expected to be greater than zero")
+        if close_timeout is not None and close_timeout <= 0:
+            raise ValueError("close_timeout is expected to be greater than zero")
         self._maxsize = maxsize
         self._minsize = minsize
         # Reap connections idle for longer than this, down to minsize. None
@@ -42,6 +46,14 @@ class Pool:
         # checkout otherwise costs two PING round-trips (acquire and release),
         # which is invisible locally but is two extra RTTs in production.
         self._liveness_grace = liveness_grace
+        # Bound on the graceful disconnect of a discarded connection: closing
+        # a socket whose peer is gone can otherwise wait indefinitely. None
+        # waits forever.
+        self._close_timeout = close_timeout
+        # Invalidate connections that were released mid-query instead of
+        # returning them to the pool. Enables stricter lifecycle management
+        # to prevent protocol desynchronization, but changes pool behavior.
+        self._invalidate_conn_for_mid_query_releases = invalidate_conn_for_mid_query_releases
         # connection -> monotonic timestamp of its last release/verification
         self._idle_since: dict[int, float] = {}
         self._connection_kwargs = kwargs
@@ -175,7 +187,7 @@ class Pool:
         logger.debug("discarding %s from %s", conn, self)
         self._idle_since.pop(id(conn), None)
         with suppress(Exception):
-            await conn.close()
+            await conn.close(timeout=self._close_timeout)
 
     async def _is_usable(self, conn: Connection) -> bool:
         """Whether `conn` can be handed out, pinging unless recently verified."""
@@ -288,6 +300,15 @@ class Pool:
             try:
                 yield conn
             finally:
+                if self._invalidate_conn_for_mid_query_releases and conn._is_mid_query():
+                    # The caller left a query half-read (an error or a
+                    # cancelled request), so the connection is out of sync
+                    # with the server and would fail every later checkout.
+                    # Invalidate it before the first await below: waiting for
+                    # the lock can itself be cancelled, and the connection
+                    # must not be reusable even if the release never runs.
+                    logger.warning("discarding %s: released mid-query", conn)
+                    conn.invalidate()
                 async with self._lock:
                     try:
                         await self._release_connection(conn)

@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import asyncio
+import logging
+
 from asynch.cursors import Cursor
 from asynch.errors import NotSupportedError
 from asynch.proto import constants
 from asynch.proto.connection import Connection as ProtoConnection
 from asynch.proto.models.enums import ConnectionStatus
 from asynch.proto.utils.dsn import parse_dsn
+
+logger = logging.getLogger(__name__)
 
 
 class Connection:
@@ -143,15 +148,75 @@ class Connection:
     def echo(self) -> bool:
         return self._echo
 
-    async def close(self) -> None:
-        """Close the connection."""
+    @property
+    def is_query_executing(self) -> bool:
+        """Return True if a query was started and its stream was not finished.
+
+        The protocol layer only clears this flag once the server's
+        end-of-stream (or exception) packet is read, so a query that dies
+        half-read - a cancelled request, a dropped client - leaves it set.
+        Such a connection is out of sync with the server and must not be
+        reused: every later query on it fails until the flag is cleared.
+
+        :returns: whether the connection is stuck mid-query
+        :rtype: bool
+        """
+
+        return bool(self._connection.is_query_executing)
+
+    async def close(self, timeout: float | None = None) -> None:
+        """Close the connection.
+
+        The connection is always left closed, even if the graceful disconnect
+        fails, times out or is cancelled: `StreamWriter.wait_closed()` can
+        hang on a dead socket, and the protocol state is only reset after it
+        returns, so a hung disconnect would otherwise leave the connection
+        looking half-open. `invalidate()` makes that unconditional.
+
+        :param timeout float | None: seconds to wait for the graceful
+            disconnect, None to wait indefinitely
+        :raises TimeoutError: if the disconnect did not finish in `timeout`
+        """
 
         if self._closed:
             return
         if self._opened:
-            await self._connection.disconnect()
+            try:
+                await asyncio.wait_for(self._connection.disconnect(), timeout=timeout)
+            finally:
+                self.invalidate()
+            return
         self._opened = False
         self._closed = True
+
+    def invalidate(self) -> None:
+        """Forcibly close the connection without waiting on the server.
+
+        Closes the transport, resets the protocol state (clearing a stuck
+        `is_query_executing`) and marks the connection closed. Unlike
+        `close()` this is synchronous, so it cannot be interrupted by a
+        cancellation, and it never raises. It is safe to call repeatedly and
+        on a connection that is already closed.
+
+        Use it for a connection that cannot be trusted to disconnect cleanly,
+        such as one left mid-query.
+        """
+
+        proto_conn = self._connection
+        try:
+            buffered_writer = proto_conn.writer
+            stream_writer = buffered_writer.writer if buffered_writer is not None else None
+            if stream_writer is not None:
+                stream_writer.close()
+        except Exception:
+            logger.exception("Failed to close the socket of %s", self)
+        finally:
+            try:
+                proto_conn.reset_state()
+            except Exception:
+                logger.exception("Failed to reset the protocol state of %s", self)
+            self._opened = False
+            self._closed = True
 
     async def commit(self):
         raise NotSupportedError
@@ -207,6 +272,19 @@ class Connection:
         """
 
         return await self._connection.cancel()
+
+    def _is_mid_query(self) -> bool:
+        """Check if a query is currently executing on this connection.
+
+        A connection stuck mid-query is out of sync with the server and
+        cannot be safely reused. Pinging it would write into a stream the
+        server is still answering, corrupting the protocol state.
+
+        :return: True if a query is executing and not yet finished
+        :rtype: bool
+        """
+
+        return self.is_query_executing
 
     async def is_live(self) -> bool:
         """Report whether the connection is still usable.
